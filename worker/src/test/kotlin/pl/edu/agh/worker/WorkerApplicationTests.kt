@@ -1,13 +1,13 @@
-package pl.edu.agh.firevox.firevox
+package pl.edu.agh.worker
 
 import org.junit.jupiter.api.Test
 import org.springframework.boot.test.context.SpringBootTest
 
 @SpringBootTest
-class FIreVoxApplicationTests {
+class WorkerApplicationTests {
 
-	@Test
-	fun contextLoads() {
-	}
+    @Test
+    fun contextLoads() {
+    }
 
 }

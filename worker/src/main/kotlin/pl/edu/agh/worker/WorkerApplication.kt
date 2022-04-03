@@ -1,11 +1,11 @@
-package pl.edu.agh.firevox.firevox
+package pl.edu.agh.worker
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
 @SpringBootApplication
-class FIreVoxApplication
+class WorkerApplication
 
 fun main(args: Array<String>) {
-	runApplication<FIreVoxApplication>(*args)
+    runApplication<WorkerApplication>(*args)
 }
