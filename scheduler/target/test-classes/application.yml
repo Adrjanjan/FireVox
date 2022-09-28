@@ -1,0 +1,6 @@
+basket-service-address: http://localhost:8080
+currency-service-address: http://localhost:8081
+notification-service-address: http://localhost:8082
+payment-service-address: http://localhost:8084
+product-catalog-service-address: http://localhost:8085
+shipping-service-address: http://localhost:8086

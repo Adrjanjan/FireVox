@@ -1,0 +1,23 @@
+apiVersion: skaffold/v2beta28
+kind: Config
+metadata:
+  name: Voxel
+build:
+  artifacts:
+  - image: europe-central2-docker.pkg.dev/firevox/firevox-repository/Voxel
+    context: .
+    docker:
+      dockerfile: Dockerfile
+deploy:
+  kubectl:
+    manifests:
+    - ./kubernetes/Voxel.yaml
+profiles:
+- name: cloudbuild
+  build:
+    googleCloudBuild: {}
+- name: dockerfile
+  build:
+    artifacts:
+    - image: europe-central2-docker.pkg.dev/firevox/firevox-repository/Voxel
+      context: .

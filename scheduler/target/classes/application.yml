@@ -1,0 +1,26 @@
+server:
+  port: ${PORT:8083}
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:shipment
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+
+basket-service-address: ${BASKET_SERVICE_ADDR}
+currency-service-address: ${CURRENCY_SERVICE_ADDR}
+notification-service-address: ${NOTIFICATION_SERVICE_ADDR}
+payment-service-address: ${PAYMENT_SERVICE_ADDR}
+product-catalog-service-address: ${PRODUCT_CATALOG_SERVICE_ADDR}
+shipping-service-address: ${SHIPPING_SERVICE_ADDR}
+#basket-service-address: http://localhost:8080
+#currency-service-address: http://localhost:8081
+#notification-service-address: http://localhost:8082
+#payment-service-address: http://localhost:8084
+#product-catalog-service-address: http://localhost:8085
+#shipping-service-address: http://localhost:8086
