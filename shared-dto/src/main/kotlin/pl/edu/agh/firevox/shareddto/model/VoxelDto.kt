@@ -7,5 +7,5 @@ data class VoxelDto(
 
     val energy: Double,
     val temperature: Double,
-
+// TODO add other properties
 )
