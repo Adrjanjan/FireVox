@@ -45,7 +45,7 @@ object VoxFormatParser {
         mainOut.writeIntWithCorrectEndianness(1024)
         mainOut.writeIntWithCorrectEndianness(0)
         for (i in 1..255) {
-            mainOut.writeInt(model.palette.getColor(i))
+            mainOut.writeInt(model.palette.getColor(i).toInt())
         }
         mainOut.writeInt(0)
 
@@ -54,15 +54,15 @@ object VoxFormatParser {
             val material = model.getMaterial(i)
             if (material!!.type != 0) {
                 mainOut.writeTag(ChunkTags.TAG_MATT.tagValue)
-                val size: Int = 4 * (4 + material.values.size)
+                val size: Int = 4 * (4 + (material.values?.size ?: 0))
                 mainOut.writeIntWithCorrectEndianness(size)
                 mainOut.writeIntWithCorrectEndianness(0)
                 mainOut.writeIntWithCorrectEndianness(i)
-                mainOut.writeIntWithCorrectEndianness(material.type)
-                mainOut.writeFloatWithCorrectEndianness(material.weight)
-                mainOut.writeIntWithCorrectEndianness(material.properties)
-                for (j in 0 until material.values.size) {
-                    mainOut.writeFloatWithCorrectEndianness(material.values[j])
+                mainOut.writeIntWithCorrectEndianness(material.type ?: 0)
+                mainOut.writeFloatWithCorrectEndianness(material.weight ?: 0.0f)
+                mainOut.writeIntWithCorrectEndianness(material.properties ?: 0)
+                for (j in 0 until (material.values?.size ?: 0)) {
+                    mainOut.writeFloatWithCorrectEndianness(material.values?.get(j) ?: 0.0f)
                 }
             }
         }
@@ -116,8 +116,10 @@ object VoxFormatParser {
     ) {
         if (!skipTag)
             try {
-                if (input.readTag() != ChunkTags.TAG_MATT.tagValue) {
-                    throw IOException("Should be a ${ChunkTags.TAG_MAIN} tag here.")
+                val tag = input.readTag()
+                if(tag.isBlank()) return
+                if (tag != ChunkTags.TAG_MATT.tagValue) {
+                    return
                 }
             } catch (eof: EOFException) {
                 // no material, finish
@@ -128,7 +130,7 @@ object VoxFormatParser {
 
     private fun hasMultipleModels(main: MainChunk.Builder.MainChunkBuilder, input: DataInputStream) {
         main.packChunk = PackChunk.construct(input)
-        for (i in 0..main.packChunk!!.numberOfChunks) {
+        for (i in 0 until main.packChunk!!.numberOfChunks) {
             readSingleModel(main, input, false)
         }
     }
@@ -151,18 +153,20 @@ object VoxFormatParser {
 
         input.readIntWithCorrectEndianness().let {
             if (it != VERSION) {
-                println("Warning: expecting version $VERSION but got $it.")
+                throw WrongFileVersionException("Warning: expecting version $VERSION but got $it.")
             }
         }
     }
 
 }
 
+class WrongFileVersionException(s: String) : Throwable(s)
+
 abstract class Chunk(val id: ChunkTags)
 
 class MainChunk private constructor(
     val contentSize: Int = 0,
-    val overallChildrenSize: Int = 0,
+    val overallChildrenByteSize: Int = 0,
     val packChunk: PackChunk?,
     val childrenChunks: MutableList<Pair<SizeChunk, VoxelsChunk>> = mutableListOf(),
     val paletteChunk: PaletteChunk?,
@@ -178,17 +182,14 @@ class MainChunk private constructor(
             return MainChunkBuilder(input.readIntWithCorrectEndianness(), input.readIntWithCorrectEndianness())
         }
 
-        data class MainChunkBuilder(
-            val contentSize: Int = 0,
-            val overallChildrenSize: Int = 0
-        ) {
+        data class MainChunkBuilder(val contentSize: Int, val overallChildrenByteSize: Int) {
             var packChunk: PackChunk? = null
             var childrenChunks: MutableList<Pair<SizeChunk, VoxelsChunk>> = mutableListOf()
             var paletteChunk: PaletteChunk? = null
             var materialChunk: MaterialChunk? = null
 
             fun build(): MainChunk =
-                MainChunk(contentSize, overallChildrenSize, packChunk, childrenChunks, paletteChunk, materialChunk)
+                MainChunk(contentSize, overallChildrenByteSize, packChunk, childrenChunks, paletteChunk, materialChunk)
         }
     }
 }
@@ -209,10 +210,12 @@ data class SizeChunk(val sizeX: Int, val sizeY: Int, val sizeZ: Int) : Chunk(Chu
 
     companion object {
         fun construct(input: DataInputStream, skipTag: Boolean): SizeChunk {
-            if (!skipTag)
-                if (input.readTag() != ChunkTags.TAG_SIZE.tagValue) {
-                    throw IOException("Should be a ${ChunkTags.TAG_XYZI.tagValue} tag here.")
+            if (!skipTag) {
+                val tag = input.readTag()
+                if (tag != ChunkTags.TAG_SIZE.tagValue) {
+                    throw IOException("Should be a ${ChunkTags.TAG_SIZE.tagValue} tag here.")
                 }
+            }
             input.skipBytes(8)
             val sizeX = input.readIntWithCorrectEndianness()
             val sizeY = input.readIntWithCorrectEndianness()
@@ -236,31 +239,36 @@ data class VoxelsChunk(val numberOfVoxels: Int, val voxels: List<Voxel>) : Chunk
             val numVoxels = input.readIntWithCorrectEndianness()
             val voxels = mutableListOf<Voxel>()
             for (i in 0 until numVoxels) {
-                val x = input.readByte().toInt()
-                val y = input.readByte().toInt()
-                val z = input.readByte().toInt()
-                val p = input.readByte().toInt()
-                voxels.add(Voxel(x, y, z, p))
-                println("Voxel x=$x, y=$y, z=$z, p=$p")
+                val x = input.readUnsignedByte()
+                val y = input.readUnsignedByte()
+                val z = input.readUnsignedByte()
+                val colorIndex = input.readUnsignedByte()
+                voxels.add(Voxel(x, y, z, colorIndex))
+                println("Voxel x=$x, y=$y, z=$z, p=$colorIndex")
             }
             return VoxelsChunk(numVoxels, voxels)
         }
     }
 }
 
-data class PaletteChunk(val colours: MutableList<Int?>) : Chunk(ChunkTags.TAG_RGBA) {
+data class PaletteChunk(val colors: MutableList<Long?>) : Chunk(ChunkTags.TAG_RGBA) {
 
     companion object {
         fun construct(input: DataInputStream): PaletteChunk {
             // Palette chunk
-            val colours = MutableList<Int?>(256) { null }
+            val colors = MutableList<Long?>(256) { null }
             input.skipBytes(8)
-            for (i in 0..254) {
-                val c = input.readInt()
-                colours.add(i + 1, c)
+            for (i in 1..255) {
+                val r = input.readUnsignedByte()
+                val g = input.readUnsignedByte()
+                val b = input.readUnsignedByte()
+                val a = input.readUnsignedByte()
+                colors[i] = fromRgba(r, g, b, a)
             }
-            return PaletteChunk(colours)
+            return PaletteChunk(colors)
         }
+
+        private fun fromRgba(r: Int, g: Int, b: Int, a: Int) = String.format("%02x%02x%02x%02x", r, g, b, a).toLong(16)
     }
 }
 
@@ -308,7 +316,7 @@ enum class ChunkTags(val tagValue: String) {
 }
 
 
-private fun DataInputStream.readTag(size: Int = 4) = String(this.readNBytes(size), Charset.defaultCharset())
+private fun DataInputStream.readTag(size: Int = 4) = String(this.readNBytes(size), Charset.defaultCharset()).replace("\u0000", "")
 
 private fun DataOutputStream.writeTag(tag: String) = this.writeBytes(tag)
 
@@ -321,7 +329,7 @@ private fun DataInputStream.readFloatWithCorrectEndianness() = intBitsToFloat(ch
 private fun DataOutputStream.writeFloatWithCorrectEndianness(v: Float) =
     this.writeInt(changeEndianness(floatToIntBits(v)))
 
-private fun DataOutputStream.writeBytes(vararg ints: Int) = ints.forEach { this.write(it) }
+private fun DataOutputStream.writeBytes(vararg ints: Int) = ints.forEach { this.write(it and 0xff) }
 
 private fun changeEndianness(i: Int) =
     i and 0xff shl 24 or (i and 0xff00 shl 8) or (i and 0xff0000 shr 8) or (i shr 24 and 0xff)

@@ -7,7 +7,7 @@ data class ModelDescription(
 
 data class SingleModel(
     val name: String,
-    val childModels: List<SingleModel>,
+    val childModels: List<SingleModel> = listOf(),
     val scale: Int = 1,
     val positionX: Int? = 0,
     val positionY: Int? = 0,

@@ -7,9 +7,15 @@ import kotlin.math.min
 
 class VoxModel constructor(var sizeX: Int, var sizeY: Int, var sizeZ: Int, val maxSize: Int) {
 
+    var palette = Palette()
+    var voxels = mutableListOf<Voxel>()
+
     companion object {
-        fun construct(materialChunk: MainChunk, maxSize: Int): VoxModel {
+        fun construct(mainChunk: MainChunk, maxSize: Int): VoxModel {
             TODO("Not implemented yet")
+            // get size from SIZE chunk
+            // get Voxels from XYZI chunk
+            // get palette from RGBA & MATT chunk
             // iterate over chu
             //
             //
@@ -17,39 +23,16 @@ class VoxModel constructor(var sizeX: Int, var sizeY: Int, var sizeZ: Int, val m
         }
     }
 
-    var palette = Palette()
-    val voxels = mutableListOf<Voxel>()
+    fun setColor(index: Int, color: Long) = palette.setColor(index, color)
 
-    fun setColor(index: Int, color: Int) {
-        palette.setColor(index, color)
-    }
+    fun getMaterial(index: Int): Material? = palette.getMaterial(index)
 
-    fun getMaterial(index: Int): Material? {
-        return palette.getMaterial(index)
-    }
-
-    fun addVoxel(x: Int, y: Int, z: Int, i: Int) {
+    private fun addVoxel(x: Int, y: Int, z: Int, i: Int) {
         if (x in 0 until maxSize && (y in 0 until maxSize) && (z in 0 until maxSize)) {
             voxels.add(Voxel(x, y, z, i))
         }
-        palette.setUsed(i)
+        palette.markColorAsUsed(i)
     }
-
-    fun add(model: VoxModel, x: Int, y: Int, z: Int) = add(
-            model = model,
-            x = x,
-            y = y,
-            z = z,
-            centerX = false,
-            centerY = false,
-            centerZ = false,
-            flipX = false,
-            flipY = false,
-            flipZ = false,
-            rotateX = 0,
-            rotateY = 0,
-            rotateZ = 0
-        )
 
     fun scale(f: Int): VoxModel {
         if (f == 1) {
@@ -64,11 +47,13 @@ class VoxModel constructor(var sizeX: Int, var sizeY: Int, var sizeZ: Int, val m
                 for (dx in 0 until f) {
                     for (dy in 0 until f) {
                         for (dz in 0 until f) {
-                            addVoxel(x + dx, y + dy, z + dz, i)
+                            newVoxels.add(Voxel(x + dx, y + dy, z + dz, i))
                         }
                     }
                 }
             }
+            // TODO maybe replace mutability to new Model creation
+            voxels = newVoxels
             sizeX = (sizeX * f).coerceAtMost(maxSize)
             sizeY = (sizeY * f).coerceAtMost(maxSize)
             sizeZ = (sizeZ * f).coerceAtMost(maxSize)
@@ -76,20 +61,20 @@ class VoxModel constructor(var sizeX: Int, var sizeY: Int, var sizeZ: Int, val m
         }
     }
 
-    fun add(
+    fun addModel(
         model: VoxModel,
         x: Int,
         y: Int,
         z: Int,
-        centerX: Boolean,
-        centerY: Boolean,
-        centerZ: Boolean,
-        flipX: Boolean,
-        flipY: Boolean,
-        flipZ: Boolean,
-        rotateX: Int,
-        rotateY: Int,
-        rotateZ: Int
+        centerX: Boolean = false,
+        centerY: Boolean = false,
+        centerZ: Boolean = false,
+        flipX: Boolean = false,
+        flipY: Boolean = false,
+        flipZ: Boolean = false,
+        rotateX: Int = 0,
+        rotateY: Int = 0,
+        rotateZ: Int = 0,
     ) {
         palette.merge(model)
         val rot = Array(3) { FloatArray(3) }
@@ -110,11 +95,11 @@ class VoxModel constructor(var sizeX: Int, var sizeY: Int, var sizeZ: Int, val m
             val fy = vy - model.sizeY / 2f
             val fz = vz - model.sizeZ / 2f
             val rx: Int =
-                (rot[0][0] * fx + rot[0][1] * fy + rot[0][2] * fz + (if (centerX) 1 else model.sizeX / 2f) + x).toInt()
+                (rot[0][0] * fx + rot[0][1] * fy + rot[0][2] * fz + (if (centerX) 1f else model.sizeX / 2f) + x).toInt()
             val ry: Int =
-                (rot[1][0] * fx + rot[1][1] * fy + rot[1][2] * fz + (if (centerY) 1 else model.sizeY / 2f) + y).toInt()
+                (rot[1][0] * fx + rot[1][1] * fy + rot[1][2] * fz + (if (centerY) 1f else model.sizeY / 2f) + y).toInt()
             val rz: Int =
-                (rot[2][0] * fx + rot[2][1] * fy + rot[2][2] * fz + (if (centerZ) 1 else model.sizeZ / 2f) + z).toInt()
+                (rot[2][0] * fx + rot[2][1] * fy + rot[2][2] * fz + (if (centerZ) 1f else model.sizeZ / 2f) + z).toInt()
             if (rx in 0..maxSize && (ry in 0..maxSize) && (rz in 0..maxSize)) {
                 addVoxel(rx, ry, rz, i)
             }

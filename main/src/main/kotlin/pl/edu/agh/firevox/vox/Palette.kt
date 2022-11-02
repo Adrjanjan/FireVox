@@ -1,81 +1,65 @@
 package pl.edu.agh.firevox.vox
 
-import pl.edu.agh.firevox.service.ModelMergeService.Companion.log
-
 class Palette : Collection<Material> {
-    private val materials: Array<Material?> = arrayOfNulls(256)
 
-    fun setColor(index: Int, color: Int) {
-        materials[index]?.color = color
+    private val materials: List<Material> =
+        default_palette.foldIndexed(mutableListOf()) { i, acc, color -> acc.add(Material(i, true, color)); acc }
+
+
+    fun setColor(index: Int, color: Long) {
+        materials[index].color = color
     }
 
-    fun getColor(index: Int) = materials[index]!!.color
+    fun getColor(index: Int) = materials[index].color
 
     fun getMaterial(index: Int) = materials[index]
 
-    fun setUsed(index: Int) {
-        materials[index]!!.used = true
+    fun markColorAsUsed(index: Int) {
+        materials[index].used = true
     }
 
-    fun isUsed(index: Int) =  materials[index]!!.used
-
+    fun isUsed(index: Int) = materials[index].used
 
     fun merge(model: VoxModel) {
-        val other: Palette = model.palette
-        val map: HashMap<Material?, Material?> = createMap(this)
-        val missingEntries: ArrayList<Material?> = ArrayList<Material?>()
-        val swaps = HashMap<Int, Int>()
-        for (i in 1 until other.materials.size) {
-            val material: Material? = other.materials[i]
+        val otherPalette = model.palette
+        val map = createMap(this)
+        val missingEntries = mutableListOf<Material>()
+        val swaps = mutableMapOf<Int, Int>()
+        for (i in 1 until otherPalette.materials.size) {
+            val material = otherPalette.materials[i]
             if (material.used) {
-                val existing: Material? = map[material]
-                if (existing != null) {
-                    existing.used = true
-                    swaps[i] = existing.index
+                val existingMaterial = map[material]
+                if (existingMaterial != null) {
+                    existingMaterial.used = true
+                    swaps[i] = existingMaterial.index
                 } else {
                     missingEntries.add(material)
                 }
             }
         }
-        var currentIndex = 1
+
         for (material in missingEntries) {
-            var candidate: Material = materials[currentIndex]!!
-            while (candidate.used) {
-                currentIndex++
-                if (currentIndex == 256) {
-                    log.warning("Ran out of room in the palette!")
-                    return
-                }
-                candidate = materials[currentIndex]!!
-            }
+            val candidate = materials.find { !it.used } ?: throw NoSpaceInPaletteException()
             candidate.copyFrom(material)
             candidate.used = true
-            swaps[material!!.index] = candidate.index
+            swaps[material.index] = candidate.index
         }
 
         for (voxel in model.voxels) {
-            if (swaps.containsKey(voxel.i)) {
-                voxel.i = swaps[voxel.i]!!
+            if (swaps.containsKey(voxel.colorIndex)) {
+                voxel.colorIndex = swaps[voxel.colorIndex]!!
             }
         }
     }
 
-    init {
-        for (i in materials.indices) {
-            materials[i] = Material(i, true, DEFAULT_PALETTE[i])
+    private fun createMap(palette: Palette) =
+        palette.materials.indices.fold(mutableMapOf<Material, Material?>()) { acc, index ->
+            val material = palette.materials[index]
+            acc[material] = material
+            acc
         }
-    }
 
     companion object {
-        private fun createMap(palette: Palette): HashMap<Material?, Material?> {
-            val map: HashMap<Material?, Material?> = java.util.HashMap<Material?, Material?>()
-            for (i in palette.materials.indices) {
-                val material: Material? = palette.materials[i]
-                map[material] = material
-            }
-            return map
-        }
-
         private val DEFAULT_PALETTE_LE = default_palette
         private val DEFAULT_PALETTE = IntArray(DEFAULT_PALETTE_LE.size)
 
@@ -96,25 +80,25 @@ class Palette : Collection<Material> {
 
     override fun iterator() = materials.iterator()
 
-    override fun containsAll(elements: Collection<Material>) = materials.contains(elements)
+    override fun containsAll(elements: Collection<Material>) = materials.containsAll(elements)
 
-    override fun contains(element: Material): Boolean {
-        TODO("Not yet implemented")
-    }
+    override fun contains(element: Material) = materials.contains(element)
 }
+
+class NoSpaceInPaletteException : Throwable()
 
 data class Material(
     val index: Int,
     var used: Boolean,
-    var color: Int,
-    var type: MaterialType,
-    var weight: Float,
-    var properties: Int,
-    var values: FloatArray,
+    var color: Long,
+    var type: MaterialType? = null,
+    var weight: Float? = null,
+    var properties: Int? = null,
+    var values: FloatArray? = null,
 ) {
-    fun copyFrom(other: Material) {
+    fun copyFrom(other: Material, ignoreMaterials: Boolean = true) {
         color = other.color
-        if (!Voxcom.ignoreMaterials) {
+        if (!ignoreMaterials) {
             type = other.type
             weight = other.weight
             properties = other.properties
@@ -134,7 +118,10 @@ data class Material(
         if (type != other.type) return false
         if (weight != other.weight) return false
         if (properties != other.properties) return false
-        if (!values.contentEquals(other.values)) return false
+        if (values != null) {
+            if (other.values == null) return false
+            if (!values.contentEquals(other.values)) return false
+        } else if (other.values != null) return false
 
         return true
     }
@@ -142,17 +129,19 @@ data class Material(
     override fun hashCode(): Int {
         var result = index
         result = 31 * result + used.hashCode()
-        result = 31 * result + color
-        result = 31 * result + type
-        result = 31 * result + weight.hashCode()
-        result = 31 * result + properties
-        result = 31 * result + values.contentHashCode()
+        result = 31 * result + color.hashCode()
+        result = 31 * result + (type ?: 0)
+        result = 31 * result + (weight?.hashCode() ?: 0)
+        result = 31 * result + (properties ?: 0)
+        result = 31 * result + (values?.contentHashCode() ?: 0)
         return result
     }
+
 }
 
 typealias MaterialType = Int
 
+// @formatter:off
 private val default_palette = listOf(
     0x00000000, 0xffffffff, 0xffccffff, 0xff99ffff, 0xff66ffff, 0xff33ffff, 0xff00ffff, 0xffffccff, 0xffccccff, 0xff99ccff, 0xff66ccff, 0xff33ccff, 0xff00ccff, 0xffff99ff, 0xffcc99ff, 0xff9999ff,
     0xff6699ff, 0xff3399ff, 0xff0099ff, 0xffff66ff, 0xffcc66ff, 0xff9966ff, 0xff6666ff, 0xff3366ff, 0xff0066ff, 0xffff33ff, 0xffcc33ff, 0xff9933ff, 0xff6633ff, 0xff3333ff, 0xff0033ff, 0xffff00ff,
@@ -171,3 +160,4 @@ private val default_palette = listOf(
     0xff000022, 0xff000011, 0xff00ee00, 0xff00dd00, 0xff00bb00, 0xff00aa00, 0xff008800, 0xff007700, 0xff005500, 0xff004400, 0xff002200, 0xff001100, 0xffee0000, 0xffdd0000, 0xffbb0000, 0xffaa0000,
     0xff880000, 0xff770000, 0xff550000, 0xff440000, 0xff220000, 0xff110000, 0xffeeeeee, 0xffdddddd, 0xffbbbbbb, 0xffaaaaaa, 0xff888888, 0xff777777, 0xff555555, 0xff444444, 0xff222222, 0xff111111
 )
+// @formatter:on

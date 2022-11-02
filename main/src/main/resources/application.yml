@@ -12,3 +12,5 @@ spring:
     hibernate:
       ddl-auto: update
 
+firevox:
+  max-size: 20000

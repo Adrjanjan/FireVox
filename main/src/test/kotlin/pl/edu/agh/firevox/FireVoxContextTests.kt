@@ -13,12 +13,4 @@ class FireVoxContextTest {
     fun contextLoads() {
     }
 
-    @Test
-    fun simpleReadAndWriteTest() {
-        val input = FileInputStream("vox/test_materials.vox")
-        val model = VoxFormatParser.read(input, 1024)
-        val out = FileOutputStream("vox/test_roundtrip.vox")
-        VoxFormatParser.write(model, out)
-        out.close()
-    }
 }

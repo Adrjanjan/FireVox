@@ -1,3 +1,3 @@
 package pl.edu.agh.firevox.vox
 
-data class Voxel(var x: Int, var y: Int, var z: Int, var i: Int)
+data class Voxel(var x: Int, var y: Int, var z: Int, var colorIndex: Int)

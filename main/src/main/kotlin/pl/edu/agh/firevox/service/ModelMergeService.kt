@@ -1,14 +1,15 @@
 package pl.edu.agh.firevox.service
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.FireVoxProperties
 import pl.edu.agh.firevox.model.ModelDescription
+import pl.edu.agh.firevox.model.SingleModel
 import pl.edu.agh.firevox.vox.VoxFormatParser
+import pl.edu.agh.firevox.vox.VoxModel
 import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.util.logging.Logger
-
 
 @Service
 class ModelMergeService {
@@ -17,20 +18,26 @@ class ModelMergeService {
     lateinit var fireVoxProperties: FireVoxProperties
 
     companion object {
-        val log: Logger = Logger.getGlobal()
+        val log: Logger = LoggerFactory.getLogger(ModelMergeService::class.java)
     }
 
-    fun createModel(modelDescription: ModelDescription) {
-        val output = FileOutputStream(modelDescription.outputName)
-
+    fun createModel(modelDescription: ModelDescription): VoxModel {
         val parentModelFile = FileInputStream(modelDescription.parentModel.name)
-        val parent = VoxFormatParser.read(parentModelFile, fireVoxProperties.maxSize)
+        val parentModel = VoxFormatParser.read(parentModelFile, fireVoxProperties.maxSize)
+        addChildren(modelDescription.parentModel.childModels, parentModel)
+        parentModel.clipToVoxels()
+        log.info("Finished merging files!")
+        return parentModel
+    }
 
-        for (model in modelDescription.parentModel.childModels) {
+    private fun addChildren(models: List<SingleModel>, parentModel: VoxModel) {
+        for (model in models) {
             log.info("Adding '${model.name}'")
             val modelIn = FileInputStream(model.name)
-            parent.add(
-                VoxFormatParser.read(modelIn, fireVoxProperties.maxSize).scale(model.scale),
+            val readModel = VoxFormatParser.read(modelIn, fireVoxProperties.maxSize)
+            addChildren(model.childModels, readModel)
+            parentModel.addModel(
+                readModel.scale(model.scale),
                 model.positionX ?: 0,
                 model.positionY ?: 0,
                 model.positionZ ?: 0,
@@ -46,17 +53,6 @@ class ModelMergeService {
             )
             modelIn.close()
         }
-        parent.clipToVoxels()
-//        if (forViewer) {
-//            log.info("Writing out vox files to '${modelDescription.outputName}'")
-//            parent.splitIntoTiles(Path.of(modelDescription.outputName).parent.name, FireVoxProperties.maxSize)
-//            log.info("Drag the file '${modelDescription.outputName}.txt' into the MagicaVoxel Viewer to render.")
-//        } else {
-        log.info("Writing vox result to '${modelDescription.outputName}'")
-        VoxFormatParser.write(parent, output)
-        output.close()
-//        }
-        log.info("Finished merging files!")
     }
 
 }
