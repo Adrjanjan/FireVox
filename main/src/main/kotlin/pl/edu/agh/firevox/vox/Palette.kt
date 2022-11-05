@@ -1,9 +1,9 @@
 package pl.edu.agh.firevox.vox
 
-class Palette : Collection<Material> {
-
+class Palette(
     private val materials: List<Material> =
         default_palette.foldIndexed(mutableListOf()) { i, acc, color -> acc.add(Material(i, true, color)); acc }
+) : Collection<Material> {
 
 
     fun setColor(index: Int, color: Long) {
@@ -93,50 +93,29 @@ data class Material(
     var color: Long,
     var type: MaterialType? = null,
     var weight: Float? = null,
-    var properties: Int? = null,
-    var values: FloatArray? = null,
+    var propertiesBits: Int? = null,
+    var propertyValues: MutableMap<MaterialProperties, Float>? = null,
 ) {
     fun copyFrom(other: Material, ignoreMaterials: Boolean = true) {
         color = other.color
         if (!ignoreMaterials) {
             type = other.type
             weight = other.weight
-            properties = other.properties
-            values = other.values
+            propertiesBits = other.propertiesBits
+            propertyValues = other.propertyValues
         }
     }
+}
 
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (javaClass != other?.javaClass) return false
-
-        other as Material
-
-        if (index != other.index) return false
-        if (used != other.used) return false
-        if (color != other.color) return false
-        if (type != other.type) return false
-        if (weight != other.weight) return false
-        if (properties != other.properties) return false
-        if (values != null) {
-            if (other.values == null) return false
-            if (!values.contentEquals(other.values)) return false
-        } else if (other.values != null) return false
-
-        return true
-    }
-
-    override fun hashCode(): Int {
-        var result = index
-        result = 31 * result + used.hashCode()
-        result = 31 * result + color.hashCode()
-        result = 31 * result + (type ?: 0)
-        result = 31 * result + (weight?.hashCode() ?: 0)
-        result = 31 * result + (properties ?: 0)
-        result = 31 * result + (values?.contentHashCode() ?: 0)
-        return result
-    }
-
+enum class MaterialProperties(val propertyBit: Int) {
+    PLASTIC(1),
+    ROUGHNESS(2),
+    SPECULAR(4),
+    IOR(8),
+    ATTENUATION(16),
+    POWER(32),
+    GLOW(64),
+    IS_TOTAL_POWER(128),
 }
 
 typealias MaterialType = Int

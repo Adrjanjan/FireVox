@@ -1,5 +1,6 @@
 package pl.edu.agh.firevox.vox
 
+import pl.edu.agh.firevox.vox.MaterialProperties.*
 import java.io.*
 import java.lang.Float.floatToIntBits
 import java.lang.Float.intBitsToFloat
@@ -54,15 +55,15 @@ object VoxFormatParser {
             val material = model.getMaterial(i)
             if (material!!.type != 0) {
                 mainOut.writeTag(ChunkTags.TAG_MATT.tagValue)
-                val size: Int = 4 * (4 + (material.values?.size ?: 0))
+                val size: Int = 4 * (4 + (material.propertyValues?.size ?: 0))
                 mainOut.writeIntWithCorrectEndianness(size)
                 mainOut.writeIntWithCorrectEndianness(0)
                 mainOut.writeIntWithCorrectEndianness(i)
                 mainOut.writeIntWithCorrectEndianness(material.type ?: 0)
                 mainOut.writeFloatWithCorrectEndianness(material.weight ?: 0.0f)
-                mainOut.writeIntWithCorrectEndianness(material.properties ?: 0)
-                for (j in 0 until (material.values?.size ?: 0)) {
-                    mainOut.writeFloatWithCorrectEndianness(material.values?.get(j) ?: 0.0f)
+                mainOut.writeIntWithCorrectEndianness(material.propertiesBits ?: 0)
+                material.propertiesBits?.let {
+                    writePropertyBits(it, material.propertyValues ?: mapOf(), mainOut)
                 }
             }
         }
@@ -71,6 +72,21 @@ object VoxFormatParser {
         out.writeIntWithCorrectEndianness(0)
         out.writeIntWithCorrectEndianness(main.size)
         out.write(main)
+    }
+
+    private fun writePropertyBits(
+        propertyBits: Int,
+        propertyValues: Map<MaterialProperties, Float>,
+        outputStream: DataOutputStream
+    ) {
+        if (propertyBits and PLASTIC.propertyBit > 0) outputStream.writeFloatWithCorrectEndianness(propertyValues.getOrDefault(PLASTIC, 0.0f))
+        if (propertyBits and ROUGHNESS.propertyBit > 0) outputStream.writeFloatWithCorrectEndianness(propertyValues.getOrDefault(ROUGHNESS, 0.0f))
+        if (propertyBits and SPECULAR.propertyBit > 0) outputStream.writeFloatWithCorrectEndianness(propertyValues.getOrDefault(SPECULAR, 0.0f))
+        if (propertyBits and IOR.propertyBit > 0) outputStream.writeFloatWithCorrectEndianness(propertyValues.getOrDefault(IOR, 0.0f))
+        if (propertyBits and ATTENUATION.propertyBit > 0) outputStream.writeFloatWithCorrectEndianness(propertyValues.getOrDefault(ATTENUATION, 0.0f))
+        if (propertyBits and POWER.propertyBit > 0) outputStream.writeFloatWithCorrectEndianness(propertyValues.getOrDefault(POWER, 0.0f))
+        if (propertyBits and GLOW.propertyBit > 0) outputStream.writeFloatWithCorrectEndianness(propertyValues.getOrDefault(GLOW, 0.0f))
+        if (propertyBits and IS_TOTAL_POWER.propertyBit > 0) outputStream.writeFloatWithCorrectEndianness(propertyValues.getOrDefault(IS_TOTAL_POWER, 0.0f))
     }
 
     @Throws(IOException::class)
@@ -117,7 +133,7 @@ object VoxFormatParser {
         if (!skipTag)
             try {
                 val tag = input.readTag()
-                if(tag.isBlank()) return
+                if (tag.isBlank()) return
                 if (tag != ChunkTags.TAG_MATT.tagValue) {
                     return
                 }
@@ -251,19 +267,19 @@ data class VoxelsChunk(val numberOfVoxels: Int, val voxels: List<Voxel>) : Chunk
     }
 }
 
-data class PaletteChunk(val colors: MutableList<Long?>) : Chunk(ChunkTags.TAG_RGBA) {
+data class PaletteChunk(val colors: MutableList<Long>) : Chunk(ChunkTags.TAG_RGBA) {
 
     companion object {
         fun construct(input: DataInputStream): PaletteChunk {
             // Palette chunk
-            val colors = MutableList<Long?>(256) { null }
+            val colors = mutableListOf<Long>(0)
             input.skipBytes(8)
             for (i in 1..255) {
                 val r = input.readUnsignedByte()
                 val g = input.readUnsignedByte()
                 val b = input.readUnsignedByte()
                 val a = input.readUnsignedByte()
-                colors[i] = fromRgba(r, g, b, a)
+                colors.add(fromRgba(r, g, b, a))
             }
             return PaletteChunk(colors)
         }
@@ -273,32 +289,48 @@ data class PaletteChunk(val colors: MutableList<Long?>) : Chunk(ChunkTags.TAG_RG
 }
 
 data class MaterialChunk(
-    val index: Int,
-    val materialType: MaterialType,
-    val materialWeight: Float,
-    val properties: Map<String, Float>
+    val material: Material
 ) : Chunk(ChunkTags.TAG_MATT) {
 
     companion object {
         fun construct(input: DataInputStream): MaterialChunk {
-            input.skipBytes(8)
-            val index = input.readIntWithCorrectEndianness()
+            input.skip(8)
+            val i = input.readIntWithCorrectEndianness()
             val type = input.readIntWithCorrectEndianness()
             val weight = input.readFloatWithCorrectEndianness()
             val propertyBits = input.readIntWithCorrectEndianness()
-            return MaterialChunk(index, type, weight, calculateProperties(propertyBits, input))
+
+            val material = Material(
+                index = i,
+                used = true,
+                color = -1,
+                type = type,
+                weight = weight,
+                propertiesBits = propertyBits,
+                propertyValues = calculateProperties(propertyBits, input)
+            )
+            return MaterialChunk(material)
         }
 
-        private fun calculateProperties(propertyBits: Int, inputStream: DataInputStream): MutableMap<String, Float> {
-            val tmpProperties = mutableMapOf<String, Float>()
-            if (propertyBits and 1 > 0) tmpProperties["plastic"] = inputStream.readFloatWithCorrectEndianness()
-            if (propertyBits and 2 > 0) tmpProperties["roughness"] = inputStream.readFloatWithCorrectEndianness()
-            if (propertyBits and 4 > 0) tmpProperties["specular"] = inputStream.readFloatWithCorrectEndianness()
-            if (propertyBits and 8 > 0) tmpProperties["ior"] = inputStream.readFloatWithCorrectEndianness()
-            if (propertyBits and 16 > 0) tmpProperties["attenuation"] = inputStream.readFloatWithCorrectEndianness()
-            if (propertyBits and 32 > 0) tmpProperties["power"] = inputStream.readFloatWithCorrectEndianness()
-            if (propertyBits and 64 > 0) tmpProperties["glow"] = inputStream.readFloatWithCorrectEndianness()
-            if (propertyBits and 128 > 0) tmpProperties["isTotalPower"] =
+        private fun calculateProperties(
+            propertyBits: Int,
+            inputStream: DataInputStream
+        ): MutableMap<MaterialProperties, Float> {
+            val tmpProperties = mutableMapOf<MaterialProperties, Float>()
+            if (propertyBits and PLASTIC.propertyBit > 0) tmpProperties[PLASTIC] =
+                inputStream.readFloatWithCorrectEndianness()
+            if (propertyBits and ROUGHNESS.propertyBit > 0) tmpProperties[ROUGHNESS] =
+                inputStream.readFloatWithCorrectEndianness()
+            if (propertyBits and SPECULAR.propertyBit > 0) tmpProperties[SPECULAR] =
+                inputStream.readFloatWithCorrectEndianness()
+            if (propertyBits and IOR.propertyBit > 0) tmpProperties[IOR] = inputStream.readFloatWithCorrectEndianness()
+            if (propertyBits and ATTENUATION.propertyBit > 0) tmpProperties[ATTENUATION] =
+                inputStream.readFloatWithCorrectEndianness()
+            if (propertyBits and POWER.propertyBit > 0) tmpProperties[POWER] =
+                inputStream.readFloatWithCorrectEndianness()
+            if (propertyBits and GLOW.propertyBit > 0) tmpProperties[GLOW] =
+                inputStream.readFloatWithCorrectEndianness()
+            if (propertyBits and IS_TOTAL_POWER.propertyBit > 0) tmpProperties[IS_TOTAL_POWER] =
                 inputStream.readFloatWithCorrectEndianness()
             return tmpProperties
         }
@@ -316,7 +348,8 @@ enum class ChunkTags(val tagValue: String) {
 }
 
 
-private fun DataInputStream.readTag(size: Int = 4) = String(this.readNBytes(size), Charset.defaultCharset()).replace("\u0000", "")
+private fun DataInputStream.readTag(size: Int = 4) =
+    String(this.readNBytes(size), Charset.defaultCharset()).replace("\u0000", "")
 
 private fun DataOutputStream.writeTag(tag: String) = this.writeBytes(tag)
 

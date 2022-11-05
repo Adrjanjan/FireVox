@@ -7,20 +7,35 @@ import kotlin.math.min
 
 class VoxModel constructor(var sizeX: Int, var sizeY: Int, var sizeZ: Int, val maxSize: Int) {
 
-    var palette = Palette()
-    var voxels = mutableListOf<Voxel>()
+    lateinit var palette: Palette
+    lateinit var voxels: MutableList<Voxel>
 
     companion object {
         fun construct(mainChunk: MainChunk, maxSize: Int): VoxModel {
-            TODO("Not implemented yet")
-            // get size from SIZE chunk
-            // get Voxels from XYZI chunk
-            // get palette from RGBA & MATT chunk
-            // iterate over chu
-            //
-            //
-
+            val size = calculateSize(mainChunk.childrenChunks)
+            val model = VoxModel(size.first, size.second, size.third, maxSize)
+            model.palette = calculatePalette(mainChunk.paletteChunk, mainChunk.materialChunk)
+            model.voxels = calculateVoxels(mainChunk.childrenChunks)
+            return model
         }
+
+        private fun calculateSize(childrenChunks: MutableList<Pair<SizeChunk, VoxelsChunk>>) =
+            childrenChunks.map { it.first }.fold(Triple(0, 0, 0)) { acc, chunk ->
+                Triple(
+                    max(acc.first, chunk.sizeX),
+                    max(acc.second, chunk.sizeY),
+                    max(acc.third, chunk.sizeZ)
+                )
+            }
+
+
+        private fun calculatePalette(paletteChunk: PaletteChunk?, materialChunk: MaterialChunk?): Palette {
+            return Palette()
+        }
+
+        private fun calculateVoxels(childrenChunks: MutableList<Pair<SizeChunk, VoxelsChunk>>) =
+            childrenChunks.flatMap { it.second.voxels }.toMutableList()
+
     }
 
     fun setColor(index: Int, color: Long) = palette.setColor(index, color)

@@ -15,7 +15,7 @@ class VoxFormatParserTest : ShouldSpec({
 
     should("read and write model") {
         val input = withContext(Dispatchers.IO) {
-            getFile("vox/tree.vox")
+            getFile("vox/room.vox")
         }
         val model = VoxFormatParser.read(input, 1024)
 
