@@ -5,27 +5,27 @@ import pl.edu.agh.firevox.vox.Voxel
 import pl.edu.agh.firevox.vox.readTag
 import java.io.IOException
 
-data class VoxelsChunk(val numberOfVoxels: Int, val voxels: List<Voxel>) : Chunk(ChunkTags.TAG_XYZI) {
+data class VoxelsChunk(
+    val input: LittleEndianDataInputStream,
+    override var tag: ChunkTags = ChunkTags.TAG_XYZI,
+    override val size: Int = input.readInt(),
+    override val childSize: Int = input.readInt(),
+    val numberOfVoxels: Int = input.readInt(),
+    val voxels: List<Voxel> = readVoxels(numberOfVoxels, input)
+) : Chunk()
 
-    companion object {
-        fun construct(input: LittleEndianDataInputStream): VoxelsChunk {
-            // Voxel data chunk
-            val xyziTag = input.readTag()
-            if (xyziTag != ChunkTags.TAG_XYZI.tagValue) {
-                throw IOException("Should be a ${ChunkTags.TAG_XYZI.tagValue} tag here.")
-            }
-            input.skipBytes(8)
-            val numVoxels = input.readInt()
-            val voxels = mutableListOf<Voxel>()
-            for (i in 0 until numVoxels) {
-                val x = input.readUnsignedByte()
-                val y = input.readUnsignedByte()
-                val z = input.readUnsignedByte()
-                val colorIndex = input.readUnsignedByte()
-                voxels.add(Voxel(x, y, z, colorIndex))
-                println("Voxel x=$x, y=$y, z=$z, p=$colorIndex")
-            }
-            return VoxelsChunk(numVoxels, voxels)
-        }
+private fun readVoxels(
+    numVoxels: Int,
+    input: LittleEndianDataInputStream
+): MutableList<Voxel> {
+    val voxels = mutableListOf<Voxel>()
+    for (i in 0 until numVoxels) {
+        val x = input.readUnsignedByte()
+        val y = input.readUnsignedByte()
+        val z = input.readUnsignedByte()
+        val colorIndex = input.readUnsignedByte()
+        voxels.add(Voxel(x, y, z, colorIndex))
+        println("Voxel x=$x, y=$y, z=$z, p=$colorIndex")
     }
+    return voxels
 }
