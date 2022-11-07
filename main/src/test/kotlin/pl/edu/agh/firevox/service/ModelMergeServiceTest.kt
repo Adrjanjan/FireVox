@@ -42,49 +42,49 @@ class ModelMergeServiceTest : ShouldSpec({
         )
     )
 
-    should("merge single model and not change it") {
-        // given
-        val modelDescription = ModelDescription("out.vox", treeOnly)
-
-        // when
-        val resultModel = mms.createModel(modelDescription)
-
-        // then
-        resultModel.sizeX shouldBe 10
-    }
-
-    should("merge two models without modifications") {
-        // given
-        val modelDescription = ModelDescription("out.vox", roadTree)
-
-        // when
-        val resultModel = mms.createModel(modelDescription)
-
-        // then
-        resultModel.sizeX shouldBe 10
-    }
-
-    should("merge two models with offset") {
-        // given
-        val modelDescription = ModelDescription("out.vox", roadTreeOffset)
-
-        // when
-        val resultModel = mms.createModel(modelDescription)
-
-        // then
-        resultModel.sizeX shouldBe 10
-    }
-
-    should("merge two models with rotation") {
-        // given
-        val modelDescription = ModelDescription("out.vox", roadTreeRotation)
-
-        // when
-        val resultModel = mms.createModel(modelDescription)
-
-        // then
-        resultModel.sizeX shouldBe 10
-    }
+//    should("merge single model and not change it") {
+//        // given
+//        val modelDescription = ModelDescription("out.vox", treeOnly)
+//
+//        // when
+//        val resultModel = mms.createModel(modelDescription)
+//
+//        // then
+//        resultModel.sizeX shouldBe 10
+//    }
+//
+//    should("merge two models without modifications") {
+//        // given
+//        val modelDescription = ModelDescription("out.vox", roadTree)
+//
+//        // when
+//        val resultModel = mms.createModel(modelDescription)
+//
+//        // then
+//        resultModel.sizeX shouldBe 10
+//    }
+//
+//    should("merge two models with offset") {
+//        // given
+//        val modelDescription = ModelDescription("out.vox", roadTreeOffset)
+//
+//        // when
+//        val resultModel = mms.createModel(modelDescription)
+//
+//        // then
+//        resultModel.sizeX shouldBe 10
+//    }
+//
+//    should("merge two models with rotation") {
+//        // given
+//        val modelDescription = ModelDescription("out.vox", roadTreeRotation)
+//
+//        // when
+//        val resultModel = mms.createModel(modelDescription)
+//
+//        // then
+//        resultModel.sizeX shouldBe 10
+//    }
 
 
 })

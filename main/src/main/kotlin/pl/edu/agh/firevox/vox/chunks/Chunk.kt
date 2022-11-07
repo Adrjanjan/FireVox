@@ -1,5 +1,13 @@
 package pl.edu.agh.firevox.vox.chunks
 
+/**
+ * Used materials:
+ * https://github.com/jpaver/opengametools/blob/master/src/ogt_vox.h
+ * https://github.com/ScrimpyCat/Vox/blob/master/lib/vox/format/vox/binary/chunk.ex
+ * https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox-extension.txt
+ * https://github.com/ephtracy/voxel-model/blob/master/MagicaVoxel-file-format-vox.txt
+ */
+
 abstract class Chunk {
     abstract var tag: ChunkTags
     abstract val size: Int

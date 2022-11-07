@@ -10,7 +10,8 @@ data class TransformNodeChunk(
     override val childSize: Int = input.readInt(),
     val nodeId: Int = input.readInt(),
     val nodeAttributes: Map<String, String> = input.readVoxDict(),
-    val childNodeId: Int = input.readInt().also { input.skip(4) },
+    val childNodeId: Int = input.readInt()
+        .also { input.skip(4) },  // reservedId, skipped
     val layerId: Int = input.readInt(),
     val numOfFrames: Int = input.readInt(),
     val framesAttributes: Map<Int, TransformProperties> = readFrameAttributes(input, numOfFrames),
@@ -18,14 +19,14 @@ data class TransformNodeChunk(
 
 data class TransformProperties(val rotation: Rotation?, val translation: Translation?, val frameIndex: Int?) {
     companion object {
-        val rotationKey = "_r"
-        val translationKey = "_t"
-        val indexKey = "_f"
+        const val rotationKey = "_r"
+        const val translationKey = "_t"
+        const val indexKey = "_f"
     }
 
     constructor(dict: Map<String, String>) : this(
-        dict[rotationKey]?.let {Rotation(it.toInt())},
-        dict[translationKey]?.let {Translation(it)},
+        dict[rotationKey]?.let { Rotation(it.toInt()) },
+        dict[translationKey]?.let { Translation(it) },
         dict[indexKey]?.toInt()
     )
 }
@@ -35,7 +36,7 @@ data class Rotation(val matrix: List<List<Int>>) {
 }
 
 fun readFrameAttributes(input: LittleEndianDataInputStream, numOfFrames: Int): Map<Int, TransformProperties> =
-    (0..numOfFrames).fold(mutableMapOf()) { acc, i -> acc[i] = readTransformProperties(input); acc }
+    (0 until numOfFrames).fold(mutableMapOf()) { acc, i -> acc[i] = readTransformProperties(input); acc }
 
 private fun readTransformProperties(input: LittleEndianDataInputStream) = TransformProperties(input.readVoxDict())
 
@@ -59,9 +60,9 @@ private fun signAtPosition(bits: Int, position: Int) = if (bits and (1 shl posit
 
 data class Translation(val x: Int, val y: Int, val z: Int) {
     constructor(xyz: String) : this(
+        xyz.split(" ")[0].toInt(),
         xyz.split(" ")[1].toInt(),
         xyz.split(" ")[2].toInt(),
-        xyz.split(" ")[3].toInt(),
     )
 }
 

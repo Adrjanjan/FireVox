@@ -15,7 +15,7 @@ data class ShapeNodeChunk(
 ) : Chunk()
 
 fun readModels(input: LittleEndianDataInputStream, numOfModels: Int): List<ShapeModel> =
-    (0..numOfModels).fold(mutableListOf()) { acc, _ ->
+    (0 until numOfModels).fold(mutableListOf()) { acc, _ ->
         acc.add(ShapeModel(input.readInt(), input.readVoxDict())); acc
     }
 

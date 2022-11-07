@@ -5,31 +5,24 @@ import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.core.io.ClassPathResource
+import pl.edu.agh.firevox.vox.chunks.constructRotationFromBits
 import java.io.FileOutputStream
 
 
 class VoxFormatParserTest : ShouldSpec({
 
 
-    should("read and write model") {
+    should("read model") {
+        // given
         val input = withContext(Dispatchers.IO) {
             getFile("vox/room.vox")
         }
+        // when
         val model = VoxFormatParser.read(input, 1024)
+        // then
+        model.models.size shouldBe 1
+        // TODO add more assertions
 
-        model.sizeX shouldBe 23
-        model.sizeY shouldBe 20
-        model.sizeZ shouldBe 29
-
-        model.voxels.size shouldBe 2905
-
-        val out = withContext(Dispatchers.IO) {
-            FileOutputStream("./vox/test.vox")
-        }
-        VoxFormatParser.write(model, out)
-        withContext(Dispatchers.IO) {
-            out.close()
-        }
     }
 
     should("constructRotationFromBits parse bits correctly"){

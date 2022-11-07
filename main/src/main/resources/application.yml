@@ -14,3 +14,5 @@ spring:
 
 firevox:
   max-size: 20000
+  
+#  voxel_index = x + (y * model.size_x) + (z * model.size_x * model.size_y)

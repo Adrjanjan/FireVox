@@ -4,15 +4,15 @@ import com.google.common.io.LittleEndianDataInputStream
 
 data class PaletteChunk(
     val input: LittleEndianDataInputStream,
-    override var tag: ChunkTags = ChunkTags.TAG_MATL,
+    override var tag: ChunkTags = ChunkTags.TAG_RGBA,
     override val size: Int = input.readInt(),
     override val childSize: Int = input.readInt(),
     val colors: MutableList<Long> = readPalette(input)
 ) : Chunk()
 
 private fun readPalette(input: LittleEndianDataInputStream): MutableList<Long> {
-    val colors = mutableListOf<Long>(0)
-    for (i in 1..255) {
+    val colors = mutableListOf<Long>()
+    for (i in 0..255) {
         val r = input.readUnsignedByte()
         val g = input.readUnsignedByte()
         val b = input.readUnsignedByte()

@@ -15,5 +15,5 @@ data class GroupNodeChunk(
 ) : Chunk()
 
 fun readChildNodeIds(input: LittleEndianDataInputStream, numOfChildrenNodes: Int): List<Int> =
-    (0..numOfChildrenNodes).fold(mutableListOf()) { acc, _ -> acc.add(input.readInt()); acc}
+    (0 until numOfChildrenNodes).fold(mutableListOf()) { acc, _ -> acc.add(input.readInt()); acc}
 

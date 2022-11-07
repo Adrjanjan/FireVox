@@ -25,7 +25,7 @@ private fun readVoxels(
         val z = input.readUnsignedByte()
         val colorIndex = input.readUnsignedByte()
         voxels.add(Voxel(x, y, z, colorIndex))
-        println("Voxel x=$x, y=$y, z=$z, p=$colorIndex")
+//        println("Voxel x=$x, y=$y, z=$z, p=$colorIndex")
     }
     return voxels
 }

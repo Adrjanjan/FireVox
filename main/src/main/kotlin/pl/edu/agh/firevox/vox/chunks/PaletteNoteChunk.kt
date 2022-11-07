@@ -6,7 +6,7 @@ import pl.edu.agh.firevox.vox.readVoxString
 
 data class PaletteNoteChunk(
     val input: LittleEndianDataInputStream,
-    override var tag: ChunkTags = ChunkTags.TAG_LAYER,
+    override var tag: ChunkTags = ChunkTags.TAG_PALETTE_NOTE,
     override val size: Int = input.readInt(),
     override val childSize: Int = input.readInt(),
     val numOfColorNames: Int = input.readInt(),
@@ -14,4 +14,4 @@ data class PaletteNoteChunk(
 ) : Chunk()
 
 fun readColoNames(input: LittleEndianDataInputStream, numOfColorNames: Int): List<String> =
-    (0..numOfColorNames).fold(mutableListOf()) { acc, _ -> acc.add(input.readVoxString()); acc }
+    (0 until numOfColorNames).fold(mutableListOf()) { acc, _ -> acc.add(input.readVoxString()); acc }
