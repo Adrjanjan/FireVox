@@ -2,7 +2,7 @@ package pl.edu.agh.firevox.vox.chunks
 
 import com.google.common.io.LittleEndianDataInputStream
 
-data class IndexMapChunk(
+class IndexMapChunk(
     val input: LittleEndianDataInputStream,
     override var tag: ChunkTags = ChunkTags.TAG_INDEX_MAP,
     override val size: Int = input.readInt(),

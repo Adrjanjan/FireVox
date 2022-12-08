@@ -8,14 +8,14 @@ data class TransformNodeChunk(
     override var tag: ChunkTags = ChunkTags.TAG_TRANSFORM_NODE,
     override val size: Int = input.readInt(),
     override val childSize: Int = input.readInt(),
-    val nodeId: Int = input.readInt(),
+    override val nodeId: Int = input.readInt(),
     val nodeAttributes: Map<String, String> = input.readVoxDict(),
     val childNodeId: Int = input.readInt()
         .also { input.skip(4) },  // reservedId, skipped
     val layerId: Int = input.readInt(),
     val numOfFrames: Int = input.readInt(),
     val framesAttributes: Map<Int, TransformProperties> = readFrameAttributes(input, numOfFrames),
-) : Chunk()
+) : Chunk(), SceneNode
 
 data class TransformProperties(val rotation: Rotation?, val translation: Translation?, val frameIndex: Int?) {
     companion object {
@@ -31,7 +31,7 @@ data class TransformProperties(val rotation: Rotation?, val translation: Transla
     )
 }
 
-data class Rotation(val matrix: List<List<Int>>) {
+data class Rotation(val rot: List<List<Int>>) {
     constructor(bits: Int) : this(constructRotationFromBits(bits))
 }
 

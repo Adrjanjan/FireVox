@@ -128,7 +128,7 @@ object VoxFormatParser {
         return ParsedVoxFile(
             mainChunk!!,
             models,
-            SceneGraph(transformNodeChunks, layerNodeChunks, groupNodeChunks, shapeNodeChunks),
+            SceneTree(transformNodeChunks, layerNodeChunks, groupNodeChunks, shapeNodeChunks),
             paletteChunk!!,
             colorIndexMap,
             paletteNoteChunk!!,

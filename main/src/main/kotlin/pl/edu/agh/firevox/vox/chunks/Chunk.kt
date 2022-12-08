@@ -14,6 +14,10 @@ abstract class Chunk {
     abstract val childSize: Int
 }
 
+interface SceneNode{
+    val nodeId: Int
+}
+
 enum class ChunkTags(val tagValue: String) {
     TAG_MAIN("MAIN"),
     TAG_PACK("PACK"),

@@ -8,7 +8,7 @@ data class LayerChunk(
     override var tag: ChunkTags = ChunkTags.TAG_LAYER,
     override val size: Int = input.readInt(),
     override val childSize: Int = input.readInt(),
-    val nodeId: Int = input.readInt(),
+    override val nodeId: Int = input.readInt(),
     val attributes: Map<String, String> = input.readVoxDict()
         .also { input.skip(4) }, // reservedId, skipped
-) : Chunk()
+) : Chunk(), SceneNode
