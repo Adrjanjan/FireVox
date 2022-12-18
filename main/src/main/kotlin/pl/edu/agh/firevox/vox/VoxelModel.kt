@@ -1,6 +1,6 @@
 package pl.edu.agh.firevox.vox
 
-import pl.edu.agh.firevox.vox.VoxelsTransformations.rotateVoxels
+import pl.edu.agh.firevox.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
 import pl.edu.agh.firevox.vox.VoxelsTransformations.sizeInDimension
 import pl.edu.agh.firevox.vox.VoxelsTransformations.translate
 import pl.edu.agh.firevox.vox.chunks.*
@@ -33,36 +33,44 @@ data class SceneTree(
      *    |   |
      *    S   S
      */
-    fun constructScene(models: List<Model>, maxSize: Int): MutableList<Voxel> {
-        val voxels = mutableListOf<Voxel>()
+    fun constructScene(models: List<Model>, maxSize: Int): MutableMap<VoxelKey, VoxelMaterialId> {
+        val voxels = mutableMapOf<VoxelKey, VoxelMaterialId>()
         val root = this.root
             ?: if (models.size > 1) throw Exception("There is ${models.size} models in file but no scene tree") else models[0]
-        return processNode(voxels, models, root as SceneNode, maxSize)
+        return processNode(models, root as SceneNode, maxSize)
     }
 
     private fun processNode(
-        voxels: MutableList<Voxel>,
         models: List<Model>,
         node: SceneNode,
         maxSize: Int
-    ): MutableList<Voxel> =
+    ): MutableMap<VoxelKey, VoxelMaterialId> =
         when (node) {
-            is TransformNodeChunk -> processNode(voxels, models, this.findNode(node.childNodeId), maxSize)
-                .rotateVoxels(node.framesAttributes[0]?.rotation)
-                .translate(node.framesAttributes[0]?.translation)
+            is TransformNodeChunk -> {
+                val voxels = processNode(models, this.findNode(node.childNodeId), maxSize)
+                    .rotateVoxelsAndMoveToPositiveCoords(node.framesAttributes[0]?.rotation)
+                    .translate(node.framesAttributes[0]?.translation)
+                voxels
+            }
 
             is GroupNodeChunk -> {
-                node.childNodeIds.forEach { processNode(voxels, models, this.findNode(it), maxSize) }
-                voxels
+                val childVoxels: MutableMap<VoxelKey, VoxelMaterialId> = mutableMapOf()
+                node.childNodeIds.forEach { processNode(models, this.findNode(it), maxSize).let { result -> childVoxels.putAll(result) } }
+                childVoxels
             } // process all nodes in group
             is ShapeNodeChunk -> {
-                node.models.forEach { voxels.addAll(models[it.modelId].voxelsChunk.voxels) }
+                val voxels: MutableMap<VoxelKey, VoxelMaterialId> = mutableMapOf()
+                node.models.forEach { model ->
+                    models[model.modelId].voxelsChunk.voxels.filter { it.value != 0 }
+                        .forEach { voxels[it.key] = it.value }
+                }
                 voxels
             }  // add all models to list?
             else -> throw NotSupportedSceneNodeException("Scene node $node.")
         }
 
-    private fun findNode(nodeId: Int): SceneNode =
+    private fun findNode(nodeId: Int)
+            : SceneNode =
         transformNodeChunks[nodeId] ?: groupNodeChunks[nodeId] ?: shapeNodeChunks[nodeId]
         ?: throw NodeNotFoundException("Node with id $nodeId was not present in Scene Tree")
 }
@@ -82,15 +90,15 @@ class ParsedVoxFile(
     val maxSize: Int,
 ) {
 
-    val voxels: MutableList<Voxel> = sceneTree.constructScene(models, maxSize)
+    val voxels = sceneTree.constructScene(models, maxSize)
 
     private var sizeX: Int = voxels.sizeInDimension { it.x }
     private var sizeY: Int = voxels.sizeInDimension { it.y }
     private var sizeZ: Int = voxels.sizeInDimension { it.z }
 
-    private fun MutableList<Voxel>.addVoxel(x: Int, y: Int, z: Int, i: Int) {
+    private fun MutableMap<VoxelKey, VoxelMaterialId>.addVoxel(x: Int, y: Int, z: Int, i: Int) {
         if (x in 0 until maxSize && (y in 0 until maxSize) && (z in 0 until maxSize)) {
-            this.add(Voxel(x, y, z, i))
+            this[VoxelKey(x, y, z)] = i
         }
     }
 //
@@ -151,10 +159,10 @@ class ParsedVoxFile(
         rot[2][1] = (cos(rotateY) * sin(rotateX)).toFloat()
         rot[2][2] = (cos(rotateX) * cos(rotateY)).toFloat()
 
-        for ((x1, y1, z1, i) in model.voxels) {
-            val vx = if (flipX) model.sizeX - x1 - 1 else x1
-            val vy = if (flipY) model.sizeY - y1 - 1 else y1
-            val vz = if (flipZ) model.sizeZ - z1 - 1 else z1
+        for (entry in model.voxels.entries) {
+            val vx = if (flipX) model.sizeX - entry.key.x - 1 else entry.key.x
+            val vy = if (flipY) model.sizeY - entry.key.y - 1 else entry.key.y
+            val vz = if (flipZ) model.sizeZ - entry.key.z - 1 else entry.key.z
             val fx = vx - model.sizeX / 2f
             val fy = vy - model.sizeY / 2f
             val fz = vz - model.sizeZ / 2f
@@ -164,7 +172,7 @@ class ParsedVoxFile(
                 (rot[1][0] * fx + rot[1][1] * fy + rot[1][2] * fz + (if (centerY) 1f else model.sizeY / 2f) + offsetY).toInt()
             val rz =
                 (rot[2][0] * fx + rot[2][1] * fy + rot[2][2] * fz + (if (centerZ) 1f else model.sizeZ / 2f) + offsetZ).toInt()
-            voxels.addVoxel(rx, ry, rz, i)
+            voxels.addVoxel(rx, ry, rz, entry.value)
         }
     }
 //

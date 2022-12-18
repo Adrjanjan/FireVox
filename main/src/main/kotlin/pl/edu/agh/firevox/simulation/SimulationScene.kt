@@ -1,18 +1,19 @@
 package pl.edu.agh.firevox.simulation
 
 import pl.edu.agh.firevox.vox.ParsedVoxFile
-import pl.edu.agh.firevox.vox.Voxel
+import pl.edu.agh.firevox.vox.VoxelKey
+import pl.edu.agh.firevox.vox.VoxelMaterialId
 
 data class SimulationScene(
     val sizeX: Int,
     val sizeY: Int,
     val sizeZ: Int,
-    val voxels: List<Voxel>,
+    val voxels: Map<VoxelKey, VoxelMaterialId>,
 ) {
     constructor(parsedVoxFile: ParsedVoxFile) : this(
-        parsedVoxFile.voxels.maxOf { it.x },
-        parsedVoxFile.voxels.maxOf { it.y },
-        parsedVoxFile.voxels.maxOf { it.z },
+        parsedVoxFile.voxels.maxOf { it.key.x },
+        parsedVoxFile.voxels.maxOf { it.key.y },
+        parsedVoxFile.voxels.maxOf { it.key.z },
         parsedVoxFile.voxels
     )
 
