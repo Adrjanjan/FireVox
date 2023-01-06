@@ -21,9 +21,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>pl.edu.agh.pwch.shop</groupId>
-            <artifactId>shared-dto</artifactId>
-            <version>0.0.1-SNAPSHOT</version>
+            <groupId>pl.edu.agh.firevox</groupId>
+            <artifactId>shared</artifactId>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>

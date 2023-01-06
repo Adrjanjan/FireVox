@@ -9,10 +9,10 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>pl.edu.agh.firevox</groupId>
-    <artifactId>shared-dto</artifactId>
+    <artifactId>shared</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>shared-dto</name>
-    <description>shared-dto</description>
+    <name>shared</name>
+    <description>shared</description>
     <properties>
         <java.version>17</java.version>
         <kotlin.version>1.6.21</kotlin.version>
@@ -35,6 +35,10 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-redis</artifactId>
         </dependency>
     </dependencies>
 

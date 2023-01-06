@@ -1,5 +1,6 @@
 package pl.edu.agh.firevox.vox
 
+import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
 import pl.edu.agh.firevox.vox.VoxelsTransformations.sizeInDimension
 import pl.edu.agh.firevox.vox.VoxelsTransformations.translate

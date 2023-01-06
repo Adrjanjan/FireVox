@@ -5,7 +5,7 @@ import io.kotest.matchers.shouldBe
 import io.mockk.mockk
 import io.mockk.mockkObject
 import org.slf4j.Logger
-import pl.edu.agh.firevox.FireVoxProperties
+import pl.edu.agh.firevox.shared.config.FireVoxProperties
 import pl.edu.agh.firevox.model.ModelDescription
 import pl.edu.agh.firevox.model.SingleModel
 

@@ -1,4 +1,4 @@
-package pl.edu.agh.firevox.shareddto.model
+package pl.edu.agh.firevox.shared.model
 
 data class VoxelDto(
     val x: Long,

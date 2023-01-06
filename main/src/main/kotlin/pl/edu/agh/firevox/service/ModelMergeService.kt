@@ -4,7 +4,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import pl.edu.agh.firevox.FireVoxProperties
+import pl.edu.agh.firevox.shared.config.FireVoxProperties
 import pl.edu.agh.firevox.model.ModelDescription
 import pl.edu.agh.firevox.model.SingleModel
 import pl.edu.agh.firevox.simulation.SimulationScene
