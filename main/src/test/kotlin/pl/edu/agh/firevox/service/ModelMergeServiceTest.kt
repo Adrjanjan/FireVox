@@ -18,9 +18,10 @@ class ModelMergeServiceTest : ShouldSpec({
         mms.fireVoxProperties = fireVoxProperties
     }
 
-    val treeOnly = SingleModel("./vox/tree.vox")
+    val treeOnly = SingleModel("src/test/resources/vox/tree.vox")
+    val room = SingleModel("src/test/resources/vox/room.vox")
     val roadTree = SingleModel(
-        "./vox/road.vox",
+        "src/test/resources/vox/road.vox",
         listOf(treeOnly)
     )
     val roadTreeOffset = roadTree.copy(
@@ -44,13 +45,13 @@ class ModelMergeServiceTest : ShouldSpec({
 
     should("merge single model and not change it") {
         // given
-        val modelDescription = ModelDescription("out.vox", treeOnly)
+        val modelDescription = ModelDescription("out.vox", room)
 
         // when
         val resultModel = mms.createModel(modelDescription)
 
         // then
-        resultModel.sizeX shouldBe 10
+        resultModel.sizeX shouldBe 117
     }
 
     should("merge two models without modifications") {
