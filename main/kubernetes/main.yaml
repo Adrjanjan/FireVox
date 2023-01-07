@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: worker
+  name: main
 spec:
   replicas: 10
   selector:
     matchLabels:
-      app: worker
+      app: main
   template:
     metadata:
       labels:
-        app: worker
+        app: main
     spec:
       terminationGracePeriodSeconds: 5
       containers:
-        - name: worker
-          image: worker:latest # europe-central2-docker.pkg.dev/firevox/firevox-repository/Voxel
+        - name: main
+          image: main:latest # europe-central2-docker.pkg.dev/firevox/firevox-repository/Voxel
           env:
             - name: FIREVOX_DB_IP
               value: postgres #localhost
@@ -56,8 +56,8 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: worker
+  name: main
 spec:
   type: ClusterIP
   selector:
-    app: worker
+    app: main

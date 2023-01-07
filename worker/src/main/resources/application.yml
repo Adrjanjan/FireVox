@@ -3,7 +3,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://${FIREVOX_DB_IP:localhost}:${FIREVOX_DB_PORT:5433}/firevox?ApplicationName=${spring.application.name}
+    url: jdbc:postgresql://${FIREVOX_DB_IP:localhost}:${FIREVOX_DB_PORT:5432}/firevox?ApplicationName=${spring.application.name}
     username: ${FIREVOX_DB_USERNAME:firevox}
     password: ${FIREVOX_DB_PASSWORD:firevox}
     driver-class-name: org.postgresql.Driver
@@ -16,6 +16,7 @@ spring:
       ddl-auto: update
   rabbitmq:
     host: ${RABBIT_HOST:localhost}
+    port: ${RABBIT_PORT:5672}
     username: ${RABBIT_USER:firevox}
     password: ${RABBIT_PASSWORD:firevox}
     ssl:
@@ -35,4 +36,4 @@ logging:
         SQL: INFO
 
 firevox:
-  max-size: 20000
+  max-size: ${FIREVOX_MAX_DIMENSION:20000}
