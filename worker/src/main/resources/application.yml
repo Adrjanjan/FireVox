@@ -1,7 +1,38 @@
 server:
-  port: ${PORT:8080}
+  port: ${PORT:8083}
 
 spring:
-  redis:
-    port: 6379
-    host: ${REDIS_ADDRESS}
+  datasource:
+    url: jdbc:postgresql://${FIREVOX_DB_IP:localhost}:${FIREVOX_DB_PORT:5433}/firevox?ApplicationName=${spring.application.name}
+    username: ${FIREVOX_DB_USERNAME:firevox}
+    password: ${FIREVOX_DB_PASSWORD:firevox}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      connection-init-sql: SET TIME ZONE 'Etc/UTC'
+      schema: firevox
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+  rabbitmq:
+    host: ${RABBIT_HOST:localhost}
+    username: ${RABBIT_USER:firevox}
+    password: ${RABBIT_PASSWORD:firevox}
+    ssl:
+      enabled: ${RABBIT_SSL:false}
+    listener:
+      simple:
+        acknowledge-mode: manual
+
+logging:
+  level:
+    org:
+      springframework:
+        security: INFO
+      keycloak:
+        adapters: INFO
+      hibernate:
+        SQL: INFO
+
+firevox:
+  max-size: 20000

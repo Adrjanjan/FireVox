@@ -56,7 +56,13 @@ data class SceneTree(
 
             is GroupNodeChunk -> {
                 val childVoxels: MutableMap<VoxelKey, VoxelMaterialId> = mutableMapOf()
-                node.childNodeIds.forEach { processNode(models, this.findNode(it), maxSize).let { result -> childVoxels.putAll(result) } }
+                node.childNodeIds.forEach {
+                    processNode(
+                        models,
+                        this.findNode(it),
+                        maxSize
+                    ).let { result -> childVoxels.putAll(result) }
+                }
                 childVoxels
             } // process all nodes in group
             is ShapeNodeChunk -> {
@@ -70,8 +76,7 @@ data class SceneTree(
             else -> throw NotSupportedSceneNodeException("Scene node $node.")
         }
 
-    private fun findNode(nodeId: Int)
-            : SceneNode =
+    private fun findNode(nodeId: Int): SceneNode =
         transformNodeChunks[nodeId] ?: groupNodeChunks[nodeId] ?: shapeNodeChunks[nodeId]
         ?: throw NodeNotFoundException("Node with id $nodeId was not present in Scene Tree")
 }

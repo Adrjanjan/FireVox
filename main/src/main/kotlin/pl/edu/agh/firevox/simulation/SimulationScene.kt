@@ -1,7 +1,7 @@
 package pl.edu.agh.firevox.simulation
 
+import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.vox.ParsedVoxFile
-import pl.edu.agh.firevox.vox.VoxelKey
 import pl.edu.agh.firevox.vox.VoxelMaterialId
 
 data class SimulationScene(
