@@ -80,7 +80,7 @@ object VoxFormatParser {
 //    }
 
     @Throws(IOException::class)
-    fun read(inputStream: InputStream, maxSize: Int): ParsedVoxFile {
+    fun read(inputStream: InputStream): ParsedVoxFile {
         val input = LittleEndianDataInputStream(inputStream)
         verifyVoxFormat(input)
 
@@ -135,7 +135,6 @@ object VoxFormatParser {
             materials,
             renderObjects,
             cameras,
-            maxSize,
         )
     }
 

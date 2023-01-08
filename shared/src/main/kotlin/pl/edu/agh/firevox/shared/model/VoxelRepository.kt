@@ -1,16 +1,14 @@
 package pl.edu.agh.firevox.shared.model
 
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
-import pl.edu.agh.firevox.shared.config.FireVoxProperties
+import pl.edu.agh.firevox.shared.config.FireVoxProperties.Companion.maxSize
 
 @Repository
 class CustomVoxelRepository(
-    private val voxelRepository: VoxelRepository,
-    fireVoxProperties: FireVoxProperties
+    private val voxelRepository: VoxelRepository
 ) {
-    private val maxSize = fireVoxProperties.maxSize
-
     fun findWithNeighbors(key: VoxelKey, type: NeighbourhoodType, iteration: Int) = type.keyMapping
         .map { key.copy(x = key.x + it.first, y = key.y + it.second, z = key.z + it.third) }
         .filter(::verifyInbound)

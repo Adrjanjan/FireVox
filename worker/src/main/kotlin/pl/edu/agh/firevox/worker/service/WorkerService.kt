@@ -1,17 +1,15 @@
 package pl.edu.agh.firevox.worker.service
 
 import org.springframework.stereotype.Service
-import pl.edu.agh.firevox.shared.model.Voxel
-import pl.edu.agh.firevox.shared.model.VoxelKey
-import pl.edu.agh.firevox.shared.model.VoxelRepository
+import pl.edu.agh.firevox.shared.model.*
 
 @Service
 class WorkerService(
-    var voxelRepository: VoxelRepository,
+    private val voxelRepository: CustomVoxelRepository
 //    var materialRepository: MaterialRepository,
-){
+) {
 
-    fun calculate(voxelKey:VoxelKey) : List<Voxel> {
+    fun calculate(voxelKey: VoxelKey): List<Voxel> {
         TODO()
     }
 
