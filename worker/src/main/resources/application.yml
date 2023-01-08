@@ -36,4 +36,4 @@ logging:
         SQL: INFO
 
 firevox:
-  max-size: ${FIREVOX_MAX_DIMENSION:20000}
+  maxSize: ${FIREVOX_MAX_DIMENSION:20000}

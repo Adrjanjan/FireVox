@@ -1,7 +1,7 @@
 package pl.edu.agh.firevox.shared.model
 
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
+import javax.persistence.Entity
+import javax.persistence.Id
 
 @Entity
 class VoxelMaterial(

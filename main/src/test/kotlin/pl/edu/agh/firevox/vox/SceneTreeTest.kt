@@ -3,6 +3,7 @@ package pl.edu.agh.firevox.vox
 import com.google.common.io.LittleEndianDataInputStream
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.vox.chunks.*
 import java.io.InputStream
 

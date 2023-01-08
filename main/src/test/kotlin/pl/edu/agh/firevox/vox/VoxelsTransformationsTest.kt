@@ -3,6 +3,7 @@ package pl.edu.agh.firevox.vox
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.maps.shouldContainAll
 import io.kotest.matchers.shouldBe
+import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
 import pl.edu.agh.firevox.vox.VoxelsTransformations.translate
 import pl.edu.agh.firevox.vox.chunks.Rotation

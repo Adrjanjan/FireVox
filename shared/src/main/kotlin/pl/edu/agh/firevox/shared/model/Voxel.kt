@@ -1,8 +1,8 @@
 package pl.edu.agh.firevox.shared.model
 
-import jakarta.persistence.EmbeddedId
-import jakarta.persistence.Entity
-import jakarta.persistence.ManyToOne
+import javax.persistence.EmbeddedId
+import javax.persistence.Entity
+import javax.persistence.ManyToOne
 import org.hibernate.Hibernate
 import java.util.*
 
