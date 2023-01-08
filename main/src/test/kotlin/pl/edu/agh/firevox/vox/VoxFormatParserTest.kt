@@ -18,7 +18,7 @@ class VoxFormatParserTest : ShouldSpec({
             getFile("vox/room.vox")
         }
         // when
-        val model = VoxFormatParser.read(input, 1024)
+        val model = VoxFormatParser.read(input)
         // then
         model.models.size shouldBe 1
         // TODO add more assertions

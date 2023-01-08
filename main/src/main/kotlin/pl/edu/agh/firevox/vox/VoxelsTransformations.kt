@@ -1,5 +1,6 @@
 package pl.edu.agh.firevox.vox
 
+import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.vox.chunks.Rotation
 import pl.edu.agh.firevox.vox.chunks.Translation
 import kotlin.math.absoluteValue
