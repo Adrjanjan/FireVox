@@ -1,10 +1,10 @@
 package pl.edu.agh.firevox.shared.config
 
 import org.springframework.boot.context.properties.ConfigurationProperties
-import org.springframework.boot.context.properties.ConstructorBinding
+import org.springframework.boot.context.properties.bind.ConstructorBinding
 
-@ConstructorBinding
+
 @ConfigurationProperties("firevox")
-class FireVoxProperties (
+class FireVoxProperties @ConstructorBinding constructor(
     var maxSize: Int
 )

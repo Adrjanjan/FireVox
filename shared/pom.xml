@@ -3,12 +3,10 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.7.4</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <groupId>pl.edu.agh.firevox</groupId>
+        <artifactId>FireVox</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <groupId>pl.edu.agh.firevox</groupId>
     <artifactId>shared</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>shared</name>
@@ -17,6 +15,7 @@
         <java.version>17</java.version>
         <kotlin.version>1.6.21</kotlin.version>
     </properties>
+
     <dependencies>
 
         <dependency>
@@ -54,10 +53,18 @@
         </dependency>
     </dependencies>
 
+
     <build>
         <sourceDirectory>${project.basedir}/src/main/kotlin</sourceDirectory>
         <testSourceDirectory>${project.basedir}/src/test/kotlin</testSourceDirectory>
         <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <configuration>
+                    <layout>NONE</layout>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.jetbrains.kotlin</groupId>
                 <artifactId>kotlin-maven-plugin</artifactId>
@@ -126,7 +133,4 @@
             </plugin>
         </plugins>
     </build>
-
-
-
 </project>
