@@ -12,7 +12,7 @@ class CustomVoxelRepository(
     fun findWithNeighbors(key: VoxelKey, type: NeighbourhoodType, iteration: Int) = type.keyMapping
         .map { key.copy(x = key.x + it.first, y = key.y + it.second, z = key.z + it.third) }
         .filter(::verifyInbound)
-        .associateWith{ voxelRepository.findByVoxelKeyAndCurrentIteration(it, iteration) }
+        .associateWith { voxelRepository.findByVoxelKeyAndCurrentPropertiesIterationNumber(it, iteration) }
 
     fun save(voxel: Voxel) = voxelRepository.save(voxel)
 
@@ -22,8 +22,8 @@ class CustomVoxelRepository(
 
 }
 
-interface VoxelRepository : JpaRepository<Voxel,VoxelKey> {
-    fun findByVoxelKeyAndCurrentIteration(voxelKey: VoxelKey, iteration: Int) : Voxel?
+interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
+    fun findByVoxelKeyAndCurrentPropertiesIterationNumber(voxelKey: VoxelKey, iterationNumber: Int): Voxel?
 }
 
 enum class NeighbourhoodType(val keyMapping: List<Triple<Int, Int, Int>>) {

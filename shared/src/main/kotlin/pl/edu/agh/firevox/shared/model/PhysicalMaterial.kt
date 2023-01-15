@@ -7,7 +7,7 @@ import javax.persistence.Table
 
 @Entity
 @Table(name="material")
-class PhysicsMaterial(
+class PhysicalMaterial(
     @Id
     val id: Int = TODO(), //same as in .vox files
 
