@@ -2,6 +2,7 @@ package pl.edu.agh.firevox.worker.physics
 
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.CustomVoxelRepository
+import pl.edu.agh.firevox.shared.model.StateProperties
 import pl.edu.agh.firevox.shared.model.Voxel
 import pl.edu.agh.firevox.shared.model.VoxelMaterial.*
 
@@ -11,7 +12,7 @@ class PhysicsCalculator(
 ) {
 
     fun calculate(voxel: Voxel) {
-        val newMaterial = when(voxel.currentProperties.material){
+        val newMaterial = when (voxel.currentProperties.material) {
             AIR -> TODO()
             HALF_SMOKE -> TODO()
             FULL_SMOKE -> TODO()
@@ -36,5 +37,57 @@ class PhysicsCalculator(
             CONCRETE -> TODO()
             FLAME -> TODO()
         }
+        val newIteration = voxel.currentProperties.iterationNumber + 1
+        voxel.nextProperties = StateProperties(newIteration, newMaterial)
     }
+
+    fun Voxel.isSolid() = this.currentProperties.material in listOf(
+        WOOD,
+        WOOD_HEATED,
+        WOOD_BURNING,
+        WOOD_BURNT,
+        PLASTIC,
+        PLASTIC_BURNING,
+        PLASTIC_BURNT,
+        TEXTILE,
+        TEXTILE_BURNING,
+        TEXTILE_BURNT,
+        METAL,
+        METAL_HEATED,
+        METAL_HOT,
+        METAL_VERY_HOT,
+        GLASS,
+        GLASS_HEATED,
+        GLASS_HOT,
+        GLASS_VERY_HOT,
+        CONCRETE,
+    )
+
+    fun Voxel.isSmokeSource() = this.currentProperties.material in listOf(
+        HALF_SMOKE,
+        FULL_SMOKE,
+        WOOD_HEATED,
+        FLAME
+    )
+
+    fun Voxel.isLowHeatSource() = this.currentProperties.material in listOf(
+        WOOD_HEATED,
+        GLASS_HEATED,
+        METAL_HEATED,
+        METAL_HOT,
+        GLASS_HOT
+    )
+
+    fun Voxel.isHighHeatSource() = this.currentProperties.material in listOf(
+        WOOD_BURNING,
+        PLASTIC_BURNING,
+        TEXTILE_BURNING,
+        GLASS_VERY_HOT,
+        METAL_VERY_HOT,
+        FLAME
+    )
+
+    fun Voxel.isHeatSource() = this.currentProperties.material in listOf(
+
+    )
 }
