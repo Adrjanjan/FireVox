@@ -10,9 +10,10 @@ class CustomVoxelRepository(
     private val voxelRepository: VoxelRepository
 ) {
     fun findWithNeighbors(key: VoxelKey, type: NeighbourhoodType, iteration: Int) = type.keyMapping
-        .map { key.copy(x = key.x + it.first, y = key.y + it.second, z = key.z + it.third) }
+        .map { key.copy(x = key.x + it.x, y = key.y + it.y, z = key.z + it.z) }
         .filter(::verifyInbound)
-        .associateWith { voxelRepository.findByVoxelKeyAndCurrentPropertiesIterationNumber(it, iteration) }
+        .associateWith { findCurrent(key, iteration) }
+        .toMutableMap()
 
     fun save(voxel: Voxel) = voxelRepository.save(voxel)
 
@@ -20,6 +21,8 @@ class CustomVoxelRepository(
         if (k.x < 0 || k.y < 0 || k.z < 0) false
         else !(k.x > maxSize || k.y > maxSize || k.z > maxSize)
 
+    fun findCurrent(key: VoxelKey, iteration: Int) =
+        voxelRepository.findByVoxelKeyAndCurrentPropertiesIterationNumber(key, iteration)
 }
 
 interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
@@ -29,11 +32,19 @@ interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
 enum class NeighbourhoodType(val keyMapping: List<Triple<Int, Int, Int>>) {
     TOP(listOf(Triple(0, 0, 1))),
     BOTTOM(listOf(Triple(0, 0, -1))),
-    SIX_SIDES(
+    N_E_W_S_U(
         listOf(
             Triple(0, 0, 0),
             Triple(0, 0, 1),
-            Triple(0, 0, -1),
+            Triple(0, 1, 0),
+            Triple(0, -1, 0),
+            Triple(1, 0, 0),
+            Triple(-1, 0, 0),
+        )
+    ),
+    N_E_W_S_(
+        listOf(
+            Triple(0, 0, 0),
             Triple(0, 1, 0),
             Triple(0, -1, 0),
             Triple(1, 0, 0),
@@ -50,3 +61,9 @@ enum class NeighbourhoodType(val keyMapping: List<Triple<Int, Int, Int>>) {
         }
     )
 }
+val Triple<Int, Int, Int>.x: Int
+    get() = this.first
+val Triple<Int, Int, Int>.y: Int
+    get() = this.second
+val Triple<Int, Int, Int>.z: Int
+    get() = this.third

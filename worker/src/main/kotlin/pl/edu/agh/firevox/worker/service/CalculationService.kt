@@ -8,7 +8,7 @@ import javax.transaction.Transactional
 @Service
 class CalculationService(
     private val voxelRepository: CustomVoxelRepository,
-    private val calculators: List<PhysicsCalculator>
+    private val calculator: PhysicsCalculator
 ) {
 
     /**
@@ -17,13 +17,10 @@ class CalculationService(
      */
     @Transactional
     fun calculate(voxelKey: VoxelKey, iteration: Int) {
-        val voxels = voxelRepository.findWithNeighbors(voxelKey, NeighbourhoodType.ALL, iteration)
-        val mainVoxel = voxels[voxelKey]
+        val voxel = voxelRepository.findCurrent(voxelKey, iteration)
             ?: throw InvalidSimulationState("Calculation for voxel with key $voxelKey can't be made - voxel not found")
-        calculators.forEach {
-            it.calculate(mainVoxel, voxels)
-        }
-        voxelRepository.save(mainVoxel)
+        calculator.calculate(voxel)
+        voxelRepository.save(voxel)
     }
 
 }

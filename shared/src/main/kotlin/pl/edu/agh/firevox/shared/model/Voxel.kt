@@ -1,26 +1,19 @@
 package pl.edu.agh.firevox.shared.model
 
-import javax.persistence.EmbeddedId
-import javax.persistence.Entity
-import javax.persistence.ManyToOne
 import org.hibernate.Hibernate
 import java.util.*
-import javax.persistence.Embeddable
-import javax.persistence.Embedded
+import javax.persistence.*
 
 @Entity
 data class Voxel(
     @EmbeddedId
     val voxelKey: VoxelKey,
 
-    @ManyToOne
-    var physicalMaterial: PhysicalMaterial,
-
     @Embedded
     val currentProperties: StateProperties,
 
     @Embedded
-    var nextProperties: StateProperties?
+    var nextProperties: StateProperties? // same as currentProperties in first frame
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -42,7 +35,5 @@ data class Voxel(
 @Embeddable
 data class StateProperties(
     var iterationNumber: Int,
-    var heat: Double,
-    var temperature: Double,
-
+    var material: VoxelMaterial,
 )
