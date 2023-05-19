@@ -16,15 +16,16 @@ class PhysicsCalculator(
             AIR, HALF_SMOKE, FULL_SMOKE, FLAME
             -> airTransitions(voxel)
 
-            WOOD, WOOD_HEATED, WOOD_BURNING, WOOD_BURNT, PLASTIC, PLASTIC_BURNING,
-            PLASTIC_BURNT, TEXTILE, TEXTILE_BURNING, TEXTILE_BURNT
-            -> burningTransitions(voxel)
+            WOOD, WOOD_HEATED, WOOD_BURNING, WOOD_BURNT, PLASTIC, PLASTIC_HEATED, PLASTIC_BURNING,
+            PLASTIC_BURNT, TEXTILE, TEXTILE_HEATED, TEXTILE_BURNING, TEXTILE_BURNT
+            -> flammableMaterialsTransitions(voxel)
 
             METAL, METAL_HEATED, METAL_HOT, METAL_VERY_HOT, GLASS, GLASS_HEATED, GLASS_HOT, GLASS_VERY_HOT
             -> conductionTransitions(voxel)
 
             CONCRETE
             -> concreteTransitions(voxel)
+
 
         }
         val newIteration = voxel.currentProperties.iterationNumber + 1
@@ -73,7 +74,6 @@ class PhysicsCalculator(
     else if (coolingProbability(neighbours, 0.25, 0.0, 0.0, roomTemp, heated, hot) > Random.nextDouble()) roomTemp
     else heated
 
-
     private fun hotConductionTransitions(
         neighbours: List<Voxel>,
         roomTemp: VoxelMaterial,
@@ -93,7 +93,6 @@ class PhysicsCalculator(
         veryHot: VoxelMaterial
     ) = if (coolingProbability(neighbours, 0.75, 0.50, 0.25, roomTemp, heated, hot) > Random.nextDouble()) roomTemp
     else veryHot
-
 
     private fun roomTempConductionTransitions(
         neighbours: List<Voxel>,
@@ -134,9 +133,65 @@ class PhysicsCalculator(
         }
     }
 
-    fun burningTransitions(voxel: Voxel): VoxelMaterial {
-        TODO("Not yet implemented")
+    fun flammableMaterialsTransitions(voxel: Voxel): VoxelMaterial {
+        val current = voxel.currentProperties
+        val neighbours = voxelRepository.findNeighbors(
+            voxel.voxelKey, NeighbourhoodType.N_E_W_S_U_L_, current.iterationNumber
+        )
+        return if (current.material.toString().contains("WOOD")) {
+            flammableMaterialsTransitions(current, WOOD, WOOD_HEATED, WOOD_BURNING, WOOD_BURNT, neighbours)
+        } else if (current.material.toString().contains("TEXTILE")) {
+            flammableMaterialsTransitions(current, TEXTILE, TEXTILE_HEATED, TEXTILE_BURNING, TEXTILE_BURNT, neighbours)
+        } else if (current.material.toString().contains("PLASTIC")) {
+            flammableMaterialsTransitions(current, PLASTIC, PLASTIC_HEATED, PLASTIC_BURNING, PLASTIC_BURNT, neighbours)
+        } else throw InvalidSimulationState("Not GLASS or METAL in conduction transition")
     }
+
+    fun flammableMaterialsTransitions(
+        state: StateProperties,
+        roomTemp: VoxelMaterial,
+        heated: VoxelMaterial,
+        burning: VoxelMaterial,
+        burnt: VoxelMaterial,
+        neighbours: List<Voxel>
+    ): VoxelMaterial {
+        return when (state.material) {
+            roomTemp -> roomTempBurningTransitions(neighbours, roomTemp, heated, burning)
+            heated -> heatedBurningTransitions(neighbours, roomTemp, heated, burning)
+            burning -> burningTransitions(state, burning, burnt)
+            burnt -> burnt
+            else -> state.material
+        }
+    }
+
+    private fun burningTransitions(
+        state: StateProperties,
+        burning: VoxelMaterial,
+        burnt: VoxelMaterial,
+    ) = if (burning.burningDuration > state.burningTick) {
+        state.burningTick = state.burningTick++
+        burning
+    } else burnt
+
+    private fun heatedBurningTransitions(
+        neighbours: List<Voxel>,
+        roomTemp: VoxelMaterial,
+        heated: VoxelMaterial,
+        burning: VoxelMaterial
+    ) = if (neighbours.all { it.isHighHeatSource() }) burning
+    else if (heatingProbability(neighbours) > Random.nextDouble()) burning
+    else if (coolingProbability(neighbours, 0.25, 0.0, 0.0, roomTemp, heated, burning) > Random.nextDouble()) roomTemp
+    else heated
+
+    private fun roomTempBurningTransitions(
+        neighbours: List<Voxel>,
+        roomTemp: VoxelMaterial,
+        heated: VoxelMaterial,
+        burning: VoxelMaterial
+    ) = if (neighbours.all { it.isHighHeatSource() }) burning
+    else if (heatingProbability(neighbours) > Random.nextDouble()) heated
+    else roomTemp
+
 
     private fun airTransitions(voxel: Voxel): VoxelMaterial {
         TODO("Not yet implemented")
@@ -173,10 +228,12 @@ class PhysicsCalculator(
 
     fun Voxel.isLowHeatSource() = this.currentProperties.material in listOf(
         WOOD_HEATED,
+        PLASTIC_HEATED,
+        TEXTILE_HEATED,
         GLASS_HEATED,
         METAL_HEATED,
         METAL_HOT,
-        GLASS_HOT
+        GLASS_HOT,
     )
 
     fun Voxel.isHighHeatSource() = this.currentProperties.material in listOf(
@@ -188,7 +245,5 @@ class PhysicsCalculator(
         FLAME
     )
 
-    fun Voxel.isHeatSource() = this.currentProperties.material in listOf(
-
-    )
+    fun Voxel.isHeatSource() = isLowHeatSource() || isHighHeatSource()
 }

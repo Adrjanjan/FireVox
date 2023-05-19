@@ -36,4 +36,5 @@ data class Voxel(
 data class StateProperties(
     var iterationNumber: Int,
     var material: VoxelMaterial,
+    var burningTick: Int = 0
 )
