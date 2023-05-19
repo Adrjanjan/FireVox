@@ -1,11 +1,10 @@
 package pl.edu.agh.firevox.worker.physics
 
 import org.springframework.stereotype.Service
-import pl.edu.agh.firevox.shared.model.CustomVoxelRepository
-import pl.edu.agh.firevox.shared.model.StateProperties
-import pl.edu.agh.firevox.shared.model.Voxel
-import pl.edu.agh.firevox.shared.model.VoxelMaterial
+import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.VoxelMaterial.*
+import pl.edu.agh.firevox.worker.service.InvalidSimulationState
+import kotlin.random.Random
 
 @Service
 class PhysicsCalculator(
@@ -32,15 +31,110 @@ class PhysicsCalculator(
         voxel.nextProperties = StateProperties(newIteration, newMaterial)
     }
 
-    private fun concreteTransitions(voxel: Voxel): VoxelMaterial {
-        TODO("Not yet implemented")
-    }
+    private fun concreteTransitions(voxel: Voxel) = CONCRETE
 
     private fun conductionTransitions(voxel: Voxel): VoxelMaterial {
-        TODO("Not yet implemented")
+        val current = voxel.currentProperties
+        val neighbours = voxelRepository.findNeighbors(
+            voxel.voxelKey, NeighbourhoodType.N_E_W_S_U_L_, current.iterationNumber
+        )
+        return if (current.material.toString().contains("GLASS")) {
+            conductionHeating(current.material, GLASS, GLASS_HEATED, GLASS_HOT, GLASS_VERY_HOT, neighbours)
+        } else if (current.material.toString().contains("METAL")) {
+            conductionHeating(current.material, METAL, METAL_HEATED, METAL_HOT, METAL_VERY_HOT, neighbours)
+        } else throw InvalidSimulationState("Not GLASS or METAL in conduction transition")
     }
 
-    private fun burningTransitions(voxel: Voxel): VoxelMaterial {
+    fun conductionHeating(
+        currentMaterial: VoxelMaterial,
+        roomTemp: VoxelMaterial,
+        heated: VoxelMaterial,
+        hot: VoxelMaterial,
+        veryHot: VoxelMaterial,
+        neighbours: List<Voxel>
+    ): VoxelMaterial {
+        return when (currentMaterial) {
+            roomTemp -> roomTempConductionTransitions(neighbours, roomTemp, heated, hot)
+            heated -> heatedConductionTransitions(neighbours, roomTemp, heated, hot, veryHot)
+            hot -> hotConductionTransitions(neighbours, roomTemp, heated, hot, veryHot)
+            veryHot -> veryHotConductionTransitions(neighbours, roomTemp, heated, hot, veryHot)
+            else -> currentMaterial
+        }
+    }
+
+    private fun heatedConductionTransitions(
+        neighbours: List<Voxel>,
+        roomTemp: VoxelMaterial,
+        heated: VoxelMaterial,
+        hot: VoxelMaterial,
+        veryHot: VoxelMaterial
+    ) = if (neighbours.all { it.isHighHeatSource() }) veryHot
+    else if (heatingProbability(neighbours) > Random.nextDouble()) hot
+    else if (coolingProbability(neighbours, 0.25, 0.0, 0.0, roomTemp, heated, hot) > Random.nextDouble()) roomTemp
+    else heated
+
+
+    private fun hotConductionTransitions(
+        neighbours: List<Voxel>,
+        roomTemp: VoxelMaterial,
+        heated: VoxelMaterial,
+        hot: VoxelMaterial,
+        veryHot: VoxelMaterial
+    ) = if (neighbours.all { it.isHighHeatSource() }) veryHot
+    else if (heatingProbability(neighbours) > Random.nextDouble()) veryHot
+    else if (coolingProbability(neighbours, 0.5, 0.25, 0.0, roomTemp, heated, hot) > Random.nextDouble()) roomTemp
+    else hot
+
+    private fun veryHotConductionTransitions(
+        neighbours: List<Voxel>,
+        roomTemp: VoxelMaterial,
+        heated: VoxelMaterial,
+        hot: VoxelMaterial,
+        veryHot: VoxelMaterial
+    ) = if (coolingProbability(neighbours, 0.75, 0.50, 0.25, roomTemp, heated, hot) > Random.nextDouble()) roomTemp
+    else veryHot
+
+
+    private fun roomTempConductionTransitions(
+        neighbours: List<Voxel>,
+        roomTemp: VoxelMaterial,
+        heated: VoxelMaterial,
+        hot: VoxelMaterial
+    ) = if (neighbours.all { it.isHighHeatSource() }) hot else {
+        if (heatingProbability(neighbours) > Random.nextDouble()) heated
+        else roomTemp
+    }
+
+    private fun heatingProbability(
+        neighbours: List<Voxel>,
+        lowHeatIncrement: Double = 0.25,
+        highHeatIncrement: Double = 0.5
+    ) = neighbours.sumOf {
+        when {
+            it.isLowHeatSource() -> lowHeatIncrement
+            it.isHighHeatSource() -> highHeatIncrement
+            else -> 0.0
+        }
+    }
+
+    private fun coolingProbability(
+        neighbours: List<Voxel>,
+        roomTempIncrement: Double = 0.75,
+        heatedIncrement: Double = 0.5,
+        hotIncrement: Double = 0.25,
+        roomTemp: VoxelMaterial,
+        heated: VoxelMaterial,
+        hot: VoxelMaterial
+    ) = neighbours.sumOf {
+        when (it.currentProperties.material) {
+            roomTemp -> roomTempIncrement
+            heated -> heatedIncrement
+            hot -> hotIncrement
+            else -> 0.0
+        }
+    }
+
+    fun burningTransitions(voxel: Voxel): VoxelMaterial {
         TODO("Not yet implemented")
     }
 

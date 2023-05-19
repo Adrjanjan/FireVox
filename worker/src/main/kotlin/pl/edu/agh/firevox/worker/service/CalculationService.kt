@@ -17,7 +17,7 @@ class CalculationService(
      */
     @Transactional
     fun calculate(voxelKey: VoxelKey, iteration: Int) {
-        val voxel = voxelRepository.findCurrent(voxelKey, iteration)
+        val voxel = voxelRepository.findForIteration(voxelKey, iteration)
             ?: throw InvalidSimulationState("Calculation for voxel with key $voxelKey can't be made - voxel not found")
         calculator.calculate(voxel)
         voxelRepository.save(voxel)
