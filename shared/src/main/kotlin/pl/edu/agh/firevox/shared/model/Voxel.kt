@@ -13,7 +13,7 @@ data class Voxel(
     val currentProperties: StateProperties,
 
     @Embedded
-    var nextProperties: StateProperties? // same as currentProperties in first frame
+    var nextProperties: StateProperties // same as currentProperties in first frame
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -29,6 +29,9 @@ data class Voxel(
     override fun toString(): String {
         return this::class.simpleName + "(EmbeddedId = $voxelKey , currentProperties = $currentProperties , nextProperties = $nextProperties )"
     }
+
+    fun isBelow(other: Voxel) = voxelKey.isBelow(other.voxelKey)
+    fun isAbove(other: Voxel) = voxelKey.isAbove(other.voxelKey)
 
 }
 

@@ -53,14 +53,12 @@ class PhysicsCalculator(
         hot: VoxelMaterial,
         veryHot: VoxelMaterial,
         neighbours: List<Voxel>
-    ): VoxelMaterial {
-        return when (currentMaterial) {
-            roomTemp -> roomTempConductionTransitions(neighbours, roomTemp, heated, hot)
-            heated -> heatedConductionTransitions(neighbours, roomTemp, heated, hot, veryHot)
-            hot -> hotConductionTransitions(neighbours, roomTemp, heated, hot, veryHot)
-            veryHot -> veryHotConductionTransitions(neighbours, roomTemp, heated, hot, veryHot)
-            else -> currentMaterial
-        }
+    ) = when (currentMaterial) {
+        roomTemp -> roomTempConductionTransitions(neighbours, roomTemp, heated, hot)
+        heated -> heatedConductionTransitions(neighbours, roomTemp, heated, hot, veryHot)
+        hot -> hotConductionTransitions(neighbours, roomTemp, heated, hot, veryHot)
+        veryHot -> veryHotConductionTransitions(neighbours, roomTemp, heated, hot, veryHot)
+        else -> currentMaterial
     }
 
     private fun heatedConductionTransitions(
@@ -154,14 +152,12 @@ class PhysicsCalculator(
         burning: VoxelMaterial,
         burnt: VoxelMaterial,
         neighbours: List<Voxel>
-    ): VoxelMaterial {
-        return when (state.material) {
-            roomTemp -> roomTempBurningTransitions(neighbours, roomTemp, heated, burning)
-            heated -> heatedBurningTransitions(neighbours, roomTemp, heated, burning)
-            burning -> burningTransitions(state, burning, burnt)
-            burnt -> burnt
-            else -> state.material
-        }
+    ) = when (state.material) {
+        roomTemp -> roomTempBurningTransitions(neighbours, roomTemp, heated, burning)
+        heated -> heatedBurningTransitions(neighbours, roomTemp, heated, burning)
+        burning -> burningTransitions(state, burning, burnt)
+        burnt -> burnt
+        else -> state.material
     }
 
     private fun burningTransitions(
@@ -194,7 +190,69 @@ class PhysicsCalculator(
 
 
     private fun airTransitions(voxel: Voxel): VoxelMaterial {
-        TODO("Not yet implemented")
+        val current = voxel.currentProperties
+        val neighbours = voxelRepository.findNeighbors(
+            voxel.voxelKey, NeighbourhoodType.N_E_W_S_U_L_, current.iterationNumber
+        )
+        return when (current.material) {
+            AIR -> airTransitions(voxel, neighbours)
+            HALF_SMOKE -> halfSmokeTransitions(voxel, neighbours)
+            FULL_SMOKE -> fullSmokeTransitions(voxel, neighbours)
+            FLAME -> flameTransitions(voxel, neighbours)
+            else -> throw InvalidSimulationState("Not GLASS or METAL in conduction transition")
+        }
+    }
+
+    private fun halfSmokeTransitions(voxel: Voxel, neighbours: List<Voxel>): VoxelMaterial {
+        val lowerCell = neighbours.firstOrNull { it.isBelow(voxel) }
+        val upperCell = neighbours.firstOrNull { it.isAbove(voxel) }
+        val upperCanAbsorbSmoke = upperCell != null && (upperCell.isMadeOf(AIR) || upperCell.isMadeOf(HALF_SMOKE))
+
+        if (lowerCell != null) {
+            if (lowerCell.isSolid() || lowerCell.isMadeOf(AIR)) { // lower is source and can pass smoke higher
+                return if (upperCanAbsorbSmoke) AIR
+                else HALF_SMOKE
+            } else if (lowerCell.isSmokeSource()) { // lower is source and can't pass smoke higher
+                return if (upperCanAbsorbSmoke) HALF_SMOKE
+                else FULL_SMOKE
+            }
+        } else { // lower does not exist
+            return if (upperCanAbsorbSmoke) HALF_SMOKE
+            else FULL_SMOKE
+        }
+    }
+
+    private fun Voxel.isMadeOf(material: VoxelMaterial) = currentProperties.material == material
+
+    private fun airTransitions(voxel: Voxel, neighbours: List<Voxel>): VoxelMaterial {
+        val lowerCell = neighbours.firstOrNull { it.isBelow(voxel) }
+        val upperCell = neighbours.firstOrNull { it.isAbove(voxel) }
+
+        if (lowerCell != null && lowerCell.isSmokeSource()) return HALF_SMOKE
+
+        val sidesAreSmokeSource = neighbours.filterNot { it == upperCell || it == lowerCell }
+            .filter { it.isSmokeSource() }
+            .sumOf { 0.25 } > Random.nextDouble()
+
+        if (upperCell == null || upperCell.isSolid() || upperCell.isMadeOf(FULL_SMOKE)) {
+            if (sidesAreSmokeSource) return HALF_SMOKE
+            return AIR
+        }
+        if (lowerCell == null) return voxel.currentProperties.material
+
+        if (sidesAreSmokeSource && lowerCell.isSmokeSource()) return FULL_SMOKE
+
+        // propagate flame
+        if (lowerCell.isMadeOf(FLAME)) return FLAME.also {
+            voxel.currentProperties.burningTick = lowerCell.nextProperties.burningTick - 1
+        }
+
+        // start flame
+        if (lowerCell.isBurning()) return FLAME.also {
+            voxel.nextProperties.burningTick = lowerCell.currentProperties.material.burningDuration
+        }
+
+        return AIR
     }
 
     fun Voxel.isSolid() = this.currentProperties.material in listOf(
@@ -223,7 +281,14 @@ class PhysicsCalculator(
         HALF_SMOKE,
         FULL_SMOKE,
         WOOD_HEATED,
-        FLAME
+        TEXTILE_HEATED,
+        WOOD_BURNING,
+        TEXTILE_BURNING,
+    )
+
+    fun Voxel.isBurning() = this.currentProperties.material in listOf(
+        WOOD_BURNING,
+        TEXTILE_BURNING,
     )
 
     fun Voxel.isLowHeatSource() = this.currentProperties.material in listOf(

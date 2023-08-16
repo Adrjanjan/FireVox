@@ -7,11 +7,11 @@ import javax.persistence.*
 
 @Embeddable
 data class VoxelKey(
-    @Column(name="x")
+    @Column(name = "x")
     val x: Int,
-    @Column(name="y")
+    @Column(name = "y")
     val y: Int,
-    @Column(name="z")
+    @Column(name = "z")
     val z: Int
 ) : Serializable {
     override fun toString() = "$x/$y/$z"
@@ -34,4 +34,8 @@ data class VoxelKey(
         @Serial
         private const val serialVersionUID: Long = 1865432426569155870L
     }
+
+    fun isBelow(other: VoxelKey) = this.x == other.x && this.y == other.y && this.z == other.z + 1
+
+    fun isAbove(other: VoxelKey) = this.x == other.x && this.y == other.y && this.z == other.z - 1
 }
