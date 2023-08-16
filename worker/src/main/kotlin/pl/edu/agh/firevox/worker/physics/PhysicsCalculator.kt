@@ -208,17 +208,13 @@ class PhysicsCalculator(
         val upperCell = neighbours.firstOrNull { it.isAbove(voxel) }
         val upperCanAbsorbSmoke = upperCell != null && (upperCell.isMadeOf(AIR) || upperCell.isMadeOf(HALF_SMOKE))
 
-        if (lowerCell != null) {
-            if (lowerCell.isSolid() || lowerCell.isMadeOf(AIR)) { // lower is source and can pass smoke higher
-                return if (upperCanAbsorbSmoke) AIR
-                else HALF_SMOKE
-            } else if (lowerCell.isSmokeSource()) { // lower is source and can't pass smoke higher
-                return if (upperCanAbsorbSmoke) HALF_SMOKE
-                else FULL_SMOKE
-            }
-        } else { // lower does not exist
-            return if (upperCanAbsorbSmoke) HALF_SMOKE
-            else FULL_SMOKE
+        return when {
+            lowerCell != null && !lowerCell.isSmokeSource() && upperCanAbsorbSmoke -> AIR
+            lowerCell != null && !lowerCell.isSmokeSource() && !upperCanAbsorbSmoke -> HALF_SMOKE
+            lowerCell != null && lowerCell.isSmokeSource() && upperCanAbsorbSmoke -> HALF_SMOKE
+            lowerCell != null && lowerCell.isSmokeSource() && !upperCanAbsorbSmoke -> FULL_SMOKE
+            lowerCell == null && upperCanAbsorbSmoke -> AIR
+            else -> HALF_SMOKE
         }
     }
 
