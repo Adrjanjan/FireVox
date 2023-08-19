@@ -4,7 +4,7 @@ EXPOSE 8080
 
 RUN mkdir /app
 
-COPY target/Voxel-0.0.1-SNAPSHOT-exec.jar /app/Voxel.jar
-RUN chown 777 /app/Voxel.jar
+COPY target/worker-*-exec.jar /app/worker.jar
+RUN chmod 777 /app/worker.jar
 
-ENTRYPOINT ["java", "-XX:+UnlockExperimentalVMOptions", "-jar","/app/Voxel.jar"]
+ENTRYPOINT ["java", "-XX:+UnlockExperimentalVMOptions", "-jar","/app/worker.jar"]

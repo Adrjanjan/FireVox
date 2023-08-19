@@ -7,11 +7,11 @@
         <artifactId>FireVox</artifactId>
         <version>0.0.1-SNAPSHOT</version>
     </parent>
-    <artifactId>worker</artifactId>
+    <artifactId>main</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>worker</name>
+    <name>main</name>
     <packaging>jar</packaging>
-    <description>Worker module</description>
+    <description>Main module</description>
     <properties>
         <java.version>17</java.version>
         <kotlin.version>1.6.21</kotlin.version>
@@ -103,7 +103,7 @@
                 <executions>
                     <execution>
                         <configuration>
-                            <mainClass>pl.edu.agh.firevox.worker.WorkerApplication</mainClass>
+                            <mainClass>pl.edu.agh.firevox.FireVox</mainClass>
                         </configuration>
                     </execution>
                 </executions>

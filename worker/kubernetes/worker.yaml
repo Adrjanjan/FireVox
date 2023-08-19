@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      terminationGracePeriodSeconds: 5
+      containers:
+        - name: worker
+          image: worker:latest # europe-central2-docker.pkg.dev/firevox/firevox-repository/Voxel
+          env:
+            - name: FIREVOX_DB_IP
+              value: postgres #localhost
+            - name: FIREVOX_DB_PORT
+              value: "5432"
+            - name: FIREVOX_DB_USERNAME
+              value: firevox
+            - name: FIREVOX_DB_PASSWORD
+              value: firevox
+              ####
+            - name: RABBIT_HOST
+              value: rabbitmq
+            - name: RABBIT_PORT
+              value: "5672"
+            - name: RABBIT_USER
+              value: firevox
+            - name: RABBIT_PASSWORD
+              value: firevox
+            - name: RABBIT_SSL
+              value: "false"
+            - name: FIREVOX_MAX_DIMENSION
+              value: "20000"
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8080
+            periodSeconds: 3
+            initialDelaySeconds: 60
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            periodSeconds: 3
+            initialDelaySeconds: 60
+            failureThreshold: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+spec:
+  type: ClusterIP
+  selector:
+    app: worker

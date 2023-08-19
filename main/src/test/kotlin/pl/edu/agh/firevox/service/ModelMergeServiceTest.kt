@@ -1,0 +1,84 @@
+package pl.edu.agh.firevox.service
+
+import io.kotest.core.spec.style.ShouldSpec
+import io.kotest.matchers.shouldBe
+import io.mockk.mockkObject
+import org.slf4j.Logger
+import pl.edu.agh.firevox.model.ModelDescription
+import pl.edu.agh.firevox.model.SingleModel
+
+class ModelMergeServiceTest : ShouldSpec({
+    mockkObject(Logger::class)
+    val mms = ModelMergeService()
+
+    val treeOnly = SingleModel("src/test/resources/vox/tree.vox")
+    val room = SingleModel("src/test/resources/vox/room.vox")
+    val roadTree = SingleModel(
+        "src/test/resources/vox/road.vox",
+        listOf(treeOnly)
+    )
+    val roadTreeOffset = roadTree.copy(
+        childModels = listOf(
+            treeOnly.copy(
+                positionX = 5,
+                positionY = 5,
+                positionZ = 5,
+            )
+        )
+    )
+    val roadTreeRotation = roadTree.copy(
+        childModels = listOf(
+            treeOnly.copy(
+                rotateX = 90,
+                rotateY = 180,
+                rotateZ = 270,
+            )
+        )
+    )
+
+    xshould("merge single model and not change it") {
+        // given
+        val modelDescription = ModelDescription("out.vox", room)
+
+        // when
+        val resultModel = mms.createModel(modelDescription)
+
+        // then
+        resultModel.sizeX shouldBe 117
+    }
+
+    xshould("merge two models without modifications") {
+        // given
+        val modelDescription = ModelDescription("out.vox", roadTree)
+
+        // when
+        val resultModel = mms.createModel(modelDescription)
+
+        // then
+        resultModel.sizeX shouldBe 10
+    }
+
+    xshould("merge two models with offset") {
+        // given
+        val modelDescription = ModelDescription("out.vox", roadTreeOffset)
+
+        // when
+        val resultModel = mms.createModel(modelDescription)
+
+        // then
+        resultModel.sizeX shouldBe 10
+    }
+
+    xshould("merge two models with rotation") {
+        // given
+        val modelDescription = ModelDescription("out.vox", roadTreeRotation)
+
+        // when
+        val resultModel = mms.createModel(modelDescription)
+
+        // then
+        resultModel.sizeX shouldBe 10
+    }
+
+
+})

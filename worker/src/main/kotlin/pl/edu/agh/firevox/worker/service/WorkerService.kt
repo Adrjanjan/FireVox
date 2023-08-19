@@ -1,17 +1,16 @@
 package pl.edu.agh.firevox.worker.service
 
-import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.stereotype.Service
-import pl.edu.agh.firevox.worker.repository.VoxelRepository
-import java.util.*
+import pl.edu.agh.firevox.shared.model.*
 
 @Service
-class WorkerService {
+class WorkerService(
+    private val voxelRepository: CustomVoxelRepository
+//    var materialRepository: MaterialRepository,
+) {
 
-    @Autowired
-    lateinit var voxelRepository: VoxelRepository
+    fun calculate(voxelKey: VoxelKey): List<Voxel> {
+        TODO()
+    }
 
-    fun getVoxel(voxelId: UUID) = voxelRepository.findById(voxelId).orElseGet { null }
-
-    fun delete(voxelId: UUID) = voxelRepository.deleteById(voxelId)
 }

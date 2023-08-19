@@ -11,7 +11,7 @@ build:
 deploy:
   kubectl:
     manifests:
-    - ./kubernetes/Voxel.yaml
+    - ./kubernetes/worker.yaml
 profiles:
 - name: cloudbuild
   build:

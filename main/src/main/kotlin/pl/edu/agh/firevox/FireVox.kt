@@ -1,4 +1,4 @@
-package pl.edu.agh.firevox.worker
+package pl.edu.agh.firevox
 
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.autoconfigure.domain.EntityScan
@@ -10,10 +10,10 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 @EntityScan("pl.edu.agh.firevox")
 @EnableJpaRepositories(basePackages = ["pl.edu.agh.firevox"])
 @ComponentScan(
-    basePackages = ["pl.edu.agh.firevox", "pl.edu.agh.firevox.shared"]
+    basePackages = ["pl.edu.agh.firevox.*", "pl.edu.agh.firevox.shared.*"]
 )
-class WorkerApplication
+class FireVox
 
 fun main(args: Array<String>) {
-    runApplication<WorkerApplication>(*args)
+    runApplication<FireVox>(*args)
 }
