@@ -10,9 +10,15 @@ data class Voxel(
     val voxelKey: VoxelKey,
 
     @Embedded
+    @AttributeOverride(name = "iterationNumber", column = Column(name = "current_iteration_number"))
+    @AttributeOverride(name = "material", column = Column(name = "current_material"))
+    @AttributeOverride(name = "burningTick", column = Column(name = "current_burning_tick"))
     val currentProperties: StateProperties,
 
     @Embedded
+    @AttributeOverride(name = "iterationNumber", column = Column(name = "next_iteration_number"))
+    @AttributeOverride(name = "material", column = Column(name = "next_material"))
+    @AttributeOverride(name = "burningTick", column = Column(name = "next_burning_tick"))
     var nextProperties: StateProperties // same as currentProperties in first frame
 ) {
     override fun equals(other: Any?): Boolean {
