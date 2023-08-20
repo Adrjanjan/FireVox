@@ -35,7 +35,7 @@ data class VoxelKey(
         private const val serialVersionUID: Long = 1865432426569155870L
     }
 
-    fun isBelow(other: VoxelKey) = this.x == other.x && this.y == other.y && this.z == other.z + 1
+    fun isBelow(other: VoxelKey) = this.x == other.x && this.y == other.y && this.z == other.z - 1
 
-    fun isAbove(other: VoxelKey) = this.x == other.x && this.y == other.y && this.z == other.z - 1
+    fun isAbove(other: VoxelKey) = this.x == other.x && this.y == other.y && this.z == other.z + 1
 }

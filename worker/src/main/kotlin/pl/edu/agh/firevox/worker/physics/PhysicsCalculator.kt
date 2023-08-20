@@ -60,7 +60,7 @@ class PhysicsCalculator(
         }
     }
 
-    fun conductionHeating(
+    private fun conductionHeating(
         currentMaterial: VoxelMaterial,
         roomTemp: VoxelMaterial,
         heated: VoxelMaterial,
@@ -152,7 +152,7 @@ class PhysicsCalculator(
         }
     }
 
-    fun flammableMaterialsTransitions(voxel: Voxel): VoxelMaterial {
+    private fun flammableMaterialsTransitions(voxel: Voxel): VoxelMaterial {
         val current = voxel.currentProperties
         val neighbours = voxelRepository.findNeighbors(
             voxel.voxelKey, NeighbourhoodType.N_E_W_S_U_L_, current.iterationNumber
@@ -190,7 +190,7 @@ class PhysicsCalculator(
         }
     }
 
-    fun flammableMaterialsTransitions(
+    private fun flammableMaterialsTransitions(
         state: StateProperties,
         roomTemp: VoxelMaterial,
         heated: VoxelMaterial,
@@ -328,9 +328,9 @@ class PhysicsCalculator(
 
     private fun Voxel.isMadeOf(material: String) = currentProperties.material.toString().contains(material)
 
-    fun Voxel.canAbsorbSmoke() = this.currentProperties.material in listOf(HALF_SMOKE, AIR)
+    private fun Voxel.canAbsorbSmoke() = this.currentProperties.material in listOf(HALF_SMOKE, AIR)
 
-    fun Voxel.isSolid() = this.currentProperties.material in listOf(
+    private fun Voxel.isSolid() = this.currentProperties.material in listOf(
         WOOD,
         WOOD_HEATED,
         WOOD_BURNING,
@@ -352,7 +352,7 @@ class PhysicsCalculator(
         CONCRETE,
     )
 
-    fun Voxel.isSmokeSource() = this.currentProperties.material in listOf(
+    private fun Voxel.isSmokeSource() = this.currentProperties.material in listOf(
         HALF_SMOKE,
         FULL_SMOKE,
         WOOD_HEATED,
@@ -361,12 +361,12 @@ class PhysicsCalculator(
         TEXTILE_BURNING,
     )
 
-    fun Voxel.isBurning() = this.currentProperties.material in listOf(
+    private fun Voxel.isBurning() = this.currentProperties.material in listOf(
         WOOD_BURNING,
         TEXTILE_BURNING,
     )
 
-    fun Voxel.isLowHeatSource() = this.currentProperties.material in listOf(
+    private fun Voxel.isLowHeatSource() = this.currentProperties.material in listOf(
         WOOD_HEATED,
         PLASTIC_HEATED,
         TEXTILE_HEATED,
@@ -376,7 +376,7 @@ class PhysicsCalculator(
         GLASS_HOT,
     )
 
-    fun Voxel.isHighHeatSource() = this.currentProperties.material in listOf(
+    private fun Voxel.isHighHeatSource() = this.currentProperties.material in listOf(
         WOOD_BURNING,
         PLASTIC_BURNING,
         TEXTILE_BURNING,
