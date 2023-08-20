@@ -1,7 +1,6 @@
 package pl.edu.agh.firevox.shared.model
 
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.repository.CrudRepository
 import org.springframework.stereotype.Repository
 import pl.edu.agh.firevox.shared.config.FireVoxProperties.Companion.maxSize
 
@@ -9,10 +8,10 @@ import pl.edu.agh.firevox.shared.config.FireVoxProperties.Companion.maxSize
 class CustomVoxelRepository(
     private val voxelRepository: VoxelRepository
 ) {
-    fun findWithNeighbors(key: VoxelKey, type: NeighbourhoodType, iteration: Int) = type.keyMapping
-        .map { key.copy(x = key.x + it.first, y = key.y + it.second, z = key.z + it.third) }
+    fun findNeighbors(key: VoxelKey, type: NeighbourhoodType, iteration: Int) = type.keyMapping
+        .map { key.copy(x = key.x + it.x, y = key.y + it.y, z = key.z + it.z) }
         .filter(::verifyInbound)
-        .associateWith{ voxelRepository.findByVoxelKeyAndCurrentIteration(it, iteration) }
+        .mapNotNull { findForIteration(key, iteration) }
 
     fun save(voxel: Voxel) = voxelRepository.save(voxel)
 
@@ -20,20 +19,38 @@ class CustomVoxelRepository(
         if (k.x < 0 || k.y < 0 || k.z < 0) false
         else !(k.x > maxSize || k.y > maxSize || k.z > maxSize)
 
+    fun findForIteration(key: VoxelKey, iteration: Int) =
+        voxelRepository.findByVoxelKeyAndCurrentPropertiesIterationNumber(key, iteration)
 }
 
-interface VoxelRepository : JpaRepository<Voxel,VoxelKey> {
-    fun findByVoxelKeyAndCurrentIteration(voxelKey: VoxelKey, iteration: Int) : Voxel?
+interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
+    fun findByVoxelKeyAndCurrentPropertiesIterationNumber(voxelKey: VoxelKey, iterationNumber: Int): Voxel?
 }
 
 enum class NeighbourhoodType(val keyMapping: List<Triple<Int, Int, Int>>) {
     TOP(listOf(Triple(0, 0, 1))),
     BOTTOM(listOf(Triple(0, 0, -1))),
-    SIX_SIDES(
+    N_E_W_S_U_L_(
         listOf(
-            Triple(0, 0, 0),
             Triple(0, 0, 1),
             Triple(0, 0, -1),
+            Triple(0, 1, 0),
+            Triple(0, -1, 0),
+            Triple(1, 0, 0),
+            Triple(-1, 0, 0),
+        )
+    ),
+    N_E_W_S_U_(
+        listOf(
+            Triple(0, 0, 1),
+            Triple(0, 1, 0),
+            Triple(0, -1, 0),
+            Triple(1, 0, 0),
+            Triple(-1, 0, 0),
+        )
+    ),
+    N_E_W_S_(
+        listOf(
             Triple(0, 1, 0),
             Triple(0, -1, 0),
             Triple(1, 0, 0),
@@ -50,3 +67,9 @@ enum class NeighbourhoodType(val keyMapping: List<Triple<Int, Int, Int>>) {
         }
     )
 }
+val Triple<Int, Int, Int>.x: Int
+    get() = this.first
+val Triple<Int, Int, Int>.y: Int
+    get() = this.second
+val Triple<Int, Int, Int>.z: Int
+    get() = this.third

@@ -207,7 +207,7 @@ class SceneTreeTest : ShouldSpec({
     }
 
     context("construct scene from tree with overriding voxels") {
-        should("override with nevest node") {
+        should("override with newest node") {
             // given
             val tree = SceneTree(
                 mapOf(
