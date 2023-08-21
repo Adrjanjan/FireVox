@@ -1,2 +1,2 @@
 # FireVox
-Fire simulation in voxel 3D space
+Fire simulation based on voxel models of buildings
