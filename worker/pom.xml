@@ -12,12 +12,6 @@
     <name>worker</name>
     <packaging>jar</packaging>
     <description>Worker module</description>
-    <properties>
-        <java.version>17</java.version>
-        <kotlin.version>1.6.21</kotlin.version>
-        <spring-cloud-gcp.version>3.2.1</spring-cloud-gcp.version>
-        <spring-cloud.version>2021.0.2</spring-cloud.version>
-    </properties>
 
     <dependencies>
         <dependency>
@@ -34,10 +28,14 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.springframework.amqp</groupId>
-            <artifactId>spring-rabbit-test</artifactId>
-            <scope>test</scope>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-stream</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-stream-binder-rabbit</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
@@ -94,6 +92,17 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.amqp</groupId>
+            <artifactId>spring-rabbit-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-stream-test-binder</artifactId>
+            <version>4.0.4</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

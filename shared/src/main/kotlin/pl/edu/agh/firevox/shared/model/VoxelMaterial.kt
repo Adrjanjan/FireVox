@@ -1,8 +1,5 @@
 package pl.edu.agh.firevox.shared.model
 
-import javax.persistence.Entity
-import javax.persistence.Id
-
 enum class VoxelMaterial(
     val colorId: Int,
     val burningDuration: Int,
@@ -31,5 +28,12 @@ enum class VoxelMaterial(
     GLASS_HOT(21, 0),
     GLASS_VERY_HOT(21, 0),
     CONCRETE(23, 0),
-    FLAME(24, 0),
+    FLAME(24, 0), ;
+
+    companion object {
+        fun fromId(value: Int): VoxelMaterial = VoxelMaterial.entries.firstOrNull { it.colorId == value }
+            ?: throw InvalidColorIdException(value)
+    }
 }
+
+class InvalidColorIdException(colorId: Int) : Exception("The simulation model contains invalid color $colorId")

@@ -2,6 +2,7 @@ package pl.edu.agh.firevox.vox
 
 import pl.edu.agh.firevox.shared.config.FireVoxProperties
 import pl.edu.agh.firevox.shared.model.VoxelKey
+import pl.edu.agh.firevox.shared.model.VoxelMaterial
 import pl.edu.agh.firevox.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
 import pl.edu.agh.firevox.vox.VoxelsTransformations.sizeInDimension
 import pl.edu.agh.firevox.vox.VoxelsTransformations.translate
@@ -35,8 +36,7 @@ data class SceneTree(
      *    |   |
      *    S   S
      */
-    fun constructScene(models: List<Model>, maxSize: Int): MutableMap<VoxelKey, VoxelMaterialId> {
-        val voxels = mutableMapOf<VoxelKey, VoxelMaterialId>()
+    fun constructScene(models: List<Model>, maxSize: Int): MutableMap<VoxelKey, VoxelMaterial> {
         val root = this.root
             ?: if (models.size > 1) throw Exception("There is ${models.size} models in file but no scene tree") else models[0]
         return processNode(models, root as SceneNode, maxSize)
@@ -46,7 +46,7 @@ data class SceneTree(
         models: List<Model>,
         node: SceneNode,
         maxSize: Int
-    ): MutableMap<VoxelKey, VoxelMaterialId> =
+    ): MutableMap<VoxelKey, VoxelMaterial> =
         when (node) {
             is TransformNodeChunk -> {
                 val voxels = processNode(models, this.findNode(node.childNodeId), maxSize)
@@ -56,7 +56,7 @@ data class SceneTree(
             }
 
             is GroupNodeChunk -> {
-                val childVoxels: MutableMap<VoxelKey, VoxelMaterialId> = mutableMapOf()
+                val childVoxels: MutableMap<VoxelKey, VoxelMaterial> = mutableMapOf()
                 node.childNodeIds.forEach {
                     processNode(
                         models,
@@ -67,10 +67,10 @@ data class SceneTree(
                 childVoxels
             } // process all nodes in group
             is ShapeNodeChunk -> {
-                val voxels: MutableMap<VoxelKey, VoxelMaterialId> = mutableMapOf()
+                val voxels: MutableMap<VoxelKey, VoxelMaterial> = mutableMapOf()
                 node.models.forEach { model ->
                     models[model.modelId].voxelsChunk.voxels.filter { it.value != 0 }
-                        .forEach { voxels[it.key] = it.value }
+                        .forEach { voxels[it.key] = VoxelMaterial.fromId(it.value) }
                 }
                 voxels
             }  // add all models to list?
@@ -103,7 +103,7 @@ class ParsedVoxFile(
     private var sizeY: Int = voxels.sizeInDimension { it.y }
     private var sizeZ: Int = voxels.sizeInDimension { it.z }
 
-    private fun MutableMap<VoxelKey, VoxelMaterialId>.addVoxel(x: Int, y: Int, z: Int, i: Int) {
+    private fun MutableMap<VoxelKey, VoxelMaterial>.addVoxel(x: Int, y: Int, z: Int, i: VoxelMaterial) {
         if (x in 0 until maxSize && (y in 0 until maxSize) && (z in 0 until maxSize)) {
             this[VoxelKey(x, y, z)] = i
         }

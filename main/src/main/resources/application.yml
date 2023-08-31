@@ -24,6 +24,13 @@ spring:
     listener:
       simple:
         acknowledge-mode: manual
+  cloud:
+    stream:
+      bindings:
+        output-out-0:
+          destination: output-topic
+          content-type: application/json
+          group: out
 
 logging:
   level:
@@ -37,3 +44,7 @@ logging:
 
 firevox:
   maxSize: ${FIREVOX_MAX_DIMENSION:20000}
+  simulation:
+    files:
+      path: ${FIREVOX_SIMULATION_FILES_PATH:"simulation/files"}
+

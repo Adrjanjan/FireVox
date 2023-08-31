@@ -24,6 +24,13 @@ spring:
     listener:
       simple:
         acknowledge-mode: manual
+  cloud:
+    stream:
+      bindings:
+        input-in-0:
+          destination: input-topic
+          content-type: application/json
+          group: in
 
 logging:
   level:

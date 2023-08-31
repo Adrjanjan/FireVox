@@ -3,8 +3,8 @@ package pl.edu.agh.firevox.service
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
-import pl.edu.agh.firevox.model.ModelDescription
-import pl.edu.agh.firevox.model.SingleModel
+import pl.edu.agh.firevox.model.ModelDescriptionDto
+import pl.edu.agh.firevox.model.SingleModelDto
 import pl.edu.agh.firevox.simulation.SimulationScene
 import pl.edu.agh.firevox.vox.ParsedVoxFile
 import pl.edu.agh.firevox.vox.VoxFormatParser
@@ -14,13 +14,13 @@ import java.io.FileInputStream
 class ModelMergeService{
 
     companion object {
-        val log: Logger = LoggerFactory.getLogger(ModelMergeService::class.java)
+        val log: Logger = LoggerFactory.getLogger(this::class.java)
     }
 
-    fun createModel(modelDescription: ModelDescription): SimulationScene {
-        val parentModelFile = FileInputStream(modelDescription.parentModel.name)
+    fun createModel(modelDescriptionDto: ModelDescriptionDto): SimulationScene {
+        val parentModelFile = FileInputStream(modelDescriptionDto.parentModel.name)
         val parentModel = VoxFormatParser.read(parentModelFile)
-        addChildren(modelDescription.parentModel.childModels, parentModel)
+        addChildren(modelDescriptionDto.parentModel.childModels, parentModel)
 //        parentModel.clipToVoxels()
         // TODO save parent model render options
         // palette, colorIndexMap, materials, renderObjects, cameras
@@ -28,7 +28,7 @@ class ModelMergeService{
         return SimulationScene(parentModel)
     }
 
-    private fun addChildren(models: List<SingleModel>, parentModel: ParsedVoxFile) {
+    private fun addChildren(models: List<SingleModelDto>, parentModel: ParsedVoxFile) {
         for (model in models) {
             log.info("Adding '${model.name}'")
             val modelIn = FileInputStream(model.name)

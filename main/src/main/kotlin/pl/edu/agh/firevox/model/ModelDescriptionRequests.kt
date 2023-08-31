@@ -1,13 +1,13 @@
 package pl.edu.agh.firevox.model
 
-data class ModelDescription(
+data class ModelDescriptionDto(
     val outputName: String,
-    val parentModel: SingleModel,
+    val parentModel: SingleModelDto,
 )
 
-data class SingleModel(
+data class SingleModelDto(
     val name: String,
-    val childModels: List<SingleModel> = listOf(),
+    val childModels: List<SingleModelDto> = listOf(),
     val scale: Int = 1,
     val positionX: Int? = 0,
     val positionY: Int? = 0,

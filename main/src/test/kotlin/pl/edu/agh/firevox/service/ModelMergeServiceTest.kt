@@ -4,16 +4,16 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import io.mockk.mockkObject
 import org.slf4j.Logger
-import pl.edu.agh.firevox.model.ModelDescription
-import pl.edu.agh.firevox.model.SingleModel
+import pl.edu.agh.firevox.model.ModelDescriptionDto
+import pl.edu.agh.firevox.model.SingleModelDto
 
 class ModelMergeServiceTest : ShouldSpec({
     mockkObject(Logger::class)
     val mms = ModelMergeService()
 
-    val treeOnly = SingleModel("src/test/resources/vox/tree.vox")
-    val room = SingleModel("src/test/resources/vox/room.vox")
-    val roadTree = SingleModel(
+    val treeOnly = SingleModelDto("src/test/resources/vox/tree.vox")
+    val room = SingleModelDto("src/test/resources/vox/room.vox")
+    val roadTree = SingleModelDto(
         "src/test/resources/vox/road.vox",
         listOf(treeOnly)
     )
@@ -38,10 +38,10 @@ class ModelMergeServiceTest : ShouldSpec({
 
     xshould("merge single model and not change it") {
         // given
-        val modelDescription = ModelDescription("out.vox", room)
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", room)
 
         // when
-        val resultModel = mms.createModel(modelDescription)
+        val resultModel = mms.createModel(modelDescriptionDto)
 
         // then
         resultModel.sizeX shouldBe 117
@@ -49,10 +49,10 @@ class ModelMergeServiceTest : ShouldSpec({
 
     xshould("merge two models without modifications") {
         // given
-        val modelDescription = ModelDescription("out.vox", roadTree)
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTree)
 
         // when
-        val resultModel = mms.createModel(modelDescription)
+        val resultModel = mms.createModel(modelDescriptionDto)
 
         // then
         resultModel.sizeX shouldBe 10
@@ -60,10 +60,10 @@ class ModelMergeServiceTest : ShouldSpec({
 
     xshould("merge two models with offset") {
         // given
-        val modelDescription = ModelDescription("out.vox", roadTreeOffset)
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTreeOffset)
 
         // when
-        val resultModel = mms.createModel(modelDescription)
+        val resultModel = mms.createModel(modelDescriptionDto)
 
         // then
         resultModel.sizeX shouldBe 10
@@ -71,10 +71,10 @@ class ModelMergeServiceTest : ShouldSpec({
 
     xshould("merge two models with rotation") {
         // given
-        val modelDescription = ModelDescription("out.vox", roadTreeRotation)
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTreeRotation)
 
         // when
-        val resultModel = mms.createModel(modelDescription)
+        val resultModel = mms.createModel(modelDescriptionDto)
 
         // then
         resultModel.sizeX shouldBe 10

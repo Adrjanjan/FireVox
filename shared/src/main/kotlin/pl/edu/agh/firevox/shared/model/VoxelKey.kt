@@ -39,3 +39,8 @@ data class VoxelKey(
 
     fun isAbove(other: VoxelKey) = this.x == other.x && this.y == other.y && this.z == other.z + 1
 }
+
+data class VoxelKeyIteration(
+    val key: VoxelKey,
+    val iteration: Int
+)
