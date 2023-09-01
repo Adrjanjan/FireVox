@@ -23,7 +23,7 @@ class SimulationCreationService(
         val simulationId = UUID.randomUUID()
         simulationRepository.save(
             Simulation(
-                id = simulationId, name = m.outputName, parentModel = m.parentModel.toEntity(simulationId)
+                id = simulationId, name = m.outputName, parentModel = m.parentModel.toEntity()
             )
         )
         s.voxels.map { it.toEntity() }.forEach(voxelRepository::save)
@@ -58,7 +58,7 @@ private fun Map.Entry<VoxelKey, VoxelMaterial>.toEntity() = Voxel(
     )
 )
 
-private fun SingleModelDto.toEntity(simulationId: UUID, parentId: UUID? = null): SingleModel {
+private fun SingleModelDto.toEntity(parentId: UUID? = null): SingleModel {
     val modelId = UUID.randomUUID()
     return SingleModel(
         id = modelId,
@@ -76,8 +76,7 @@ private fun SingleModelDto.toEntity(simulationId: UUID, parentId: UUID? = null):
         rotateX = this.rotateX,
         rotateY = this.rotateY,
         rotateZ = this.rotateZ,
-        childModels = this.childModels.map { it.toEntity(simulationId, modelId) }.toList(),
-        simulationId = simulationId,
+        childModels = this.childModels.map { it.toEntity(modelId) }.toList(),
         parentId = parentId,
     )
 }

@@ -1,9 +1,8 @@
 package pl.edu.agh.firevox.model
 
-import java.time.Instant
+import jakarta.persistence.*
 import java.time.ZonedDateTime
 import java.util.*
-import javax.persistence.*
 
 @Entity
 @Table(name = "simulation")
@@ -11,7 +10,8 @@ class Simulation(
     @Id
     val id: UUID = UUID.randomUUID(),
     val name: String,
-    @OneToOne(mappedBy = "simulationId")
+    @OneToOne
+    @JoinColumn(name = "simulationId")
     val parentModel: SingleModel,
     val creationDate: ZonedDateTime = ZonedDateTime.now(),
 )
@@ -22,8 +22,6 @@ class SingleModel(
     @Id
     val id: UUID = UUID.randomUUID(),
     val name: String,
-    @Column(name = "simulation_id")
-    val simulationId: UUID,
     @OneToMany(mappedBy = "parentId")
     val childModels: List<SingleModel> = listOf(),
     @Column(name = "scale")

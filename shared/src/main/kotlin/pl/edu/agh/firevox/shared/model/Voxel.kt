@@ -2,7 +2,7 @@ package pl.edu.agh.firevox.shared.model
 
 import org.hibernate.Hibernate
 import java.util.*
-import javax.persistence.*
+import jakarta.persistence.*
 
 @Entity
 data class Voxel(

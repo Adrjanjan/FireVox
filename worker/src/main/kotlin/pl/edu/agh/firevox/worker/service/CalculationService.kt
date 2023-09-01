@@ -3,7 +3,7 @@ package pl.edu.agh.firevox.worker.service
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.worker.physics.*
-import javax.transaction.Transactional
+import jakarta.transaction.Transactional
 
 @Service
 class CalculationService(

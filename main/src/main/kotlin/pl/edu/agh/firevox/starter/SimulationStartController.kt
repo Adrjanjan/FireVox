@@ -5,10 +5,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
-import org.springframework.stereotype.Controller
-import org.springframework.web.bind.annotation.DeleteMapping
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.*
 import pl.edu.agh.firevox.model.ModelDescriptionDto
 import pl.edu.agh.firevox.service.SimulationCreationService
 import java.io.ByteArrayInputStream
@@ -19,7 +16,8 @@ import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.Path
 import kotlin.io.path.deleteRecursively
 
-@Controller("start")
+@RestController
+@RequestMapping("start")
 class SimulationStartController(
     private val simulationCreationService: SimulationCreationService,
     @Value("firevox.simulation.files.path")

@@ -3,7 +3,7 @@ package pl.edu.agh.firevox.shared.model
 import java.io.Serial
 import java.io.Serializable
 import java.util.*
-import javax.persistence.*
+import jakarta.persistence.*
 
 @Embeddable
 data class VoxelKey(
