@@ -4,6 +4,7 @@ import com.google.common.io.LittleEndianDataInputStream
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import pl.edu.agh.firevox.shared.model.VoxelKey
+import pl.edu.agh.firevox.shared.model.VoxelMaterial.*
 import pl.edu.agh.firevox.vox.chunks.*
 import java.io.InputStream
 
@@ -39,6 +40,14 @@ class SceneTreeTest : ShouldSpec({
         VoxelKey(1, 0, 0) to 3,
         VoxelKey(2, 1, 0) to 3,
         VoxelKey(1, 2, 0) to 3
+    )
+
+    val letterTMapped = mapOf(
+        VoxelKey(1, 1, 0) to HALF_SMOKE,
+        VoxelKey(1, 1, 1) to HALF_SMOKE,
+        VoxelKey(0, 1, 2) to HALF_SMOKE,
+        VoxelKey(1, 1, 2) to HALF_SMOKE,
+        VoxelKey(2, 1, 2) to HALF_SMOKE,
     )
 
     should("construct correct scene from simple tree") {
@@ -93,7 +102,7 @@ class SceneTreeTest : ShouldSpec({
         val scene = tree.constructScene(models, 100)
         // then
         scene.size shouldBe 5
-        scene shouldBe letterT
+        scene shouldBe letterTMapped
     }
 
     should("construct correct scene from complicated tree with transformations") {
@@ -195,14 +204,14 @@ class SceneTreeTest : ShouldSpec({
         // then
         scene.size shouldBe 7
         scene shouldBe mapOf(
-            VoxelKey(1, 1, 0) to 1, // T
-            VoxelKey(1, 1, 1) to 1,
-            VoxelKey(0, 1, 2) to 1,
-            VoxelKey(1, 1, 2) to 1,
-            VoxelKey(2, 1, 2) to 1,
+            VoxelKey(1, 1, 0) to HALF_SMOKE, // T
+            VoxelKey(1, 1, 1) to HALF_SMOKE,
+            VoxelKey(0, 1, 2) to HALF_SMOKE,
+            VoxelKey(1, 1, 2) to HALF_SMOKE,
+            VoxelKey(2, 1, 2) to HALF_SMOKE,
 
-            VoxelKey(2, 0, 0) to 2, // dots +1x
-            VoxelKey(2, 2, 0) to 2
+            VoxelKey(2, 0, 0) to FULL_SMOKE, // dots +1x
+            VoxelKey(2, 2, 0) to FULL_SMOKE
         )
     }
 
@@ -300,9 +309,9 @@ class SceneTreeTest : ShouldSpec({
             // then
             scene.size shouldBe 3
             scene shouldBe mapOf(
-                VoxelKey(1, 0, 0) to 3, // dots +1x
-                VoxelKey(1, 2, 0) to 3,
-                VoxelKey(2, 1, 0) to 3,
+                VoxelKey(1, 0, 0) to WOOD, // dots +1x
+                VoxelKey(1, 2, 0) to WOOD,
+                VoxelKey(2, 1, 0) to WOOD,
             )
         }
     }

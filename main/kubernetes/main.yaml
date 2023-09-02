@@ -15,7 +15,8 @@ spec:
       terminationGracePeriodSeconds: 5
       containers:
         - name: main
-          image: main:latest # europe-central2-docker.pkg.dev/firevox/firevox-repository/Voxel
+          image: firevox/main:latest
+          imagePullPolicy: Never
           env:
             - name: FIREVOX_DB_IP
               value: postgres #localhost
@@ -61,3 +62,7 @@ spec:
   type: ClusterIP
   selector:
     app: main
+  ports:
+    - name: api
+      protocol: TCP
+      port: 8080

@@ -28,11 +28,13 @@ enum class VoxelMaterial(
     GLASS_HOT(21, 0),
     GLASS_VERY_HOT(21, 0),
     CONCRETE(23, 0),
-    FLAME(24, 0), ;
+    FLAME(24, 0);
 
     companion object {
         fun fromId(value: Int): VoxelMaterial = VoxelMaterial.entries.firstOrNull { it.colorId == value }
-            ?: throw InvalidColorIdException(value)
+            ?: CONCRETE
+//            ?: throw InvalidColorIdException(value)
+
     }
 }
 

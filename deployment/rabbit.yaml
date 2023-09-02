@@ -1,9 +1,10 @@
 # RabbitMQ Deployment
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: rabbitmq
 spec:
+  serviceName: rabbitmq
   replicas: 1
   selector:
     matchLabels:
@@ -12,3 +13,39 @@ spec:
     metadata:
       labels:
         app: rabbitmq
+    spec:
+      containers:
+        - name: rabbitmq
+          image: rabbitmq:3.8.19
+          ports:
+            - containerPort: 5672
+            - containerPort: 15672
+          env:
+            - name: RABBITMQ_ERLANG_COOKIE
+              value: "cookie"
+            - name: RABBIT_SSL
+              value: "false"
+            - name: RABBITMQ_DEFAULT_USER
+              value: "firevox"
+            - name: RABBITMQ_DEFAULT_PASS
+              value: "firevox"
+          resources:
+            requests:
+              memory: "256Mi"
+            limits:
+              memory: "512Mi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: rabbitmq
+spec:
+  selector:
+    app: rabbitmq
+  ports:
+    - name: rabbitmq
+      protocol: TCP
+      port: 5672
+    - name: rabbitmq-management
+      protocol: TCP
+      port: 15672

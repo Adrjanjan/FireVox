@@ -1,17 +1,17 @@
 apiVersion: skaffold/v2beta28
 kind: Config
 metadata:
-  name: scheduler
+  name: main
 build:
   artifacts:
-  - image: europe-central2-docker.pkg.dev/firevox/firevox-repository/scheduler
+  - image: firevox/main
     context: .
     docker:
       dockerfile: Dockerfile
 deploy:
   kubectl:
     manifests:
-    - ./kubernetes/scheduler.yaml
+    - ./kubernetes/main.yaml
 profiles:
 - name: cloudbuild
   build:
@@ -19,5 +19,5 @@ profiles:
 - name: dockerfile
   build:
     artifacts:
-    - image: europe-central2-docker.pkg.dev/firevox/firevox-repository/scheduler
+    - image: firevox/main
       context: .

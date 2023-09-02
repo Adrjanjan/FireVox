@@ -1,10 +1,10 @@
 apiVersion: skaffold/v2beta28
 kind: Config
 metadata:
-  name: Voxel
+  name: worker
 build:
   artifacts:
-  - image: europe-central2-docker.pkg.dev/firevox/firevox-repository/Voxel
+  - image: firevox/worker
     context: .
     docker:
       dockerfile: Dockerfile
@@ -19,5 +19,5 @@ profiles:
 - name: dockerfile
   build:
     artifacts:
-    - image: europe-central2-docker.pkg.dev/firevox/firevox-repository/Voxel
+    - image: firevox/worker
       context: .
