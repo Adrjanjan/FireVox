@@ -36,6 +36,7 @@ class SimulationStartController(
 
     @PostMapping("/model", consumes = [MediaType.APPLICATION_OCTET_STREAM_VALUE])
     fun addModelFiles(@RequestBody zip: ByteArray): ResponseEntity<String> = try {
+        log.info("Adding simulation files")
         val zipInputStream = ZipInputStream(ByteArrayInputStream(zip))
 
         val outputDir = Path(simulationFilesPath).toFile()
@@ -46,6 +47,7 @@ class SimulationStartController(
             val outputFile = File(outputDir, entry!!.name)
             outputFile.outputStream().use { output ->
                 zipInputStream.copyTo(output)
+                log.info("Unzipped file ${outputFile.path}")
             }
         }
         ResponseEntity.ok("Files unzipped successfully.")
@@ -56,6 +58,7 @@ class SimulationStartController(
     @OptIn(ExperimentalPathApi::class)
     @DeleteMapping("/model")
     fun clearModel(): ResponseEntity<Unit> {
+        log.info("Clearing simulation files")
         Path(simulationFilesPath).deleteRecursively()
         return ResponseEntity.ok().build()
     }

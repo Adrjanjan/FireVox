@@ -42,14 +42,14 @@ spec:
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
-              port: 8080
+              port: 8081
             periodSeconds: 3
             initialDelaySeconds: 60
             failureThreshold: 10
           livenessProbe:
             httpGet:
               path: /actuator/health/liveness
-              port: 8080
+              port: 8081
             periodSeconds: 3
             initialDelaySeconds: 60
             failureThreshold: 10
@@ -62,3 +62,7 @@ spec:
   type: ClusterIP
   selector:
     app: worker
+  ports:
+    - name: worker-api
+      protocol: TCP
+      port: 8081

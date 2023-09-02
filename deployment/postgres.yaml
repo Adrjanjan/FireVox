@@ -1,4 +1,27 @@
 # PostgreSQL Deployment
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: postgres-pv
+spec:
+  capacity:
+    storage: 30Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: /home/adrian/Documents/firevox
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -15,7 +38,7 @@ spec:
     spec:
       containers:
         - name: postgres
-          image: postgres
+          image: postgres:latest
           ports:
             - containerPort: 5432
           env:
@@ -25,6 +48,13 @@ spec:
               value: firevox
             - name: POSTGRES_DB
               value: firevox
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-storage
+      volumes:
+        - name: postgres-storage
+          persistentVolumeClaim:
+            claimName: postgres-pvc
 ---
 # PostgreSQL Service
 apiVersion: v1

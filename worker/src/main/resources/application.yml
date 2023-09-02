@@ -1,5 +1,5 @@
 server:
-  port: ${PORT:8083}
+  port: ${PORT:8081}
 
 spring:
   datasource:
@@ -13,7 +13,7 @@ spring:
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
   rabbitmq:
     host: ${RABBIT_HOST:localhost}
     port: ${RABBIT_PORT:5672}
@@ -28,7 +28,7 @@ spring:
     stream:
       bindings:
         input-in-0:
-          destination: input-topic
+          destination: output-topic
           content-type: application/json
           group: in
 

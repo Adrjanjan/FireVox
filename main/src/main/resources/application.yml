@@ -1,5 +1,11 @@
 server:
-  port: ${PORT:8083}
+  port: ${PORT:8080}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
 
 spring:
   datasource:
