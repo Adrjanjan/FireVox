@@ -44,3 +44,6 @@ logging:
 
 firevox:
   maxSize: ${FIREVOX_MAX_DIMENSION:20000}
+  timestep: 0.1
+  voxel:
+    size: ${VOXEL_SIZE:0.01} # in meters

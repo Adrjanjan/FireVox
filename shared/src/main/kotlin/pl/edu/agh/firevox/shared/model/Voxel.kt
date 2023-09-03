@@ -1,19 +1,22 @@
 package pl.edu.agh.firevox.shared.model
 
+import jakarta.persistence.*
 import org.hibernate.Hibernate
 import java.util.*
-import jakarta.persistence.*
 
 @Entity
 data class Voxel(
     @EmbeddedId
     val voxelKey: VoxelKey,
 
+    @Version
+    val version: Int = 0,
+
     @Embedded
     @AttributeOverride(name = "iterationNumber", column = Column(name = "current_iteration_number"))
     @AttributeOverride(name = "material", column = Column(name = "current_material"))
     @AttributeOverride(name = "burningTick", column = Column(name = "current_burning_tick"))
-    val currentProperties: StateProperties,
+    var currentProperties: StateProperties,
 
     @Embedded
     @AttributeOverride(name = "iterationNumber", column = Column(name = "next_iteration_number"))
@@ -44,6 +47,8 @@ data class Voxel(
 @Embeddable
 data class StateProperties(
     var iterationNumber: Int,
-    var material: VoxelMaterial,
-    var burningTick: Int = 0
+    @ManyToOne
+    var material: PhysicalMaterial,
+    var temperature: Double,
+
 )
