@@ -1,10 +1,15 @@
 package pl.edu.agh.firevox.worker.physics
 
 import io.kotest.core.spec.style.ShouldSpec
+import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.kotest.matchers.doubles.shouldBeLessThan
 import io.kotest.matchers.ints.shouldBeGreaterThan
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import pl.edu.agh.firevox.shared.model.*
+import pl.edu.agh.firevox.shared.model.simulation.Simulation
+import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
+import pl.edu.agh.firevox.shared.model.simulation.SingleModel
 import pl.edu.agh.firevox.worker.WorkerApplication
 import pl.edu.agh.firevox.worker.service.CalculationService
 import kotlin.math.roundToInt
@@ -17,6 +22,7 @@ class ConductionExecutionTest(
     val calculationService: CalculationService,
     val voxelRepository: VoxelRepository,
     val physicalMaterialRepository: PhysicalMaterialRepository,
+    val simulationsRepository: SimulationsRepository,
 
     @Value("\${firevox.timestep}")
     val timeStep: Double,
@@ -32,6 +38,18 @@ class ConductionExecutionTest(
             thermalConductivityCoefficient = 235.0,
             convectionHeatTransferCoefficient = 0.0,
             specificHeatCapacity = 897.0,
+            flashPointTemperature = 0.0.toKelvin(),
+            burningTime = 0.0,
+            generatedEnergyDuringBurning = 0.0
+        ).also(physicalMaterialRepository::save)
+
+        PhysicalMaterial(
+            VoxelMaterial.AIR,
+            density = 1.204,
+            baseTemperature = 20.toKelvin(),
+            thermalConductivityCoefficient = 25.87,
+            convectionHeatTransferCoefficient = 0.0,
+            specificHeatCapacity = 1.0061,
             flashPointTemperature = 0.0.toKelvin(),
             burningTime = 0.0,
             generatedEnergyDuringBurning = 0.0
@@ -64,6 +82,15 @@ class ConductionExecutionTest(
         voxels.filter { it.key.x == 0 }
             .forEach { it.evenIterationTemperature = 300.toKelvin() }
 
+        simulationsRepository.save(
+            Simulation(
+                name = "Conduction test",
+                parentModel = SingleModel(name = "Parent model"),
+                sizeX = voxels.maxOf { it.key.x },
+                sizeY = voxels.maxOf { it.key.y },
+                sizeZ = voxels.maxOf { it.key.z },
+            )
+        )
         voxelRepository.saveAll(voxels)
         voxelRepository.flush()
 
@@ -76,7 +103,15 @@ class ConductionExecutionTest(
             }
 
             val result = voxelRepository.findAll()
-            result.size shouldBeGreaterThan 0
+            result.forEach {
+                if (it.key.x == 0) {
+                    it.evenIterationTemperature shouldBeLessThan 300.toKelvin()
+                    it.oddIterationTemperature shouldBeLessThan 300.toKelvin()
+                } else {
+                    it.evenIterationTemperature shouldBeGreaterThan 20.toKelvin()
+                    it.oddIterationTemperature shouldBeGreaterThan 20.toKelvin()
+                }
+            }
         }
     }
 

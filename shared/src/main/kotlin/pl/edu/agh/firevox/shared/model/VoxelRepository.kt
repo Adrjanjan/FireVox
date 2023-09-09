@@ -21,7 +21,7 @@ class CustomVoxelRepository(
 
     private fun verifyInbound(k: VoxelKey, modelSize: SimulationSizeView) =
         if (k.x < 0 || k.y < 0 || k.z < 0) false
-        else !(k.x > modelSize.getSizeX() || k.y > modelSize.getSizeY() || k.z > modelSize.getSizeY())
+        else !(k.x > modelSize.sizeX || k.y > modelSize.sizeY || k.z > modelSize.sizeZ)
 
     fun findForIteration(key: VoxelKey, iteration: Int) = when(iteration % 2) {
         0 -> voxelRepository.findByKeyAndEvenIterationNumber(key, iteration - 1)

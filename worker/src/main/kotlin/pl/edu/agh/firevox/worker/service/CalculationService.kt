@@ -88,19 +88,18 @@ class CalculationService(
     }
 
     private fun setNextProperties(voxel: Voxel, iteration: Int, heatResults: List<Double>) {
-        val i = iteration + 1
         return when(iteration % 2) {
             0 -> {
                 val resultTemp = voxel.evenIterationTemperature + heatResults.sum()
                 val resultMaterial = voxel.evenIterationMaterial
-                voxel.oddIterationNumber = i
+                voxel.oddIterationNumber = iteration
                 voxel.oddIterationTemperature = resultTemp
                 voxel.oddIterationMaterial = resultMaterial
             }
             1 -> {
                 val resultTemp = voxel.oddIterationTemperature + heatResults.sum()
                 val resultMaterial = voxel.oddIterationMaterial
-                voxel.evenIterationNumber = i
+                voxel.evenIterationNumber = iteration
                 voxel.evenIterationTemperature = resultTemp
                 voxel.evenIterationMaterial = resultMaterial
             }

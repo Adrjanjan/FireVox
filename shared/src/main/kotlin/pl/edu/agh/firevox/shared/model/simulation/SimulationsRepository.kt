@@ -8,7 +8,7 @@ import java.util.*
 @Repository
 interface SimulationsRepository : JpaRepository<Simulation, UUID> {
 
-    @Query("select s.sizeX, s.sizeY, s.sizeZ from Simulation s limit 1")
+    @Query("select new pl.edu.agh.firevox.shared.model.simulation.SimulationSizeView(s.sizeX, s.sizeY, s.sizeZ) from Simulation s")
     fun fetchSize(): SimulationSizeView
 
 }

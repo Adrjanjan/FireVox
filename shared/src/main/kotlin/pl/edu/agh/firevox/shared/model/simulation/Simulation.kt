@@ -10,7 +10,7 @@ class Simulation(
     @Id
     val id: UUID = UUID.randomUUID(),
     val name: String,
-    @OneToOne
+    @OneToOne(cascade = [CascadeType.ALL])
     @JoinColumn(name = "simulationId")
     val parentModel: SingleModel,
     val creationDate: ZonedDateTime = ZonedDateTime.now(),
@@ -19,11 +19,11 @@ class Simulation(
     val sizeZ: Int,
 )
 
-interface SimulationSizeView {
-    fun getSizeX(): Int
-    fun getSizeY(): Int
-    fun getSizeZ(): Int
-}
+data class SimulationSizeView(
+    val sizeX: Int,
+    val sizeY: Int,
+    val sizeZ: Int,
+)
 
 @Entity
 @Table(name = "single_model")
