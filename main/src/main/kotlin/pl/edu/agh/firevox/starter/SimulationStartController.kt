@@ -20,7 +20,7 @@ import kotlin.io.path.deleteRecursively
 @RequestMapping("start")
 class SimulationStartController(
     private val simulationCreationService: SimulationCreationService,
-    @Value("firevox.simulation.files.path")
+    @Value("\${firevox.simulation.files.path}")
     private val simulationFilesPath: String
 ) {
 

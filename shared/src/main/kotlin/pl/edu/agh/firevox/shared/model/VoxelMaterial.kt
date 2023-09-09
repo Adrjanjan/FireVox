@@ -5,33 +5,33 @@ enum class VoxelMaterial(
 ) {
     AIR(0),
     SMOKE(1),
-    WOOD(3),
-    WOOD_HEATED(4),
-    WOOD_BURNING(5),
-    WOOD_BURNT(6),
-    PLASTIC(7),
-    PLASTIC_HEATED(8),
-    PLASTIC_BURNING(9),
-    PLASTIC_BURNT(10),
-    TEXTILE(11),
-    TEXTILE_HEATED(12),
-    TEXTILE_BURNING(13),
-    TEXTILE_BURNT(14),
-    METAL(15),
-    METAL_HEATED(16),
-    METAL_HOT(17),
-    METAL_VERY_HOT(18),
-    GLASS(19),
-    GLASS_HEATED(20),
-    GLASS_HOT(21),
+    WOOD(2),
+    WOOD_HEATED(3),
+    WOOD_BURNING(4),
+    WOOD_BURNT(5),
+    PLASTIC(6),
+    PLASTIC_HEATED(7),
+    PLASTIC_BURNING(8),
+    PLASTIC_BURNT(9),
+    TEXTILE(10),
+    TEXTILE_HEATED(11),
+    TEXTILE_BURNING(12),
+    TEXTILE_BURNT(13),
+    METAL(14),
+    METAL_HEATED(15),
+    METAL_HOT(16),
+    METAL_VERY_HOT(17),
+    GLASS(18),
+    GLASS_HEATED(19),
+    GLASS_HOT(20),
     GLASS_VERY_HOT(21),
-    CONCRETE(23),
-    FLAME(24),
-    WATER(25);
+    CONCRETE(22),
+    FLAME(23),
+    WATER(24);
 
     companion object {
         fun fromId(value: Int): VoxelMaterial = VoxelMaterial.entries.firstOrNull { it.colorId == value }
-            ?: CONCRETE
+            ?: AIR
 //            ?: throw InvalidColorIdException(value)
 
     }

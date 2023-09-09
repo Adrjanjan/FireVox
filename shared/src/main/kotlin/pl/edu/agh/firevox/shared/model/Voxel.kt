@@ -7,48 +7,38 @@ import java.util.*
 @Entity
 data class Voxel(
     @EmbeddedId
-    val voxelKey: VoxelKey,
+    val key: VoxelKey,
 
     @Version
     val version: Int = 0,
+    // current
+    var evenIterationNumber: Int,
+    @ManyToOne
+    var evenIterationMaterial: PhysicalMaterial,
+    var evenIterationTemperature: Double,
 
-    @Embedded
-    @AttributeOverride(name = "iterationNumber", column = Column(name = "current_iteration_number"))
-    @AttributeOverride(name = "material", column = Column(name = "current_material"))
-    @AttributeOverride(name = "burningTick", column = Column(name = "current_burning_tick"))
-    var currentProperties: StateProperties,
-
-    @Embedded
-    @AttributeOverride(name = "iterationNumber", column = Column(name = "next_iteration_number"))
-    @AttributeOverride(name = "material", column = Column(name = "next_material"))
-    @AttributeOverride(name = "burningTick", column = Column(name = "next_burning_tick"))
-    var nextProperties: StateProperties // same as currentProperties in first frame
+    // next
+    var oddIterationNumber: Int,
+    @ManyToOne
+    var oddIterationMaterial: PhysicalMaterial,
+    var oddIterationTemperature: Double,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other == null || Hibernate.getClass(this) != Hibernate.getClass(other)) return false
         other as Voxel
 
-        return voxelKey == other.voxelKey
+        return key == other.key
     }
 
-    override fun hashCode(): Int = Objects.hash(voxelKey);
+    override fun hashCode(): Int = Objects.hash(key);
+
+    fun isBelow(other: Voxel) = key.isBelow(other.key)
+    fun isAbove(other: Voxel) = key.isAbove(other.key)
 
     @Override
     override fun toString(): String {
-        return this::class.simpleName + "(EmbeddedId = $voxelKey , currentProperties = $currentProperties , nextProperties = $nextProperties )"
+        return this::class.simpleName + "(EmbeddedId = $key , currentIterationNumber = $evenIterationNumber , currentMaterial = $evenIterationMaterial , currentTemperature = $evenIterationTemperature )"
     }
 
-    fun isBelow(other: Voxel) = voxelKey.isBelow(other.voxelKey)
-    fun isAbove(other: Voxel) = voxelKey.isAbove(other.voxelKey)
-
 }
-
-@Embeddable
-data class StateProperties(
-    var iterationNumber: Int,
-    @ManyToOne
-    var material: PhysicalMaterial,
-    var temperature: Double,
-
-)

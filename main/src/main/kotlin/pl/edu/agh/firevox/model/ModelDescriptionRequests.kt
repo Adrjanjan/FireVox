@@ -18,9 +18,7 @@ data class SingleModelDto(
     val flipX: Boolean? = false,
     val flipY: Boolean? = false,
     val flipZ: Boolean? = false,
-    val rotateX: RotationAngle? = 0,
-    val rotateY: RotationAngle? = 0,
-    val rotateZ: RotationAngle? = 0,
+    val rotateX: Int? = 0,
+    val rotateY: Int? = 0,
+    val rotateZ: Int? = 0,
 )
-
-typealias RotationAngle = Int /* 0, 90, 180, 270 clockwise */

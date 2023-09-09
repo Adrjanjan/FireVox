@@ -2,33 +2,25 @@ package pl.edu.agh.firevox.worker.physics
 
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
-import pl.edu.agh.firevox.shared.model.StateProperties
-import pl.edu.agh.firevox.shared.model.Voxel
+import pl.edu.agh.firevox.worker.service.VoxelState
 import kotlin.math.pow
 
 @Service
 class ConductionCalculator(
-    @Value("firevox.voxel.size") val voxelLength: Double,
-) : PhysicsCalculator {
+    @Value("\${firevox.voxel.size}") val voxelLength: Double,
+) {
 
-    override fun calculate(voxel: Voxel, voxels: List<Voxel>, timeStep: Double): StateProperties {
+    fun calculate(voxel: VoxelState, voxels: List<VoxelState>, timeStep: Double): Double {
         val volume: Double = voxelLength.pow(3)
-        val current = voxel.currentProperties
-        val currentMaterial = current.material
+        val currentMaterial = voxel.material
 
         val lambda = currentMaterial.thermalConductivityCoefficient /
                 (currentMaterial.density * volume * currentMaterial.specificHeatCapacity)
 
-        val deltaT = timeStep * voxels.filter { includeInConduction(it, voxel) }.sumOf {
-            lambda * (current.temperature - it.currentProperties.temperature)
-        }
-        return StateProperties(
-            current.iterationNumber + 1,
-            current.material,
-            current.temperature + deltaT
-        )
+        return voxelLength * timeStep * voxels.filter { includeInConduction(it, voxel) }
+            .sumOf { lambda * (voxel.temperature - it.temperature) }
     }
 
-    private fun includeInConduction(it: Voxel, voxel: Voxel) = it != voxel // also include gases?
+    private fun includeInConduction(it: VoxelState, voxel: VoxelState) = it.key != voxel.key && it.material.isSolid()
 
 }

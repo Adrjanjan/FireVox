@@ -3,28 +3,36 @@ package pl.edu.agh.firevox.shared.model
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.stereotype.Repository
 import pl.edu.agh.firevox.shared.config.FireVoxProperties.Companion.maxSize
+import pl.edu.agh.firevox.shared.model.simulation.SimulationSizeView
 
 @Repository
 class CustomVoxelRepository(
     private val voxelRepository: VoxelRepository
 ) {
-    fun findNeighbors(key: VoxelKey, type: NeighbourhoodType, iteration: Int) = type.keyMapping
-        .map { key.copy(x = key.x + it.x, y = key.y + it.y, z = key.z + it.z) }
-        .filter(::verifyInbound)
-        .mapNotNull { findForIteration(key, iteration) }
+    fun findNeighbors(key: VoxelKey, type: NeighbourhoodType, iteration: Int, modelSize: SimulationSizeView): Pair<List<Voxel>, Set<VoxelKey>> {
+        val result = type.keyMapping
+            .map { key.copy(x = key.x + it.x, y = key.y + it.y, z = key.z + it.z) }
+            .filter { verifyInbound(it, modelSize) }
+            .associateWith { findForIteration(it, iteration) }
+        return result.values.filterNotNull().toList() to result.filter { it.value == null }.keys
+    }
 
     fun save(voxel: Voxel) = voxelRepository.save(voxel)
 
-    private fun verifyInbound(k: VoxelKey) =
+    private fun verifyInbound(k: VoxelKey, modelSize: SimulationSizeView) =
         if (k.x < 0 || k.y < 0 || k.z < 0) false
-        else !(k.x > maxSize || k.y > maxSize || k.z > maxSize)
+        else !(k.x > modelSize.getSizeX() || k.y > modelSize.getSizeY() || k.z > modelSize.getSizeY())
 
-    fun findForIteration(key: VoxelKey, iteration: Int) =
-        voxelRepository.findByVoxelKeyAndCurrentPropertiesIterationNumber(key, iteration)
+    fun findForIteration(key: VoxelKey, iteration: Int) = when(iteration % 2) {
+        0 -> voxelRepository.findByKeyAndEvenIterationNumber(key, iteration - 1)
+        1 -> voxelRepository.findByKeyAndOddIterationNumber(key, iteration - 1)
+        else -> null
+    }
 }
 
 interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
-    fun findByVoxelKeyAndCurrentPropertiesIterationNumber(voxelKey: VoxelKey, iterationNumber: Int): Voxel?
+    fun findByKeyAndEvenIterationNumber(voxelKey: VoxelKey, iterationNumber: Int): Voxel?
+    fun findByKeyAndOddIterationNumber(voxelKey: VoxelKey, iterationNumber: Int): Voxel?
 }
 
 enum class NeighbourhoodType(val keyMapping: List<Triple<Int, Int, Int>>) {
@@ -67,6 +75,7 @@ enum class NeighbourhoodType(val keyMapping: List<Triple<Int, Int, Int>>) {
         }
     )
 }
+
 val Triple<Int, Int, Int>.x: Int
     get() = this.first
 val Triple<Int, Int, Int>.y: Int

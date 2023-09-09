@@ -3,10 +3,10 @@ package pl.edu.agh.firevox.service
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.messaging.MessageSender
 import pl.edu.agh.firevox.model.ModelDescriptionDto
-import pl.edu.agh.firevox.model.Simulation
-import pl.edu.agh.firevox.model.SingleModel
+import pl.edu.agh.firevox.shared.model.simulation.Simulation
+import pl.edu.agh.firevox.shared.model.simulation.SingleModel
 import pl.edu.agh.firevox.model.SingleModelDto
-import pl.edu.agh.firevox.repository.SimulationsRepository
+import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.VoxelMaterial.*
 import java.util.*
@@ -17,24 +17,32 @@ class SimulationCreationService(
     private val voxelRepository: CustomVoxelRepository,
     private val simulationRepository: SimulationsRepository,
     private val messageSender: MessageSender,
+    private val physicalMaterialRepository: PhysicalMaterialRepository,
 ) {
 
     fun start(m: ModelDescriptionDto) = modelMergeService.createModel(m).let { s ->
         val simulationId = UUID.randomUUID()
+        val materials = physicalMaterialRepository.findAll().associateBy { it.voxelMaterial }
         simulationRepository.save(
             Simulation(
-                id = simulationId, name = m.outputName, parentModel = m.parentModel.toEntity()
+                id = simulationId,
+                name = m.outputName,
+                parentModel = m.parentModel.toEntity(),
+                sizeX = s.sizeX,
+                sizeY = s.sizeY,
+                sizeZ = s.sizeZ,
             )
         )
-        s.voxels.map { it.toEntity() }.forEach(voxelRepository::save)
-        s.voxels.filter { it.value.canTransitionInFirstIteration() }.map { VoxelKeyIteration(it.key, 0) }
+        s.voxels.map { it.key to materials[it.value]!! }
+            .map { it.toEntity() }.forEach(voxelRepository::save)
+
+        s.voxels.filter { it.value.canTransitionInFirstIteration() }
+            .map { VoxelKeyIteration(it.key, 0) }
             .forEach(messageSender::send)
     }
 }
 
 private fun VoxelMaterial.canTransitionInFirstIteration(): Boolean = setOf(
-    HALF_SMOKE,
-    FULL_SMOKE,
     WOOD_HEATED,
     WOOD_BURNING,
     PLASTIC_HEATED,
@@ -50,12 +58,14 @@ private fun VoxelMaterial.canTransitionInFirstIteration(): Boolean = setOf(
     FLAME,
 ).contains(this)
 
-private fun Map.Entry<VoxelKey, VoxelMaterial>.toEntity() = Voxel(
-    voxelKey = this.key, currentProperties = StateProperties(
-        iterationNumber = 0, material = this.value
-    ), nextProperties = StateProperties(
-        iterationNumber = 0, material = this.value
-    )
+private fun Pair<VoxelKey, PhysicalMaterial>.toEntity() = Voxel(
+    key = this.first,
+    evenIterationNumber = 0,
+    evenIterationTemperature = this.second.baseTemperature,
+    evenIterationMaterial = this.second,
+    oddIterationNumber = 0,
+    oddIterationMaterial = this.second,
+    oddIterationTemperature = this.second.baseTemperature,
 )
 
 private fun SingleModelDto.toEntity(parentId: UUID? = null): SingleModel {

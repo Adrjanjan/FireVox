@@ -43,11 +43,11 @@ class SceneTreeTest : ShouldSpec({
     )
 
     val letterTMapped = mapOf(
-        VoxelKey(1, 1, 0) to HALF_SMOKE,
-        VoxelKey(1, 1, 1) to HALF_SMOKE,
-        VoxelKey(0, 1, 2) to HALF_SMOKE,
-        VoxelKey(1, 1, 2) to HALF_SMOKE,
-        VoxelKey(2, 1, 2) to HALF_SMOKE,
+        VoxelKey(1, 1, 0) to WOOD,
+        VoxelKey(1, 1, 1) to WOOD,
+        VoxelKey(0, 1, 2) to WOOD,
+        VoxelKey(1, 1, 2) to WOOD,
+        VoxelKey(2, 1, 2) to WOOD,
     )
 
     should("construct correct scene from simple tree") {
@@ -204,14 +204,14 @@ class SceneTreeTest : ShouldSpec({
         // then
         scene.size shouldBe 7
         scene shouldBe mapOf(
-            VoxelKey(1, 1, 0) to HALF_SMOKE, // T
-            VoxelKey(1, 1, 1) to HALF_SMOKE,
-            VoxelKey(0, 1, 2) to HALF_SMOKE,
-            VoxelKey(1, 1, 2) to HALF_SMOKE,
-            VoxelKey(2, 1, 2) to HALF_SMOKE,
+            VoxelKey(1, 1, 0) to WOOD, // T
+            VoxelKey(1, 1, 1) to WOOD,
+            VoxelKey(0, 1, 2) to WOOD,
+            VoxelKey(1, 1, 2) to WOOD,
+            VoxelKey(2, 1, 2) to WOOD,
 
-            VoxelKey(2, 0, 0) to FULL_SMOKE, // dots +1x
-            VoxelKey(2, 2, 0) to FULL_SMOKE
+            VoxelKey(2, 0, 0) to WOOD_HEATED, // dots +1x
+            VoxelKey(2, 2, 0) to WOOD_HEATED
         )
     }
 

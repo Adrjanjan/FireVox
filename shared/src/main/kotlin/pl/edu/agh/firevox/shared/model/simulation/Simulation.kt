@@ -1,4 +1,4 @@
-package pl.edu.agh.firevox.model
+package pl.edu.agh.firevox.shared.model.simulation
 
 import jakarta.persistence.*
 import java.time.ZonedDateTime
@@ -14,7 +14,16 @@ class Simulation(
     @JoinColumn(name = "simulationId")
     val parentModel: SingleModel,
     val creationDate: ZonedDateTime = ZonedDateTime.now(),
+    val sizeX: Int,
+    val sizeY: Int,
+    val sizeZ: Int,
 )
+
+interface SimulationSizeView {
+    fun getSizeX(): Int
+    fun getSizeY(): Int
+    fun getSizeZ(): Int
+}
 
 @Entity
 @Table(name = "single_model")
@@ -45,11 +54,11 @@ class SingleModel(
     @Column(name = "flip_z")
     val flipZ: Boolean? = false,
     @Column(name = "rotate_x")
-    val rotateX: RotationAngle? = 0,
+    val rotateX: Int? = 0,
     @Column(name = "rotate_y")
-    val rotateY: RotationAngle? = 0,
+    val rotateY: Int? = 0,
     @Column(name = "rotate_z")
-    val rotateZ: RotationAngle? = 0,
+    val rotateZ: Int? = 0,
     @Column(name = "parent_id")
     val parentId: UUID? = null,
 )

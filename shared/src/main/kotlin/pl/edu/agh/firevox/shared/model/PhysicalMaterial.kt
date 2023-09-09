@@ -11,19 +11,42 @@ class PhysicalMaterial(
     @Column
     val voxelMaterial: VoxelMaterial,
 
-    val density: Double,
-    val baseTemperature: Double,
+    val density: Double, // unit kg/m^3
+    val baseTemperature: Double, // unit K
 
     val thermalConductivityCoefficient: Double, // unit W/(mK)
-    val convectionHeatTransferCoefficient: Double,
-    val specificHeatCapacity: Double, // unit
+    val convectionHeatTransferCoefficient: Double, //
+    val specificHeatCapacity: Double, // unit J/(kg*K)
 
-    val flashPointTemperature: Double, // unit *C
-    val burningTime: Double, // val calories: Double, instead? // unit s
+    val flashPointTemperature: Double, // unit K
+    val burningTime: Double, // unit s
     val generatedEnergyDuringBurning: Double, // unit J/s
 
-    // TODO add other values related to amount of energy generated while burning/smoke generated etc
 ) {
     @Id
     private val id: Int = voxelMaterial.colorId
+
+    fun isSolid() = this.voxelMaterial in listOf(
+        VoxelMaterial.METAL,
+        VoxelMaterial.GLASS_HEATED,
+        VoxelMaterial.GLASS_HOT,
+        VoxelMaterial.GLASS_VERY_HOT,
+        VoxelMaterial.GLASS,
+        VoxelMaterial.GLASS_HEATED,
+        VoxelMaterial.GLASS_HOT,
+        VoxelMaterial.GLASS_VERY_HOT,
+        VoxelMaterial.CONCRETE,
+        VoxelMaterial.WOOD,
+        VoxelMaterial.WOOD_HEATED,
+        VoxelMaterial.WOOD_BURNING,
+        VoxelMaterial.WOOD_BURNT,
+        VoxelMaterial.PLASTIC,
+        VoxelMaterial.PLASTIC_HEATED,
+        VoxelMaterial.PLASTIC_BURNING,
+        VoxelMaterial.PLASTIC_BURNT,
+        VoxelMaterial.TEXTILE,
+        VoxelMaterial.TEXTILE_HEATED,
+        VoxelMaterial.TEXTILE_BURNING,
+        VoxelMaterial.TEXTILE_BURNT,
+    )
 }
