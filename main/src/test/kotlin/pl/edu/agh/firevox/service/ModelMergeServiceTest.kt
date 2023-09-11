@@ -36,7 +36,7 @@ class ModelMergeServiceTest : ShouldSpec({
         )
     )
 
-    xshould("merge single model and not change it") {
+    should("merge single model and not change it") {
         // given
         val modelDescriptionDto = ModelDescriptionDto("out.vox", room)
 
@@ -47,7 +47,7 @@ class ModelMergeServiceTest : ShouldSpec({
         resultModel.sizeX shouldBe 117
     }
 
-    xshould("merge two models without modifications") {
+    should("merge two models without modifications") {
         // given
         val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTree)
 
@@ -58,7 +58,7 @@ class ModelMergeServiceTest : ShouldSpec({
         resultModel.sizeX shouldBe 10
     }
 
-    xshould("merge two models with offset") {
+    should("merge two models with offset") {
         // given
         val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTreeOffset)
 
@@ -69,7 +69,7 @@ class ModelMergeServiceTest : ShouldSpec({
         resultModel.sizeX shouldBe 10
     }
 
-    xshould("merge two models with rotation") {
+    should("merge two models with rotation") {
         // given
         val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTreeRotation)
 

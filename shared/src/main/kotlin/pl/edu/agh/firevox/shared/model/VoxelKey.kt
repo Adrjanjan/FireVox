@@ -38,6 +38,9 @@ data class VoxelKey(
     fun isBelow(other: VoxelKey) = this.x == other.x && this.y == other.y && this.z == other.z - 1
 
     fun isAbove(other: VoxelKey) = this.x == other.x && this.y == other.y && this.z == other.z + 1
+    fun between(xRange: IntRange, yRange: IntRange, zRange: IntRange) = xRange.contains(x)
+            && yRange.contains(y)
+            && zRange.contains(z)
 }
 
 data class VoxelKeyIteration(

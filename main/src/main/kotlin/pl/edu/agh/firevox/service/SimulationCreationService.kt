@@ -3,12 +3,12 @@ package pl.edu.agh.firevox.service
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.messaging.MessageSender
 import pl.edu.agh.firevox.model.ModelDescriptionDto
-import pl.edu.agh.firevox.shared.model.simulation.Simulation
-import pl.edu.agh.firevox.shared.model.simulation.SingleModel
 import pl.edu.agh.firevox.model.SingleModelDto
-import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.VoxelMaterial.*
+import pl.edu.agh.firevox.shared.model.simulation.Simulation
+import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
+import pl.edu.agh.firevox.shared.model.simulation.SingleModel
 import java.util.*
 
 @Service

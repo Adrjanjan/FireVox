@@ -99,9 +99,9 @@ class ParsedVoxFile(
 
     val voxels = sceneTree.constructScene(models, maxSize)
 
-    private var sizeX: Int = voxels.sizeInDimension { it.x }
-    private var sizeY: Int = voxels.sizeInDimension { it.y }
-    private var sizeZ: Int = voxels.sizeInDimension { it.z }
+    var sizeX: Int = voxels.sizeInDimension { it.x }
+    var sizeY: Int = voxels.sizeInDimension { it.y }
+    var sizeZ: Int = voxels.sizeInDimension { it.z }
 
     private fun MutableMap<VoxelKey, VoxelMaterial>.addVoxel(x: Int, y: Int, z: Int, i: VoxelMaterial) {
         if (x in 0 until maxSize && (y in 0 until maxSize) && (z in 0 until maxSize)) {
@@ -182,73 +182,7 @@ class ParsedVoxFile(
             voxels.addVoxel(rx, ry, rz, entry.value)
         }
     }
-//
-//    fun clipToVoxels() {
-//        for ((x, y, z) in voxels) {
-//            sizeX = max(sizeX, x + 1)
-//            sizeY = max(sizeY, y + 1)
-//            sizeZ = max(sizeZ, z + 1)
-//        }
-//    }
-//
-//    @Throws(IOException::class)
-//    fun splitIntoTiles(dirName: String, tileSize: Int) {
-//        val nx = ceil((sizeX / tileSize.toFloat()).toDouble()).toInt()
-//        val ny = ceil((sizeY / tileSize.toFloat()).toDouble()).toInt()
-//        val nz = ceil((sizeZ / tileSize.toFloat()).toDouble()).toInt()
-//        val models = Array(nx) {
-//            Array(ny) {
-//                arrayOfNulls<ParsedVoxFile>(nz)
-//            }
-//        }
-//        val results = ArrayList<ParsedVoxFile>()
-//        for (ix in 0 until nx) {
-//            val offsetX = ix * tileSize
-//            val subSizeX = min(offsetX + tileSize, sizeX)
-//            for (iy in 0 until ny) {
-//                val offsetY = iy * tileSize
-//                val subSizeY = Math.min(offsetY + tileSize, sizeY)
-//                for (iz in 0 until nz) {
-//                    val offsetZ = iz * tileSize
-//                    val subSizeZ = Math.min(offsetZ + tileSize, sizeZ)
-//                    val model = ParsedVoxFile(subSizeX, subSizeY, subSizeZ, maxSize)
-//                    model.palette = palette
-//                    models[ix][iy][iz] = model
-//                    results.add(model)
-//                }
-//            }
-//        }
-//        for ((x1, y1, z1, i) in voxels) {
-//            val ix = x1 / tileSize
-//            val iy = y1 / tileSize
-//            val iz = z1 / tileSize
-//            val x = x1 - ix * tileSize
-//            val y = y1 - iy * tileSize
-//            val z = z1 - iz * tileSize
-//            models[ix][iy][iz]!!.addVoxel(x, y, z, i)
-//        }
-//        val dir = File(dirName)
-//        dir.mkdirs()
-//        val textOut = PrintWriter("$dirName.txt")
-//        textOut.println("mv_import 2048")
-//        for (ix in 0 until nx) {
-//            for (iy in 0 until ny) {
-//                for (iz in 0 until nz) {
-//                    val model = models[ix][iy][iz]
-//                    val name = dirName + "_" + ix + "_" + iy + "_" + iz + ".vox"
-//                    val voxFile = File(dir, name)
-//                    val outputStream = FileOutputStream(voxFile)
-//                    VoxFormatParser.write(model!!, outputStream)
-//                    outputStream.close()
-//                    val offsetX = ix * tileSize
-//                    val offsetY = iy * tileSize
-//                    val offsetZ = iz * tileSize
-//                    textOut.println(offsetX.toString() + "\t" + offsetY + "\t" + offsetZ + "\t" + voxFile.absolutePath)
-//                }
-//            }
-//        }
-//        textOut.close()
-//    }
+
 }
 
 class NotSupportedSceneNodeException(s: String) : Exception(s)

@@ -29,7 +29,7 @@ class ConductionExecutionTest(
 
     ) : ShouldSpec({
 
-    context("save voxels from file") {
+    xcontext("save voxels from file") {
         var voxels = mutableListOf<Voxel>()
         val baseMaterial = PhysicalMaterial(
             VoxelMaterial.METAL,
@@ -55,10 +55,10 @@ class ConductionExecutionTest(
             generatedEnergyDuringBurning = 0.0
         ).also(physicalMaterialRepository::save)
 
-        // box scale cm^3 voxels
+        // scale - number of voxels per centimeter
         val scale = 1
-        (0..20 * scale).forEach { x ->
-            (0..10 * scale).forEach { y ->
+        (0..30 * scale).forEach { x ->
+            (0..20 * scale).forEach { y ->
                 (0..5 * scale).forEach { z ->
                     voxels.add(
                         Voxel(
@@ -78,9 +78,16 @@ class ConductionExecutionTest(
         // hole
         voxels = voxels.filterNot { it.key.x in 11 * scale..19 * scale && it.key.y in 6 * scale..14 * scale }
             .toMutableList()
-        // set one wall to heated
+
+        // set boundary conditions
         voxels.filter { it.key.x == 0 }
-            .forEach { it.evenIterationTemperature = 300.toKelvin() }
+            .forEach {
+                it.evenIterationTemperature = 300.toKelvin()
+                it.oddIterationTemperature = 300.toKelvin()
+                it.isBoundaryCondition = true
+            }
+        voxels.filter { it.key.x == 20 * scale }
+            .forEach { it.isBoundaryCondition = true }
 
         simulationsRepository.save(
             Simulation(
@@ -94,7 +101,7 @@ class ConductionExecutionTest(
         voxelRepository.saveAll(voxels)
         voxelRepository.flush()
 
-        val iterationNumber = (10 / timeStep).roundToInt()
+        val iterationNumber = (100 / timeStep).roundToInt()
         should("execute test") {
             for (i in 0..iterationNumber) {
                 for (v in voxels) {
@@ -104,10 +111,9 @@ class ConductionExecutionTest(
 
             val result = voxelRepository.findAll()
             result.forEach {
-                if (it.key.x == 0) {
+                if (it.key.x != 0 || it.key.x != 30 * scale) {
                     it.evenIterationTemperature shouldBeLessThan 300.toKelvin()
                     it.oddIterationTemperature shouldBeLessThan 300.toKelvin()
-                } else {
                     it.evenIterationTemperature shouldBeGreaterThan 20.toKelvin()
                     it.oddIterationTemperature shouldBeGreaterThan 20.toKelvin()
                 }

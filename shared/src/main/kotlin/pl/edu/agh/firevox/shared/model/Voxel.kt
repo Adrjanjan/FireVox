@@ -22,6 +22,8 @@ data class Voxel(
     @ManyToOne
     var oddIterationMaterial: PhysicalMaterial,
     var oddIterationTemperature: Double,
+
+    var isBoundaryCondition: Boolean = false,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -36,9 +38,9 @@ data class Voxel(
     fun isBelow(other: Voxel) = key.isBelow(other.key)
     fun isAbove(other: Voxel) = key.isAbove(other.key)
 
-    @Override
-    override fun toString(): String {
-        return this::class.simpleName + "(EmbeddedId = $key , currentIterationNumber = $evenIterationNumber , currentMaterial = $evenIterationMaterial , currentTemperature = $evenIterationTemperature )"
-    }
 
+    fun Double.toCelsius() = this.minus(273.15)
+    override fun toString(): String {
+        return "Voxel(key=$key, evenIterationNumber=$evenIterationNumber, evenIterationMaterial=$evenIterationMaterial, evenIterationTemperature=${evenIterationTemperature.toCelsius()}, oddIterationNumber=$oddIterationNumber, oddIterationMaterial=$oddIterationMaterial, oddIterationTemperature=${oddIterationTemperature.toCelsius()}, isBoundaryCondition=$isBoundaryCondition)"
+    }
 }

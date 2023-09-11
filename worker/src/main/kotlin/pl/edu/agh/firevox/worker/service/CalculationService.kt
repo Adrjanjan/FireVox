@@ -4,8 +4,11 @@ import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.worker.physics.*
 import jakarta.transaction.Transactional
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
+import pl.edu.agh.firevox.shared.model.thermometer.VirtualThermometer
 
 @Service
 class CalculationService(
@@ -18,6 +21,10 @@ class CalculationService(
     private val materialRepository: PhysicalMaterialRepository,
 ) {
 
+    companion object {
+        val log: Logger = LoggerFactory.getLogger(this::class.java)
+    }
+
     /**
      * Only voxel with the given voxelKey is updated
      * @param key
@@ -27,10 +34,22 @@ class CalculationService(
 //        verifySynchronization(iteration)
         val voxel = voxelRepository.findForIteration(key, iteration)
             ?: throw InvalidSimulationState("Calculation for voxel with key $key can't be made - voxel not found")
-        val modelSize = simulationRepository.fetchSize()
-        val (foundNeighbors, validKeysWithMissingVoxel) = voxelRepository.findNeighbors(voxel.key, NeighbourhoodType.N_E_W_S_U_L_, iteration, modelSize)
 
-        val neighbours =  fillMissingVoxelsInsideModel(foundNeighbors, validKeysWithMissingVoxel)
+        if (voxel.isBoundaryCondition) {
+//            log.info("Voxel is boundary condition")
+            setNextProperties(voxel, iteration, listOf())
+            return
+        }
+
+        val modelSize = simulationRepository.fetchSize()
+        val (foundNeighbors, validKeysWithMissingVoxel) = voxelRepository.findNeighbors(
+            voxel.key,
+            NeighbourhoodType.N_E_W_S_U_L_,
+            iteration,
+            modelSize
+        )
+
+        val neighbours = fillMissingVoxelsInsideModel(foundNeighbors, validKeysWithMissingVoxel)
             .map { it.toVoxelState(iteration) }
 
         // heat transfer calculators
@@ -63,9 +82,12 @@ class CalculationService(
         handleVirtualThermometer(key, voxel)
     }
 
-    private fun fillMissingVoxelsInsideModel(neighbours: List<Voxel>, validKeysWithMissingVoxel: Set<VoxelKey>, ) : List<Voxel> {
+    private fun fillMissingVoxelsInsideModel(
+        neighbours: List<Voxel>,
+        validKeysWithMissingVoxel: Set<VoxelKey>,
+    ): List<Voxel> {
         val first = neighbours.first()
-        val air : PhysicalMaterial = materialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
+        val air: PhysicalMaterial = materialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
         neighbours.toMutableList().addAll(validKeysWithMissingVoxel.map {
             Voxel(
                 it,
@@ -88,7 +110,7 @@ class CalculationService(
     }
 
     private fun setNextProperties(voxel: Voxel, iteration: Int, heatResults: List<Double>) {
-        return when(iteration % 2) {
+        return when (iteration % 2) {
             0 -> {
                 val resultTemp = voxel.evenIterationTemperature + heatResults.sum()
                 val resultMaterial = voxel.evenIterationMaterial
@@ -96,6 +118,7 @@ class CalculationService(
                 voxel.oddIterationTemperature = resultTemp
                 voxel.oddIterationMaterial = resultMaterial
             }
+
             1 -> {
                 val resultTemp = voxel.oddIterationTemperature + heatResults.sum()
                 val resultMaterial = voxel.oddIterationMaterial
@@ -103,6 +126,7 @@ class CalculationService(
                 voxel.evenIterationTemperature = resultTemp
                 voxel.evenIterationMaterial = resultMaterial
             }
+
             else -> throw InvalidSimulationState("Number modulo 2 can't have value other than 0 or 1 ")
         }
     }
@@ -120,7 +144,7 @@ class CalculationService(
 
 }
 
-data class VoxelState (
+data class VoxelState(
     val key: VoxelKey,
     var iterationNumber: Int,
     var material: PhysicalMaterial,
@@ -129,7 +153,7 @@ data class VoxelState (
 
 class InvalidSimulationState(s: String) : Throwable(s)
 
-fun Voxel.toVoxelState(iteration: Int) = when(iteration % 2) {
+fun Voxel.toVoxelState(iteration: Int) = when (iteration % 2) {
     0 -> VoxelState(this.key, this.evenIterationNumber, this.evenIterationMaterial, this.evenIterationTemperature)
     1 -> VoxelState(this.key, this.oddIterationNumber, this.oddIterationMaterial, this.oddIterationTemperature)
     else -> throw InvalidSimulationState("Number modulo 2 can't have value other than 0 or 1 ")

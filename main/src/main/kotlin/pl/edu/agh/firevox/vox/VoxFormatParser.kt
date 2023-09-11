@@ -2,82 +2,140 @@ package pl.edu.agh.firevox.vox
 
 import com.google.common.io.LittleEndianDataInputStream
 import com.google.common.io.LittleEndianDataOutputStream
+import pl.edu.agh.firevox.shared.model.VoxelKey
+import pl.edu.agh.firevox.shared.model.simulation.Palette
+import pl.edu.agh.firevox.shared.model.simulation.Simulation
+import pl.edu.agh.firevox.shared.model.x
+import pl.edu.agh.firevox.shared.model.y
+import pl.edu.agh.firevox.shared.model.z
 //import pl.edu.agh.firevox.vox.MaterialProperties.*
 import pl.edu.agh.firevox.vox.chunks.*
 import pl.edu.agh.firevox.vox.chunks.ChunkTags.*
 import java.io.*
 import java.nio.charset.Charset
+import kotlin.math.ceil
+import kotlin.math.min
 
 object VoxFormatParser {
     private const val TAG_FORMAT = "VOX "
     private const val VERSION = 200
-//
-//    @Throws(IOException::class)
-//    fun write(model: ParsedVoxFile, outputStream: OutputStream) {
-//        val out = LittleEndianDataOutputStream(outputStream)
-//
-//        out.writeTag(TAG_FORMAT)
-//        out.writeByte(VERSION)
-//        out.writeTag(ChunkTags.TAG_MAIN.tagValue)
-//
-//        val mainBytes = ByteArrayOutputStream()
-//        val mainOut = LittleEndianDataOutputStream(mainBytes)
-//
-//        // Size Chunk
-//        mainOut.writeTag(ChunkTags.TAG_SIZE.tagValue)
-//        // The size of this chunk
-//        mainOut.writeInt(12)
-//        mainOut.writeInt(0)
-//        mainOut.writeInt(model.sizeX)
-//        mainOut.writeInt(model.sizeY)
-//        mainOut.writeInt(model.sizeZ)
-//
-//        // XYZI Chunk
-//        mainOut.writeTag(ChunkTags.TAG_XYZI.tagValue)
-//        val voxels = model.voxels
-//        val voxelChunkSize = (1 + voxels.size) * 4
-//        mainOut.writeInt(voxelChunkSize)
-//        mainOut.writeInt(0)
-//        mainOut.writeInt(voxels.size)
-//        for ((x, y, z, i) in voxels) {
-//            mainOut.writeInt(x)
-//            mainOut.writeInt(y)
-//            mainOut.writeInt(z)
-//            mainOut.writeInt(i)
-//        }
-//
-//        // RGBA Chunk
-//        mainOut.writeTag(ChunkTags.TAG_RGBA.tagValue)
-//        mainOut.writeInt(1024)
-//        mainOut.writeInt(0)
-//        for (i in 1..255) {
-//            mainOut.writeInt(model.palette.getColor(i).toInt())
-//        }
-//        mainOut.writeInt(0)
-//
-//        // MATT Chunks
-//        for (i in 1..255) {
-//            val material = model.getMaterial(i)
-//            if (material!!.type != 0) {
-//                mainOut.writeTag(ChunkTags.TAG_MATL.tagValue)
-//                val size: Int = 4 * (4 + (material.propertyValues?.size ?: 0))
-//                mainOut.writeInt(size)
-//                mainOut.writeInt(0)
-//                mainOut.writeInt(i)
-//                mainOut.writeInt(material.type ?: 0)
-//                mainOut.writeFloat(material.weight ?: 0.0f)
-//                mainOut.writeInt(material.propertiesBits ?: 0)
-//                material.propertiesBits?.let {
-//                    writePropertyBits(it, material.propertyValues ?: mapOf(), mainOut)
-//                }
-//            }
-//        }
-//        mainOut.flush()
-//        val main = mainBytes.toByteArray()
-//        out.write(0)
-//        out.write(main.size)
-//        out.write(main)
-//    }
+
+    /**
+     * @param voxels - sorted map of voxel
+     *
+     * TODO - do przemyslenia - czy jak zapis będzie zbyt obciążający, to można voxele wyciągać po 256^3 i zapisywać częsciowe pliki a potem skleić tylko binarki
+     *
+     *
+     */
+    @Throws(IOException::class)
+    fun write(voxels: Map<VoxelKey, Int>, palette: Palette, simulation: Simulation, outputStream: OutputStream) {
+        val out = LittleEndianDataOutputStream(outputStream)
+
+        out.writeTag(TAG_FORMAT)
+        out.writeByte(VERSION)
+        val main = createMainChunk(voxels, simulation, palette).toByteArray()
+
+        out.writeTag(TAG_MAIN.tagValue)
+        out.writeInt(0)
+        out.writeInt(main.size)
+        out.write(main)
+    }
+
+    private fun createMainChunk(
+        voxels: Map<VoxelKey, Int>,
+        simulation: Simulation,
+        palette: Palette
+    ): ByteArrayOutputStream {
+        val mainBytes = ByteArrayOutputStream()
+        val mainOut = LittleEndianDataOutputStream(mainBytes)
+
+        val splitVoxels =
+            splitVoxels(voxels, simulation.sizeX, simulation.sizeY, simulation.sizeZ)
+
+        for (v in splitVoxels) {
+            // Size Chunk
+            mainOut.writeTag(TAG_SIZE.tagValue)
+            // The size of this chunk
+            mainOut.writeInt(12)
+            mainOut.writeInt(0)
+            mainOut.writeInt(v.second.x)
+            mainOut.writeInt(v.second.y)
+            mainOut.writeInt(v.second.z)
+
+            // XYZI Chunk
+            mainOut.writeTag(TAG_XYZI.tagValue)
+            mainOut.writeInt(v.first.size * 4 + 4) //4 ints per voxel + '0'
+            mainOut.writeInt(0)
+            mainOut.writeInt(v.first.size)
+            for (voxel in v.first) {
+                mainOut.writeInt(voxel.key.x)
+                mainOut.writeInt(voxel.key.y)
+                mainOut.writeInt(voxel.key.z)
+                mainOut.writeInt(voxel.value)
+            }
+        }
+
+        // RGBA Chunk
+        mainOut.writeTag(TAG_RGBA.tagValue)
+        mainOut.writeInt(1024)
+        mainOut.writeInt(0)
+        palette.colours.sortedBy { it.index }.forEach {
+            mainOut.writeInt(it.r)
+            mainOut.writeInt(it.g)
+            mainOut.writeInt(it.b)
+            mainOut.writeInt(it.a)
+        }
+        mainOut.writeInt(0)
+        mainOut.flush()
+        return mainBytes
+    }
+
+    private fun splitVoxels(
+        voxels: Map<VoxelKey, Int>,
+        sizeX: Int,
+        sizeY: Int,
+        sizeZ: Int
+    ): List<Pair<Map<VoxelKey, Int>, Triple<Int, Int, Int>>> {
+        val tileSize = 255
+        val nx = ceil(sizeX.toDouble() / tileSize).toInt()
+        val ny = ceil(sizeY.toDouble() / tileSize).toInt()
+        val nz = ceil(sizeZ.toDouble() / tileSize).toInt()
+
+        val results = mutableListOf<Pair<Map<VoxelKey, Int>, Triple<Int, Int, Int>>>()
+        for (ix in 0 until nx) {
+            val xStartIndex = ix * tileSize
+            val xEndIndex = min(xStartIndex + tileSize, sizeX)
+            for (iy in 0 until ny) {
+                val yStartIndex = iy * tileSize
+                val yEndIndex = min(yStartIndex + tileSize, sizeY)
+                for (iz in 0 until nz) {
+                    val zStartIndex = iz * tileSize
+                    val zEndIndex = min(zStartIndex + tileSize, sizeZ)
+
+                    val model = voxels.filter {
+                        it.key.between(
+                            xRange = xStartIndex until xEndIndex,
+                            yRange = yStartIndex until yEndIndex,
+                            zRange = zStartIndex until zEndIndex,
+                        )
+                    }.mapKeys {
+                        VoxelKey(
+                            it.key.x % tileSize,
+                            it.key.y % tileSize,
+                            it.key.z % tileSize
+                        )
+                    }
+
+                    val modelXSize = xEndIndex - xStartIndex
+                    val modelYSize = yEndIndex - yStartIndex
+                    val modelZSize = zEndIndex - zStartIndex
+
+                    results.add(model to Triple(modelXSize, modelYSize, modelZSize))
+                }
+            }
+        }
+        return results
+    }
 
     @Throws(IOException::class)
     fun read(inputStream: InputStream): ParsedVoxFile {
