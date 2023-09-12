@@ -36,7 +36,7 @@ data class SceneTree(
      *    |   |
      *    S   S
      */
-    fun constructScene(models: List<Model>, maxSize: Int): MutableMap<VoxelKey, VoxelMaterial> {
+    fun constructScene(models: List<Model>, maxSize: Int): MutableMap<VoxelKey, VoxelMaterialId> {
         val root = this.root
             ?: if (models.size > 1) throw Exception("There is ${models.size} models in file but no scene tree") else models[0]
         return processNode(models, root as SceneNode, maxSize)
@@ -46,7 +46,7 @@ data class SceneTree(
         models: List<Model>,
         node: SceneNode,
         maxSize: Int
-    ): MutableMap<VoxelKey, VoxelMaterial> =
+    ): MutableMap<VoxelKey, VoxelMaterialId> =
         when (node) {
             is TransformNodeChunk -> {
                 val voxels = processNode(models, this.findNode(node.childNodeId), maxSize)
@@ -56,7 +56,7 @@ data class SceneTree(
             }
 
             is GroupNodeChunk -> {
-                val childVoxels: MutableMap<VoxelKey, VoxelMaterial> = mutableMapOf()
+                val childVoxels: MutableMap<VoxelKey, VoxelMaterialId> = mutableMapOf()
                 node.childNodeIds.forEach {
                     processNode(
                         models,
@@ -67,10 +67,10 @@ data class SceneTree(
                 childVoxels
             } // process all nodes in group
             is ShapeNodeChunk -> {
-                val voxels: MutableMap<VoxelKey, VoxelMaterial> = mutableMapOf()
+                val voxels: MutableMap<VoxelKey, VoxelMaterialId> = mutableMapOf()
                 node.models.forEach { model ->
                     models[model.modelId].voxelsChunk.voxels.filter { it.value != 0 }
-                        .forEach { voxels[it.key] = VoxelMaterial.fromId(it.value) }
+                        .forEach { voxels[it.key] = it.value }
                 }
                 voxels
             }  // add all models to list?
@@ -103,7 +103,7 @@ class ParsedVoxFile(
     var sizeY: Int = voxels.sizeInDimension { it.y }
     var sizeZ: Int = voxels.sizeInDimension { it.z }
 
-    private fun MutableMap<VoxelKey, VoxelMaterial>.addVoxel(x: Int, y: Int, z: Int, i: VoxelMaterial) {
+    private fun MutableMap<VoxelKey, VoxelMaterialId>.addVoxel(x: Int, y: Int, z: Int, i: VoxelMaterialId) {
         if (x in 0 until maxSize && (y in 0 until maxSize) && (z in 0 until maxSize)) {
             this[VoxelKey(x, y, z)] = i
         }

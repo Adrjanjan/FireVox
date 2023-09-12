@@ -6,6 +6,9 @@ import io.mockk.mockkObject
 import org.slf4j.Logger
 import pl.edu.agh.firevox.model.ModelDescriptionDto
 import pl.edu.agh.firevox.model.SingleModelDto
+import pl.edu.agh.firevox.shared.model.VoxelKey
+
+val positionOffset = 5
 
 class ModelMergeServiceTest : ShouldSpec({
     mockkObject(Logger::class)
@@ -20,9 +23,9 @@ class ModelMergeServiceTest : ShouldSpec({
     val roadTreeOffset = roadTree.copy(
         childModels = listOf(
             treeOnly.copy(
-                positionX = 5,
-                positionY = 5,
-                positionZ = 5,
+                positionX = positionOffset,
+                positionY = positionOffset,
+                positionZ = positionOffset,
             )
         )
     )
@@ -36,6 +39,26 @@ class ModelMergeServiceTest : ShouldSpec({
         )
     )
 
+    should("load single model") {
+        // given
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", treeOnly)
+
+        // when
+        val resultModel = mms.createModel(modelDescriptionDto)
+
+        // then
+        resultModel.sizeX shouldBe 22
+        resultModel.sizeY shouldBe 19
+        resultModel.sizeZ shouldBe 28
+
+        // this part of the model will be changed in the following tests
+        resultModel.voxels[VoxelKey(12, 13, 14)] shouldBe 95
+        resultModel.voxels[VoxelKey(13, 11, 30)] shouldBe 95
+
+        resultModel.voxels[VoxelKey(12 + positionOffset, 13 + positionOffset, 14 + positionOffset)] shouldBe null
+        resultModel.voxels[VoxelKey(13 + positionOffset, 11 + positionOffset, 30 + positionOffset)] shouldBe 233
+    }
+
     should("merge single model and not change it") {
         // given
         val modelDescriptionDto = ModelDescriptionDto("out.vox", room)
@@ -45,6 +68,15 @@ class ModelMergeServiceTest : ShouldSpec({
 
         // then
         resultModel.sizeX shouldBe 117
+        resultModel.sizeY shouldBe 120
+        resultModel.sizeZ shouldBe 59
+
+        // this part of the model will be changed in the following tests
+        resultModel.voxels[VoxelKey(12, 13, 14)] shouldBe null
+        resultModel.voxels[VoxelKey(13, 11, 30)] shouldBe 249
+
+        resultModel.voxels[VoxelKey(12 + positionOffset, 13 + positionOffset, 14 + positionOffset)] shouldBe null
+        resultModel.voxels[VoxelKey(13 + positionOffset, 11 + positionOffset, 30 + positionOffset)] shouldBe null
     }
 
     should("merge two models without modifications") {
@@ -55,7 +87,16 @@ class ModelMergeServiceTest : ShouldSpec({
         val resultModel = mms.createModel(modelDescriptionDto)
 
         // then
-        resultModel.sizeX shouldBe 10
+        resultModel.sizeX shouldBe 120
+        resultModel.sizeY shouldBe 120
+        resultModel.sizeZ shouldBe 13
+
+        resultModel.voxels[VoxelKey(12, 13, 14)] shouldBe 95
+        resultModel.voxels[VoxelKey(13, 11, 30)] shouldBe 95
+
+        resultModel.voxels[VoxelKey(12 + positionOffset, 13 + positionOffset, 14 + positionOffset)] shouldBe null
+        resultModel.voxels[VoxelKey(13 + positionOffset, 11 + positionOffset, 30 + positionOffset)] shouldBe 233
+
     }
 
     should("merge two models with offset") {
@@ -66,7 +107,21 @@ class ModelMergeServiceTest : ShouldSpec({
         val resultModel = mms.createModel(modelDescriptionDto)
 
         // then
-        resultModel.sizeX shouldBe 10
+        resultModel.sizeX shouldBe 120
+        resultModel.sizeY shouldBe 120
+        resultModel.sizeZ shouldBe 13
+
+        resultModel.voxels[VoxelKey(12, 13, 14)] shouldBe null
+        resultModel.voxels[VoxelKey(13, 11, 30)] shouldBe null
+
+        resultModel.voxels[VoxelKey(12 + positionOffset, 13 + positionOffset, 14 + positionOffset)] shouldBe 95
+        resultModel.voxels[VoxelKey(13 + positionOffset, 11 + positionOffset, 30 + positionOffset)] shouldBe 95
+
+        resultModel.voxels[VoxelKey(
+            13 + 2 * positionOffset,
+            11 + 2 * positionOffset,
+            30 + 2 * positionOffset
+        )] shouldBe 233
     }
 
     should("merge two models with rotation") {
@@ -77,8 +132,16 @@ class ModelMergeServiceTest : ShouldSpec({
         val resultModel = mms.createModel(modelDescriptionDto)
 
         // then
-        resultModel.sizeX shouldBe 10
-    }
+        resultModel.sizeX shouldBe 120
+        resultModel.sizeY shouldBe 120
+        resultModel.sizeZ shouldBe 13
 
+
+        resultModel.voxels[VoxelKey(11, 10, 10)] shouldBe 95 // 12, 13, 14 after rotation
+        resultModel.voxels[VoxelKey(13, 11, 30)] shouldBe null
+
+        resultModel.voxels[VoxelKey(12 + positionOffset, 13 + positionOffset, 14 + positionOffset)] shouldBe null
+        resultModel.voxels[VoxelKey(13 + positionOffset, 11 + positionOffset, 30 + positionOffset)] shouldBe null
+    }
 
 })

@@ -8,13 +8,13 @@ import kotlin.math.absoluteValue
 
 object VoxelsTransformations {
 
-    fun MutableMap<VoxelKey, VoxelMaterial>.translate(t: Translation?) = if (t == null) this else
+    fun MutableMap<VoxelKey, VoxelMaterialId>.translate(t: Translation?) = if (t == null) this else
         this.mapKeys {
             val key = it.key
             key.copy(x = key.x + t.x, y = key.y + t.y, z = key.z + t.z)
         }.toMutableMap()
 
-    fun MutableMap<VoxelKey, VoxelMaterial>.rotateVoxelsAndMoveToPositiveCoords(r: Rotation?): MutableMap<VoxelKey, VoxelMaterial> =
+    fun MutableMap<VoxelKey, VoxelMaterialId>.rotateVoxelsAndMoveToPositiveCoords(r: Rotation?): MutableMap<VoxelKey, VoxelMaterialId> =
         if (r == null) this else
             this.mapKeys {
                 it.key.run {
@@ -33,7 +33,7 @@ object VoxelsTransformations {
                 )
             }
 
-    fun MutableMap<VoxelKey, VoxelMaterial>.sizeInDimension(dimensionFunction: (VoxelKey) -> Int) =
+    fun MutableMap<VoxelKey, VoxelMaterialId>.sizeInDimension(dimensionFunction: (VoxelKey) -> Int) =
         this.keys.toList().maxOf(dimensionFunction) - this.keys.toList().minOf(dimensionFunction)  // +- 1 ??
 
 }

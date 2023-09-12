@@ -11,7 +11,7 @@ data class PaletteChunk(
     val colors: List<Colour> = readPalette(input)
 ) : Chunk()
 
-private fun readPalette(input: LittleEndianDataInputStream) = (1..255).map {
+private fun readPalette(input: LittleEndianDataInputStream) = (0..255).map {
     val r = input.readUnsignedByte()
     val g = input.readUnsignedByte()
     val b = input.readUnsignedByte()

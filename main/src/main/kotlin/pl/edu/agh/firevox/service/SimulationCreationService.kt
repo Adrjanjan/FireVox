@@ -33,10 +33,10 @@ class SimulationCreationService(
                 sizeZ = s.sizeZ,
             )
         )
-        s.voxels.map { it.key to materials[it.value]!! }
+        s.voxels.map { it.key to materials[VoxelMaterial.fromId(it.value)]!! }
             .map { it.toEntity() }.forEach(voxelRepository::save)
 
-        s.voxels.filter { it.value.canTransitionInFirstIteration() }
+        s.voxels.filter { VoxelMaterial.fromId(it.value).canTransitionInFirstIteration() }
             .map { VoxelKeyIteration(it.key, 0) }
             .forEach(messageSender::send)
     }

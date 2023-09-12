@@ -30,7 +30,8 @@ class ModelMergeService{
 
     private fun addChildren(models: List<SingleModelDto>, parentModel: ParsedVoxFile) {
         for (model in models) {
-            log.info("Adding '${model.name}'")
+            val size  = parentModel.voxels.size
+            log.info("Adding '${model.name} to parent with size $size '")
             val modelIn = FileInputStream(model.name)
             val readModel = VoxFormatParser.read(modelIn)
             addChildren(model.childModels, readModel)
@@ -51,6 +52,7 @@ class ModelMergeService{
                 model.rotateZ ?: 0
             )
             modelIn.close()
+            log.info("Addedd ${model.name} with size ${readModel.voxels.size} to parent with final size ${parentModel.voxels.size} number of new voxels = [${parentModel.voxels.size - readModel.voxels.size}]")
         }
     }
 
