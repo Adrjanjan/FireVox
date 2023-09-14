@@ -13,6 +13,8 @@ import pl.edu.agh.firevox.vox.chunks.*
 import pl.edu.agh.firevox.vox.chunks.ChunkTags.*
 import java.io.*
 import java.nio.charset.Charset
+import java.nio.charset.Charset.defaultCharset
+import java.nio.charset.StandardCharsets
 import kotlin.math.ceil
 import kotlin.math.min
 
@@ -28,62 +30,63 @@ object VoxFormatParser {
      *
      */
     @Throws(IOException::class)
-    fun write(voxels: Map<VoxelKey, Int>, palette: Palette, simulation: Simulation, outputStream: OutputStream) {
+    fun write(
+        voxels: Map<VoxelKey, Int>,
+        palette: Palette,
+        sizeX: Int,
+        sizeY: Int,
+        sizeZ: Int,
+        outputStream: OutputStream
+    ) {
         val out = LittleEndianDataOutputStream(outputStream)
 
         out.writeTag(TAG_FORMAT)
-        out.writeByte(VERSION)
-        val main = createMainChunk(voxels, simulation, palette).toByteArray()
+        out.writeInt(VERSION)
+        val main = createMainChunk(voxels, sizeX, sizeY, sizeZ, palette).toByteArray()
 
-        out.writeTag(TAG_MAIN.tagValue)
-        out.writeInt(0)
-        out.writeInt(main.size)
+        out.writeTagStartData(TAG_MAIN.tagValue, 0, main.size)
         out.write(main)
     }
 
+    /**
+     * If you want to use different palette for the output the voxels here should be already mapped
+     */
     private fun createMainChunk(
         voxels: Map<VoxelKey, Int>,
-        simulation: Simulation,
+        sizeX: Int, sizeY: Int, sizeZ: Int,
         palette: Palette
     ): ByteArrayOutputStream {
         val mainBytes = ByteArrayOutputStream()
         val mainOut = LittleEndianDataOutputStream(mainBytes)
 
-        val splitVoxels =
-            splitVoxels(voxels, simulation.sizeX, simulation.sizeY, simulation.sizeZ)
+        val splitVoxels = splitVoxels(voxels, sizeX, sizeY, sizeZ)
 
         for (v in splitVoxels) {
             // Size Chunk
-            mainOut.writeTag(TAG_SIZE.tagValue)
-            // The size of this chunk
-            mainOut.writeInt(12)
-            mainOut.writeInt(0)
+            mainOut.writeTagStartData(TAG_SIZE.tagValue, 12, 0)
             mainOut.writeInt(v.second.x)
             mainOut.writeInt(v.second.y)
             mainOut.writeInt(v.second.z)
 
             // XYZI Chunk
-            mainOut.writeTag(TAG_XYZI.tagValue)
-            mainOut.writeInt(v.first.size * 4 + 4) //4 ints per voxel + '0'
-            mainOut.writeInt(0)
+            mainOut.writeTagStartData(TAG_XYZI.tagValue, v.first.size * 4 + 4, 0) //4 ints per voxel + '0'
+
             mainOut.writeInt(v.first.size)
             for (voxel in v.first) {
-                mainOut.writeInt(voxel.key.x)
-                mainOut.writeInt(voxel.key.y)
-                mainOut.writeInt(voxel.key.z)
-                mainOut.writeInt(voxel.value)
+                mainOut.writeByte(voxel.key.x)
+                mainOut.writeByte(voxel.key.y)
+                mainOut.writeByte(voxel.key.z)
+                mainOut.writeByte(voxel.value)
             }
         }
 
         // RGBA Chunk
-        mainOut.writeTag(TAG_RGBA.tagValue)
-        mainOut.writeInt(1024)
-        mainOut.writeInt(0)
+        mainOut.writeTagStartData(TAG_RGBA.tagValue, 1024, 0)
         palette.colours.sortedBy { it.index }.forEach {
-            mainOut.writeInt(it.r)
-            mainOut.writeInt(it.g)
-            mainOut.writeInt(it.b)
-            mainOut.writeInt(it.a)
+            mainOut.writeByte(it.r)
+            mainOut.writeByte(it.g)
+            mainOut.writeByte(it.b)
+            mainOut.writeByte(it.a)
         }
         mainOut.writeInt(0)
         mainOut.flush()
@@ -213,17 +216,26 @@ class WrongFileVersionException(s: String) : Throwable(s)
 
 class UnexpectedChunk(s: String) : Exception(s)
 
-fun LittleEndianDataInputStream.readTag(size: Int = 4) =
-    String(this.readNBytes(size), Charset.defaultCharset()).replace("\u0000", "")
+fun LittleEndianDataOutputStream.writeTagStartData(
+    tag: String,
+    numberOfBytesOfChunkContent: Int,
+    numberOfChunksOfChildrenChunks: Int
+) = this.writeTag(tag)
+    .also { this.writeInt(numberOfBytesOfChunkContent) }
+    .also { this.writeInt(numberOfChunksOfChildrenChunks) }
 
-fun LittleEndianDataOutputStream.writeTag(tag: String) = this.writeChars(tag)
+fun LittleEndianDataOutputStream.writeTag(tag: String) =
+    StandardCharsets.UTF_8.encode(tag).let { this.write(it.array()) }
+
+fun LittleEndianDataInputStream.readTag(size: Int = 4) =
+    String(this.readNBytes(size), StandardCharsets.UTF_8).replace("\u0000", "")
 
 fun LittleEndianDataInputStream.readVoxString() =
     (0 until this.readInt()).fold(StringBuffer()) { acc, _ ->
         acc.append(
             String(
                 this.readNBytes(1),
-                Charset.defaultCharset()
+                StandardCharsets.UTF_8
             ).replace("\u0000", "")
         )
     }.toString()

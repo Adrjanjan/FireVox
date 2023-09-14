@@ -28,6 +28,10 @@ class ModelMergeService{
         return parentModel
     }
 
+    /**
+     * Right now child models are stripped to the size of the parent in all directions
+     * - may be it should be changed to expand parent's size
+     */
     private fun addChildren(models: List<SingleModelDto>, parentModel: ParsedVoxFile) {
         for (model in models) {
             val size  = parentModel.voxels.size

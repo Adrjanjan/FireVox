@@ -334,5 +334,5 @@ data class Colour(
     val r: Int,
     val g: Int,
     val b: Int,
-    val a: Int = 1
+    val a: Int = 255
 )

@@ -33,8 +33,10 @@ object VoxelsTransformations {
                 )
             }
 
+    // +1 because indexes are from 0 to n, so size is n+1
     fun MutableMap<VoxelKey, VoxelMaterialId>.sizeInDimension(dimensionFunction: (VoxelKey) -> Int) =
-        this.keys.toList().maxOf(dimensionFunction) - this.keys.toList().minOf(dimensionFunction)  // +- 1 ??
+        this.keys.toList().maxOf(dimensionFunction) - this.keys.toList().minOf(dimensionFunction) + 1
+
 
 }
 
