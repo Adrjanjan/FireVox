@@ -5,6 +5,14 @@ import org.hibernate.Hibernate
 import java.util.*
 
 @Entity
+@Table(
+    indexes = [
+        Index(name = "xyz", columnList = "x, y, z", unique = true),
+        Index(name = "x", columnList = "x", unique = false),
+        Index(name = "y", columnList = "y", unique = false),
+        Index(name = "z", columnList = "z", unique = false),
+    ]
+)
 data class Voxel(
     @EmbeddedId
     val key: VoxelKey,
@@ -37,7 +45,6 @@ data class Voxel(
 
     fun isBelow(other: Voxel) = key.isBelow(other.key)
     fun isAbove(other: Voxel) = key.isAbove(other.key)
-
 
     fun Double.toCelsius() = this.minus(273.15)
     override fun toString(): String {

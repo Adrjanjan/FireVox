@@ -3,13 +3,18 @@ package pl.edu.agh.firevox.shared.model
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
+import jakarta.persistence.OneToOne
 import jakarta.persistence.Table
 
 @Entity
 @Table(name="material")
 class PhysicalMaterial(
-    @Column
+    @Column(nullable = false)
     val voxelMaterial: VoxelMaterial,
+
+    @Column(nullable = true)
+    @OneToOne
+    val burntMaterial: PhysicalMaterial?,
 
     val density: Double, // unit kg/m^3
     val baseTemperature: Double, // unit K
@@ -48,5 +53,27 @@ class PhysicalMaterial(
         VoxelMaterial.TEXTILE_HEATED,
         VoxelMaterial.TEXTILE_BURNING,
         VoxelMaterial.TEXTILE_BURNT,
+    )
+
+    fun isFlammable() = this.voxelMaterial in listOf(
+        VoxelMaterial.WOOD,
+        VoxelMaterial.WOOD_HEATED,
+        VoxelMaterial.WOOD_BURNING,
+        VoxelMaterial.WOOD_BURNT,
+        VoxelMaterial.PLASTIC,
+        VoxelMaterial.PLASTIC_HEATED,
+        VoxelMaterial.PLASTIC_BURNING,
+        VoxelMaterial.PLASTIC_BURNT,
+        VoxelMaterial.TEXTILE,
+        VoxelMaterial.TEXTILE_HEATED,
+        VoxelMaterial.TEXTILE_BURNING,
+        VoxelMaterial.TEXTILE_BURNT,
+    )
+
+    fun isFluid() = this.voxelMaterial in listOf(
+        VoxelMaterial.AIR,
+        VoxelMaterial.WATER,
+        VoxelMaterial.SMOKE,
+        VoxelMaterial.FLAME,
     )
 }

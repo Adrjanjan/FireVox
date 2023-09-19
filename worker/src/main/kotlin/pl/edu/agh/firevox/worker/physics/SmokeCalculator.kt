@@ -2,15 +2,16 @@ package pl.edu.agh.firevox.worker.physics
 
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import pl.edu.agh.firevox.shared.model.PhysicalMaterial
 import pl.edu.agh.firevox.worker.service.VoxelState
 
 @Service
-class ConvectionCalculator(
+class SmokeCalculator(
     @Value("\${firevox.voxel.size}") val voxelLength: Double,
 ) {
 
-    fun calculate(voxel: VoxelState, voxels: List<VoxelState>, timeStep: Double) : Double {
-        TODO("Not yet implemented")
+    fun calculate(voxel: VoxelState, timeStep: Double, iteration: Int): PhysicalMaterial {
+        TODO()
     }
 
 }

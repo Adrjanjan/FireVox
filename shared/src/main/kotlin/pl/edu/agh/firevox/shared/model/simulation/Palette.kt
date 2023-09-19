@@ -273,13 +273,14 @@ data class Palette(
                 Colour(251, 248, 5, 0),
                 Colour(252, 250, 3, 0),
                 Colour(253, 252, 2, 0),
-                Colour(254, 255, 0, 0),
+                Colour(254, 253, 1, 0),
+                Colour(255, 255, 0, 0),
             )
         )
         @Transient
         val basePalette = Palette (
             baseName,
-            setOf(
+            mutableSetOf(
 //                Colour(1, 0, 0, 0, 0), //AIR
                 Colour(1, 102, 102, 102), // SMOKE
                 // Bronze
@@ -313,7 +314,10 @@ data class Palette(
                 Colour(23, 255, 0, 0), // FLAME
                 // White
                 Colour(24, 255, 255, 255), // WATER
-            )
+            ).also { set ->
+                for (i in set.maxOf { it.index }..256)
+                set.add(Colour(i, 0, 0, 0, 0))
+            }
         )
     }
 

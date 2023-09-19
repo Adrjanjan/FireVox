@@ -8,12 +8,15 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
-import pl.edu.agh.firevox.shared.model.thermometer.VirtualThermometer
 
 @Service
 class CalculationService(
     private val voxelRepository: CustomVoxelRepository,
     private val conductionCalculator: ConductionCalculator,
+    private val convectionCalculator: ConvectionCalculator,
+    private val burningCalculator: BurningCalculator,
+    private val ignitionCalculator: IgnitionCalculator,
+    private val smokeCalculator: SmokeCalculator,
     @Value("\${firevox.timestep}")
     private val timeStep: Double,
     private val virtualThermometerService: VirtualThermometerService,
@@ -51,26 +54,27 @@ class CalculationService(
 
         val neighbours = fillMissingVoxelsInsideModel(foundNeighbors, validKeysWithMissingVoxel)
             .map { it.toVoxelState(iteration) }
+        val voxelState = voxel.toVoxelState(iteration)
 
         // heat transfer calculators
-        val conductionResult = if (voxel.evenIterationMaterial.isSolid())
-            conductionCalculator.calculate(voxel.toVoxelState(iteration), neighbours, timeStep)
+        val conductionResult = if (voxelState.material.isSolid()) {
+            conductionCalculator.calculate(voxelState, neighbours, timeStep)
+        } else 0.0
+        val convectionResult = if (voxelState.material.isFluid())
+          convectionCalculator.calculate(voxelState, neighbours, timeStep)
         else 0.0
-//        val convectionResult = if (voxel.currentMaterial.isFluid())
-//          convectionCalculator.calculate(voxel, neighbours, timeStep)
-//        else 0.0
-//        val burningResult = if (voxel.currentMaterial.isFlammable())
-//          burningCalculator.calculate(voxel, neighbours, timeStep)
-//        else 0.0
+        val burningResult = if (voxelState.material.isFlammable())
+          burningCalculator.calculate(voxelState, timeStep, iteration)
+        else 0.0 to voxelState.material
         val heatResults = listOf(
             conductionResult,
-//            convectionResult,
-//            burningResult
+            convectionResult,
+            burningResult.first
         )
 
         // state change calculators
-//        selfIgnitionCalculator.calculate(voxel, neighbours, timeStep)
-//        combustionCalculator.calculate(voxel, neighbours, timeStep)
+//        ignitionCalculator.calculate(voxelState, timeStep, iteration)
+//        smokeCalculator.calculate(voxel, neighbours, timeStep)
 
         setNextProperties(voxel, iteration, heatResults)
         voxelRepository.save(voxel)
@@ -149,12 +153,13 @@ data class VoxelState(
     var iterationNumber: Int,
     var material: PhysicalMaterial,
     var temperature: Double,
+    var burningEndIteration: Int = -1,
 )
 
 class InvalidSimulationState(s: String) : Throwable(s)
 
 fun Voxel.toVoxelState(iteration: Int) = when (iteration % 2) {
-    0 -> VoxelState(this.key, this.evenIterationNumber, this.evenIterationMaterial, this.evenIterationTemperature)
-    1 -> VoxelState(this.key, this.oddIterationNumber, this.oddIterationMaterial, this.oddIterationTemperature)
+    0 -> VoxelState(this.key, this.evenIterationNumber, this.evenIterationMaterial, this.evenIterationTemperature,)
+    1 -> VoxelState(this.key, this.oddIterationNumber, this.oddIterationMaterial, this.oddIterationTemperature,)
     else -> throw InvalidSimulationState("Number modulo 2 can't have value other than 0 or 1 ")
 }
