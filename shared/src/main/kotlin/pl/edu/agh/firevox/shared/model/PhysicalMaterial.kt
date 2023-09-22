@@ -1,10 +1,6 @@
 package pl.edu.agh.firevox.shared.model
 
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
-import jakarta.persistence.OneToOne
-import jakarta.persistence.Table
+import jakarta.persistence.*
 
 @Entity
 @Table(name="material")
@@ -12,7 +8,7 @@ class PhysicalMaterial(
     @Column(nullable = false)
     val voxelMaterial: VoxelMaterial,
 
-    @Column(nullable = true)
+    @JoinColumn(nullable = true)
     @OneToOne
     val burntMaterial: PhysicalMaterial?,
 

@@ -43,9 +43,6 @@ data class Voxel(
 
     override fun hashCode(): Int = Objects.hash(key);
 
-    fun isBelow(other: Voxel) = key.isBelow(other.key)
-    fun isAbove(other: Voxel) = key.isAbove(other.key)
-
     fun Double.toCelsius() = this.minus(273.15)
     override fun toString(): String {
         return "Voxel(key=$key, evenIterationNumber=$evenIterationNumber, evenIterationMaterial=$evenIterationMaterial, evenIterationTemperature=${evenIterationTemperature.toCelsius()}, oddIterationNumber=$oddIterationNumber, oddIterationMaterial=$oddIterationMaterial, oddIterationTemperature=${oddIterationTemperature.toCelsius()}, isBoundaryCondition=$isBoundaryCondition)"

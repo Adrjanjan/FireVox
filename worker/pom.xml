@@ -113,6 +113,12 @@
             <version>4.0.4</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>pl.edu.agh.firevox</groupId>
+            <artifactId>main</artifactId>
+            <version>0.0.1-SNAPSHOT</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

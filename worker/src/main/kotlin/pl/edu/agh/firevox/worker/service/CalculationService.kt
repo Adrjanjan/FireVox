@@ -69,7 +69,7 @@ class CalculationService(
         val heatResults = listOf(
             conductionResult,
             convectionResult,
-            burningResult.first
+//            burningResult.first
         )
 
         // state change calculators

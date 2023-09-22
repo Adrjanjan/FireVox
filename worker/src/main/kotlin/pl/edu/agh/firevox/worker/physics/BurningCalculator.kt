@@ -33,7 +33,7 @@ class BurningCalculator(
 
     private fun calculateNewMaterial(voxel: VoxelState, iteration: Int): PhysicalMaterial? {
         return if (voxel.burningEndIteration >= iteration) {
-            voxel.material.burntMaterial
+            voxel.material //.burntMaterial
         } else voxel.material
     }
 

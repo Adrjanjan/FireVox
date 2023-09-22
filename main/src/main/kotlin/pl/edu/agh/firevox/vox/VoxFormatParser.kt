@@ -210,6 +210,11 @@ object VoxFormatParser {
         }
     }
 
+    fun getBucketForValue(value: Double, start: Double, end: Double, numBuckets: Int): Int {
+        val bucketSize = (end - start) / numBuckets
+        return (value / bucketSize).toInt()
+    }
+
 }
 
 class WrongFileVersionException(s: String) : Throwable(s)
