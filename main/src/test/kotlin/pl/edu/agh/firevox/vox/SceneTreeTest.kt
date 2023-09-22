@@ -5,7 +5,9 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.VoxelMaterial.*
-import pl.edu.agh.firevox.vox.chunks.*
+import pl.edu.agh.firevox.shared.model.vox.Model
+import pl.edu.agh.firevox.shared.model.vox.SceneTree
+import pl.edu.agh.firevox.shared.model.vox.chunks.*
 import java.io.InputStream
 
 class SceneTreeTest : ShouldSpec({

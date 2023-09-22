@@ -1,8 +1,8 @@
-package pl.edu.agh.firevox.vox.chunks
+package pl.edu.agh.firevox.shared.model.vox.chunks
 
 import com.google.common.io.LittleEndianDataInputStream
 import pl.edu.agh.firevox.shared.model.VoxelKey
-import pl.edu.agh.firevox.vox.VoxelMaterialId
+import pl.edu.agh.firevox.shared.model.vox.VoxelMaterialId
 
 data class VoxelsChunk(
     val input: LittleEndianDataInputStream,

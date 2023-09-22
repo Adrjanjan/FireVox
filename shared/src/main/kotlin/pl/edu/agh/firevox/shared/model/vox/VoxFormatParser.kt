@@ -1,19 +1,16 @@
-package pl.edu.agh.firevox.vox
+package pl.edu.agh.firevox.shared.model.vox
 
+//import pl.edu.agh.firevox.vox.MaterialProperties.*
 import com.google.common.io.LittleEndianDataInputStream
 import com.google.common.io.LittleEndianDataOutputStream
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.simulation.Palette
-import pl.edu.agh.firevox.shared.model.simulation.Simulation
+import pl.edu.agh.firevox.shared.model.vox.chunks.*
+import pl.edu.agh.firevox.shared.model.vox.chunks.ChunkTags.*
 import pl.edu.agh.firevox.shared.model.x
 import pl.edu.agh.firevox.shared.model.y
 import pl.edu.agh.firevox.shared.model.z
-//import pl.edu.agh.firevox.vox.MaterialProperties.*
-import pl.edu.agh.firevox.vox.chunks.*
-import pl.edu.agh.firevox.vox.chunks.ChunkTags.*
 import java.io.*
-import java.nio.charset.Charset
-import java.nio.charset.Charset.defaultCharset
 import java.nio.charset.StandardCharsets
 import kotlin.math.ceil
 import kotlin.math.min

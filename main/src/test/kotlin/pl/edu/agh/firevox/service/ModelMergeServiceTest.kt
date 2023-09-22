@@ -8,13 +8,10 @@ import pl.edu.agh.firevox.model.ModelDescriptionDto
 import pl.edu.agh.firevox.model.SingleModelDto
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.simulation.Palette
-import pl.edu.agh.firevox.shared.model.simulation.Simulation
-import pl.edu.agh.firevox.shared.model.simulation.SingleModel
-import pl.edu.agh.firevox.vox.VoxFormatParser
-import java.io.FileInputStream
+import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import java.io.FileOutputStream
 
-val positionOffset = 5
+const val positionOffset = 5
 
 class ModelMergeServiceTest : ShouldSpec({
     mockkObject(Logger::class)

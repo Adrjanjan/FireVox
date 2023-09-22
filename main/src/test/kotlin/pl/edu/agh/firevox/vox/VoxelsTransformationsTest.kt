@@ -5,10 +5,10 @@ import io.kotest.matchers.maps.shouldContainAll
 import io.kotest.matchers.shouldBe
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.VoxelMaterial
-import pl.edu.agh.firevox.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
-import pl.edu.agh.firevox.vox.VoxelsTransformations.translate
-import pl.edu.agh.firevox.vox.chunks.Rotation
-import pl.edu.agh.firevox.vox.chunks.Translation
+import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
+import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.translate
+import pl.edu.agh.firevox.shared.model.vox.chunks.Rotation
+import pl.edu.agh.firevox.shared.model.vox.chunks.Translation
 
 internal class VoxelsTransformationsTest : ShouldSpec({
 

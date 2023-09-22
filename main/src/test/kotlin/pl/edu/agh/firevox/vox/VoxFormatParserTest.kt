@@ -5,7 +5,8 @@ import io.kotest.matchers.shouldBe
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.core.io.ClassPathResource
-import pl.edu.agh.firevox.vox.chunks.constructRotationFromBits
+import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
+import pl.edu.agh.firevox.shared.model.vox.chunks.constructRotationFromBits
 import java.io.FileOutputStream
 
 

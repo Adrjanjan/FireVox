@@ -1,11 +1,12 @@
-package pl.edu.agh.firevox.vox
+package pl.edu.agh.firevox.shared.model.vox
 
 import pl.edu.agh.firevox.shared.config.FireVoxProperties
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.VoxelMaterial
-import pl.edu.agh.firevox.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
-import pl.edu.agh.firevox.vox.VoxelsTransformations.sizeInDimension
-import pl.edu.agh.firevox.vox.VoxelsTransformations.translate
+import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
+import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.sizeInDimension
+import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.translate
+import pl.edu.agh.firevox.shared.model.vox.chunks.*
 import pl.edu.agh.firevox.vox.chunks.*
 
 data class Model(

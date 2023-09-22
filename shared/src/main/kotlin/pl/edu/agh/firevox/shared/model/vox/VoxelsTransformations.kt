@@ -1,9 +1,9 @@
-package pl.edu.agh.firevox.vox
+package pl.edu.agh.firevox.shared.model.vox
 
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.VoxelMaterial
-import pl.edu.agh.firevox.vox.chunks.Rotation
-import pl.edu.agh.firevox.vox.chunks.Translation
+import pl.edu.agh.firevox.shared.model.vox.chunks.Rotation
+import pl.edu.agh.firevox.shared.model.vox.chunks.Translation
 import kotlin.math.absoluteValue
 
 object VoxelsTransformations {

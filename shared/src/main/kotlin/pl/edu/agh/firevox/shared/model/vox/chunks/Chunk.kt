@@ -1,4 +1,4 @@
-package pl.edu.agh.firevox.vox.chunks
+package pl.edu.agh.firevox.shared.model.vox.chunks
 
 /**
  * Used materials:

@@ -10,11 +10,13 @@ import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.simulation.Simulation
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import pl.edu.agh.firevox.shared.model.simulation.SingleModel
-import pl.edu.agh.firevox.vox.VoxFormatParser
 import pl.edu.agh.firevox.worker.WorkerApplication
 import pl.edu.agh.firevox.worker.service.CalculationService
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
+
+import kotlinx.coroutines.*
+import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 
 @SpringBootTest(
     properties = ["firevox.timestep=0.1", "firevox.voxel.size=0.01"],
@@ -111,9 +113,29 @@ class ConductionExecutionTest(
 
         should("execute test") {
             val iterationNumber = (100 / timeStep).roundToInt()
-            for (i in 0..iterationNumber) {
-                for (v in voxels) {
-                    calculationService.calculate(v.key, i)
+//            for (i in 0..iterationNumber) {
+//                for (v in voxels) {
+//                    calculationService.calculate(v.key, i)
+//                }
+//            }
+
+//            val jobList = mutableListOf<Job>()
+//            for (i in 0..iterationNumber) {
+//                for (v in voxels) {
+//                    val job = GlobalScope.async {
+//                        calculationService.calculate(v.key, i)
+//                    }
+//                    jobList.add(job)
+//                }
+//            }
+//
+//            jobList.forEach { it.join() }
+
+            coroutineScope {
+                for (i in 0..iterationNumber) {
+                    voxels.map { v ->
+                        async { calculationService.calculate(v.key, i) }
+                    }.awaitAll()
                 }
             }
 
@@ -123,7 +145,14 @@ class ConductionExecutionTest(
             val max = result.maxOf { it.evenIterationTemperature }
 
             VoxFormatParser.write(
-                result.associate { it.key to VoxFormatParser.getBucketForValue(it.evenIterationTemperature, min, max, 256)},
+                result.associate {
+                    it.key to VoxFormatParser.getBucketForValue(
+                        it.evenIterationTemperature,
+                        min,
+                        max,
+                        256
+                    )
+                },
                 Palette.temperaturePalette,
                 sizeX,
                 sizeY,

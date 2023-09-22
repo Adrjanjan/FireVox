@@ -5,8 +5,8 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.model.ModelDescriptionDto
 import pl.edu.agh.firevox.model.SingleModelDto
-import pl.edu.agh.firevox.vox.ParsedVoxFile
-import pl.edu.agh.firevox.vox.VoxFormatParser
+import pl.edu.agh.firevox.shared.model.vox.ParsedVoxFile
+import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import java.io.FileInputStream
 
 @Service
