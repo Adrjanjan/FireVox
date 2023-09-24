@@ -14,6 +14,7 @@ import java.io.*
 import java.nio.charset.StandardCharsets
 import kotlin.math.ceil
 import kotlin.math.min
+import kotlin.math.round
 
 object VoxFormatParser {
     private const val TAG_FORMAT = "VOX "
@@ -207,10 +208,8 @@ object VoxFormatParser {
         }
     }
 
-    fun getBucketForValue(value: Double, start: Double, end: Double, numBuckets: Int): Int {
-        val bucketSize = (end - start) / numBuckets
-        return (value / bucketSize).toInt()
-    }
+    fun toPaletteLinear(value: Double, min: Double, max: Double, numBuckets: Int = 254) =
+        round((value - min) * (numBuckets / (max - min))).toInt() + 1
 
 }
 

@@ -15,8 +15,9 @@ import pl.edu.agh.firevox.worker.service.CalculationService
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
-import kotlinx.coroutines.*
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 @SpringBootTest(
     properties = ["firevox.timestep=0.1", "firevox.voxel.size=0.01"],
@@ -62,10 +63,10 @@ class ConductionExecutionTest(
         ).also(physicalMaterialRepository::save)
 
         // scale - number of voxels per centimeter
-        val scale = 1
-        (0..30 * scale).forEach { x ->
-            (0..20 * scale).forEach { y ->
-                (0..5 * scale).forEach { z ->
+        val scale = 8
+        (0 until 30 * scale).forEach { x ->
+            (0 until 20 * scale).forEach { y ->
+                (0 until 5 * scale).forEach { z ->
                     voxels.add(
                         Voxel(
                             VoxelKey(x, y, z),
@@ -82,8 +83,12 @@ class ConductionExecutionTest(
             }
         }
         // hole
-        voxels = voxels.filterNot { it.key.x in 11 * scale..19 * scale && it.key.y in 6 * scale..14 * scale }
-            .toMutableList()
+        val xCenter = 15.0 * scale - 1
+        val yCenter = 10.0 * scale - 1
+        val holeRadius = 5.0 * scale
+        voxels = voxels.filterNot {
+            sqrt((it.key.x - xCenter).pow(2) + (it.key.y - yCenter).pow(2)) < holeRadius
+        }.toMutableList()
 
         // set boundary conditions
         voxels.filter { it.key.x == 0 }
@@ -92,12 +97,12 @@ class ConductionExecutionTest(
                 it.oddIterationTemperature = 300.toKelvin()
                 it.isBoundaryCondition = true
             }
-        voxels.filter { it.key.x == 20 * scale }
+        voxels.filter { it.key.x == 30 * scale - 1 }
             .forEach { it.isBoundaryCondition = true }
 
-        val sizeX = voxels.maxOf { it.key.x }
-        val sizeY = voxels.maxOf { it.key.y }
-        val sizeZ = voxels.maxOf { it.key.z }
+        val sizeX = voxels.maxOf { it.key.x } + 1
+        val sizeY = voxels.maxOf { it.key.y } + 1
+        val sizeZ = voxels.maxOf { it.key.z } + 1
 
         simulationsRepository.save(
             Simulation(
@@ -112,52 +117,34 @@ class ConductionExecutionTest(
         voxelRepository.flush()
 
         should("execute test") {
-            val iterationNumber = (100 / timeStep).roundToInt()
-//            for (i in 0..iterationNumber) {
-//                for (v in voxels) {
-//                    calculationService.calculate(v.key, i)
-//                }
-//            }
+            val simulationTimeInSeconds = 100 // * 60
+            val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
-//            val jobList = mutableListOf<Job>()
-//            for (i in 0..iterationNumber) {
-//                for (v in voxels) {
-//                    val job = GlobalScope.async {
-//                        calculationService.calculate(v.key, i)
-//                    }
-//                    jobList.add(job)
-//                }
-//            }
-//
-//            jobList.forEach { it.join() }
-
-            coroutineScope {
-                for (i in 0..iterationNumber) {
-                    voxels.map { v ->
-                        async { calculationService.calculate(v.key, i) }
-                    }.awaitAll()
-                }
+            log.info("Start of the processing")
+            for (i in 0..iterationNumber) {
+                log.info("Iteration: $iterationNumber")
+                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
             }
 
             val result = voxelRepository.findAll()
-            result.forEach { log.info(it.toString()) }
+//            result.forEach { log.info(it.toString()) }
             val min = result.minOf { it.evenIterationTemperature }
             val max = result.maxOf { it.evenIterationTemperature }
+            log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
 
             VoxFormatParser.write(
                 result.associate {
-                    it.key to VoxFormatParser.getBucketForValue(
-                        it.evenIterationTemperature,
-                        min,
-                        max,
-                        256
+                    it.key to VoxFormatParser.toPaletteLinear(
+                        value = it.evenIterationTemperature,
+                        min = min,
+                        max = max
                     )
                 },
                 Palette.temperaturePalette,
                 sizeX,
                 sizeY,
                 sizeZ,
-                FileOutputStream("block_with_hole.vox")
+                FileOutputStream("block_with_hole_scale8_600s.vox")
             )
         }
     }
@@ -170,3 +157,5 @@ class ConductionExecutionTest(
 
 private fun Double.toKelvin(): Double = this + 273.15
 private fun Int.toKelvin(): Double = this + 273.15
+private fun Double.toCelsius() = this - 273.15
+
