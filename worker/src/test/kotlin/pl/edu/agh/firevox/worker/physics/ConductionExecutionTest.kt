@@ -63,7 +63,7 @@ class ConductionExecutionTest(
         ).also(physicalMaterialRepository::save)
 
         // scale - number of voxels per centimeter
-        val scale = 8
+        val scale = 1
         (0 until 30 * scale).forEach { x ->
             (0 until 20 * scale).forEach { y ->
                 (0 until 5 * scale).forEach { z ->
@@ -120,9 +120,9 @@ class ConductionExecutionTest(
             val simulationTimeInSeconds = 100 // * 60
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
-            log.info("Start of the processing")
+            log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
-                log.info("Iteration: $iterationNumber")
+//                log.info("Iteration: $i")
                 voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
             }
 
@@ -144,7 +144,7 @@ class ConductionExecutionTest(
                 sizeX,
                 sizeY,
                 sizeZ,
-                FileOutputStream("block_with_hole_scale8_600s.vox")
+                FileOutputStream("block_with_hole_scale.vox")
             )
         }
     }

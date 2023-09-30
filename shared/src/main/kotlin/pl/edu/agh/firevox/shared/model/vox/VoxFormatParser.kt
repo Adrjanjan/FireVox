@@ -19,13 +19,14 @@ import kotlin.math.round
 object VoxFormatParser {
     private const val TAG_FORMAT = "VOX "
     private const val VERSION = 200
+    private const val tileSize = 255
 
     /**
      * @param voxels - sorted map of voxel
-     *
-     * TODO - do przemyslenia - czy jak zapis będzie zbyt obciążający, to można voxele wyciągać po 256^3 i zapisywać częsciowe pliki a potem skleić tylko binarki
-     *
-     *
+     * @param palette - output palette
+     * @param sizeX - size in X dimension
+     * @param sizeY - size in Y dimension
+     * @param sizeZ - size in Z dimension
      */
     @Throws(IOException::class)
     fun write(
@@ -37,11 +38,9 @@ object VoxFormatParser {
         outputStream: OutputStream
     ) {
         val out = LittleEndianDataOutputStream(outputStream)
-
         out.writeTag(TAG_FORMAT)
         out.writeInt(VERSION)
         val main = createMainChunk(voxels, sizeX, sizeY, sizeZ, palette).toByteArray()
-
         out.writeTagStartData(TAG_MAIN.tagValue, 0, main.size)
         out.write(main)
     }
@@ -78,6 +77,14 @@ object VoxFormatParser {
             }
         }
 
+        val modelIdToTranslation = splitVoxels.mapIndexed { i, triple ->
+            i to triple.third
+        }.associate { it.first to it.second }
+
+        // Map<Int, Translation>
+        // scene graph (chunks nGRP, nTRN, nSHP)
+        writeSceneTree(mainOut, modelIdToTranslation)
+
         // RGBA Chunk
         mainOut.writeTagStartData(TAG_RGBA.tagValue, 1024, 0)
         palette.colours.sortedBy { it.index }.forEach {
@@ -91,18 +98,139 @@ object VoxFormatParser {
         return mainBytes
     }
 
+    private fun writeSceneTree(
+        mainOut: LittleEndianDataOutputStream,
+        modelIdToTranslation: Map<Int, Translation>
+    ) {
+        val root = createTransformChunkBytes(
+            nodeId = 0,
+            nodeAttributes = mapOf(),
+            childNodeId = 1,
+            translation = null
+        )
+
+        val translateToShapeForModels = modelIdToTranslation.map {
+            val legalIndex = it.key + 2 // since root and first group have id 0 and 1
+            legalIndex to
+            (createTransformChunkBytes(
+                nodeId = legalIndex,
+                nodeAttributes = mapOf(),
+                childNodeId = legalIndex + 1,
+                translation = it.value
+            ) to createShapeChunkBytes(
+                legalIndex + 1,
+                mapOf(),
+                listOf(it.key to 0)
+            ))
+        }
+
+        val firstGroup = createGroupChunkBytes(
+            1,
+            mapOf(),
+            translateToShapeForModels.map { it.first }
+        )
+
+        mainOut.write(root)
+        mainOut.write(firstGroup)
+        translateToShapeForModels.forEach {
+            mainOut.write(it.second.first) // translate
+            mainOut.write(it.second.second) // shape
+        }
+
+    }
+
+    private fun createTransformChunkBytes(
+        nodeId: Int,
+        nodeAttributes: Map<String, String>,
+        childNodeId: Int,
+        reservedId: Int = -1,
+        layerId: Int = -1,
+        numberOfFrames: Int = 1,
+        translation: Translation?
+    ): ByteArray {
+        val result = ByteArrayOutputStream()
+        val resultOut = LittleEndianDataOutputStream(result)
+
+        val content = ByteArrayOutputStream()
+        val contentOut = LittleEndianDataOutputStream(content)
+
+        contentOut.writeInt(nodeId)
+        contentOut.writeVoxDict(nodeAttributes)
+        contentOut.writeInt(childNodeId)
+        contentOut.writeInt(reservedId)
+        contentOut.writeInt(layerId)
+        contentOut.writeInt(numberOfFrames)
+        // frame attributes (only translation usable in this case)
+        translation?.let {
+            contentOut.writeVoxDict(
+                mapOf("_t" to "${it.x} ${it.y} ${it.z}")
+            )
+        } ?: contentOut.writeVoxDict(
+            mapOf()
+        )
+
+        resultOut.writeTagStartData(TAG_TRANSFORM_NODE.tagValue, content.size(), 0)
+        resultOut.write(content.toByteArray())
+        return result.toByteArray()
+    }
+
+    private fun createGroupChunkBytes(
+        nodeId: Int,
+        nodeAttributes: Map<String, String>,
+        childNodeIds: List<Int>
+    ): ByteArray {
+        val result = ByteArrayOutputStream()
+        val resultOut = LittleEndianDataOutputStream(result)
+
+        val content = ByteArrayOutputStream()
+        val contentOut = LittleEndianDataOutputStream(content)
+
+        contentOut.writeInt(nodeId)
+        contentOut.writeVoxDict(nodeAttributes)
+        contentOut.writeInt(childNodeIds.size)
+        childNodeIds.forEach { contentOut.writeInt(it) }
+
+        resultOut.writeTagStartData(TAG_GROUP_NODE.tagValue, content.size(), 0)
+        resultOut.write(content.toByteArray())
+        return result.toByteArray()
+    }
+
+    private fun createShapeChunkBytes(
+        nodeId: Int,
+        nodeAttributes: Map<String, String>,
+        models: List<Pair<Int, Int>> // modelId to frameIndex
+    ): ByteArray {
+        val result = ByteArrayOutputStream()
+        val resultOut = LittleEndianDataOutputStream(result)
+
+        val content = ByteArrayOutputStream()
+        val contentOut = LittleEndianDataOutputStream(content)
+
+        contentOut.writeInt(nodeId)
+        contentOut.writeVoxDict(nodeAttributes)
+        contentOut.writeInt(models.size)
+        models.forEach {
+            contentOut.writeInt(it.first) // modelId
+            contentOut.writeVoxDict(mapOf())
+        }
+
+        resultOut.writeTagStartData(TAG_SHAPE_NODE.tagValue, content.size(), 0)
+        resultOut.write(content.toByteArray())
+        return result.toByteArray()
+    }
+
+
     private fun splitVoxels(
         voxels: Map<VoxelKey, Int>,
         sizeX: Int,
         sizeY: Int,
         sizeZ: Int
-    ): List<Pair<Map<VoxelKey, Int>, Triple<Int, Int, Int>>> {
-        val tileSize = 255
+    ): List<Triple<Map<VoxelKey, Int>, ModelSize, Translation>> {
         val nx = ceil(sizeX.toDouble() / tileSize).toInt()
         val ny = ceil(sizeY.toDouble() / tileSize).toInt()
         val nz = ceil(sizeZ.toDouble() / tileSize).toInt()
 
-        val results = mutableListOf<Pair<Map<VoxelKey, Int>, Triple<Int, Int, Int>>>()
+        val results = mutableListOf<Triple<Map<VoxelKey, Int>, ModelSize, Translation>>()
         for (ix in 0 until nx) {
             val xStartIndex = ix * tileSize
             val xEndIndex = min(xStartIndex + tileSize, sizeX)
@@ -131,7 +259,13 @@ object VoxFormatParser {
                     val modelYSize = yEndIndex - yStartIndex
                     val modelZSize = zEndIndex - zStartIndex
 
-                    results.add(model to Triple(modelXSize, modelYSize, modelZSize))
+                    results.add(
+                        Triple(
+                            model,
+                            Triple(modelXSize, modelYSize, modelZSize),
+                            Translation(xStartIndex, yStartIndex, zStartIndex)
+                        )
+                    )
                 }
             }
         }
@@ -245,3 +379,19 @@ fun LittleEndianDataInputStream.readVoxDict(): Map<String, String> =
     (0 until this.readInt()).fold(mutableMapOf()) { acc, _ ->
         acc[this.readVoxString()] = this.readVoxString(); acc
     }
+
+fun LittleEndianDataOutputStream.writeVoxDict(dict: Map<String, String>) {
+    this.writeInt(dict.size)
+    dict.forEach {
+        this.writeVoxString(it.key)
+        this.writeVoxString(it.value)
+    }
+}
+
+fun LittleEndianDataOutputStream.writeVoxString(s: String) {
+    this.writeInt(s.length)
+    StandardCharsets.UTF_8.encode(s).let { this.write(it.array()) }
+}
+
+
+typealias ModelSize = Triple<Int, Int, Int>

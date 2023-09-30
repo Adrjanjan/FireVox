@@ -11,21 +11,21 @@ import java.util.*
         Index(name = "x", columnList = "x", unique = false),
         Index(name = "y", columnList = "y", unique = false),
         Index(name = "z", columnList = "z", unique = false),
+        Index(name = "xyz_odd", columnList = "x, y, z, oddIterationNumber", unique = true),
+        Index(name = "xyz_even", columnList = "x, y, z, evenIterationNumber", unique = true),
     ]
 )
 data class Voxel(
     @EmbeddedId
     val key: VoxelKey,
 
-    @Version
-    val version: Int = 0,
-    // current
+    // even
     var evenIterationNumber: Int,
     @ManyToOne
     var evenIterationMaterial: PhysicalMaterial,
     var evenIterationTemperature: Double,
 
-    // next
+    // odd
     var oddIterationNumber: Int,
     @ManyToOne
     var oddIterationMaterial: PhysicalMaterial,
