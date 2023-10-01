@@ -19,7 +19,7 @@ import kotlin.math.round
 object VoxFormatParser {
     private const val TAG_FORMAT = "VOX "
     private const val VERSION = 200
-    private const val tileSize = 255
+    private const val tileSize = 256
 
     /**
      * @param voxels - sorted map of voxel
@@ -110,7 +110,7 @@ object VoxFormatParser {
         )
 
         val translateToShapeForModels = modelIdToTranslation.map {
-            val legalIndex = it.key + 2 // since root and first group have id 0 and 1
+            val legalIndex = it.key * 2 + 2 // since root and first group have id 0 and 1
             legalIndex to
             (createTransformChunkBytes(
                 nodeId = legalIndex,
@@ -254,6 +254,7 @@ object VoxFormatParser {
                             it.key.z % tileSize
                         )
                     }
+                    if(model.isEmpty()) continue
 
                     val modelXSize = xEndIndex - xStartIndex
                     val modelYSize = yEndIndex - yStartIndex

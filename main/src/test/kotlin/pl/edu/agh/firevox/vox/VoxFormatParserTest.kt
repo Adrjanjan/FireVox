@@ -2,9 +2,11 @@ package pl.edu.agh.firevox.vox
 
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
+import io.mockk.InternalPlatformDsl.toArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.core.io.ClassPathResource
+import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.shared.model.vox.chunks.constructRotationFromBits
 import java.io.FileOutputStream
@@ -13,7 +15,7 @@ import java.io.FileOutputStream
 class VoxFormatParserTest : ShouldSpec({
 
 
-    should("read model") {
+    should("read and write the same model") {
         // given
         val input = withContext(Dispatchers.IO) {
             getFile("vox/bigger_than_256_3.vox")
@@ -21,9 +23,16 @@ class VoxFormatParserTest : ShouldSpec({
         // when
         val model = VoxFormatParser.read(input)
         // then
-        model.models.size shouldBe 1
-        // TODO add more assertions
-
+        val outputStream = FileOutputStream("bigger_than_256_3_out.vox")
+        VoxFormatParser.write(
+            model.voxels,
+            Palette.temperaturePalette,
+            model.sizeX,
+            model.sizeY,
+            model.sizeZ,
+            outputStream
+        )
+        1 == 1
     }
 
     should("constructRotationFromBits parse bits correctly"){

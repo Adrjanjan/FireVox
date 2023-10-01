@@ -70,7 +70,6 @@ class ConductionExecutionTest(
                     voxels.add(
                         Voxel(
                             VoxelKey(x, y, z),
-                            version = 0,
                             evenIterationNumber = -1,
                             evenIterationMaterial = baseMaterial,
                             evenIterationTemperature = 20.toKelvin(),
