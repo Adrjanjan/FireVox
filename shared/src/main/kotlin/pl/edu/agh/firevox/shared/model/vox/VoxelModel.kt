@@ -2,7 +2,7 @@ package pl.edu.agh.firevox.shared.model.vox
 
 import pl.edu.agh.firevox.shared.config.FireVoxProperties
 import pl.edu.agh.firevox.shared.model.VoxelKey
-import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
+import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.rotateVoxels
 import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.sizeInDimension
 import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.translate
 import pl.edu.agh.firevox.shared.model.vox.chunks.*
@@ -49,7 +49,7 @@ data class SceneTree(
         when (node) {
             is TransformNodeChunk -> {
                 val voxels = processNode(models, this.findNode(node.childNodeId), maxSize)
-                    .rotateVoxelsAndMoveToPositiveCoords(node.framesAttributes[0]?.rotation)
+                    .rotateVoxels(node.framesAttributes[0]?.rotation)
                     .translate(node.framesAttributes[0]?.translation)
                 voxels
             }

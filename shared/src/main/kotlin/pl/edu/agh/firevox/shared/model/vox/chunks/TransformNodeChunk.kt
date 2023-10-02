@@ -10,8 +10,7 @@ data class TransformNodeChunk(
     override val childSize: Int = input.readInt(),
     override val nodeId: Int = input.readInt(),
     val nodeAttributes: Map<String, String> = input.readVoxDict(),
-    val childNodeId: Int = input.readInt()
-        .also { input.skip(4) },  // reservedId, skipped
+    val childNodeId: Int = input.readInt().also { input.skip(4) },  // reservedId, skipped
     val layerId: Int = input.readInt(),
     val numOfFrames: Int = input.readInt(),
     val framesAttributes: Map<Int, TransformProperties> = readFrameAttributes(input, numOfFrames),
@@ -40,23 +39,25 @@ fun readFrameAttributes(input: LittleEndianDataInputStream, numOfFrames: Int): M
 
 private fun readTransformProperties(input: LittleEndianDataInputStream) = TransformProperties(input.readVoxDict())
 
-fun constructRotationFromBits(bits: Int): List<List<Int>> {
-    val nonZeroIndexRow1 = (bits and 3)
-    val nonZeroIndexRow2 = (bits and (3 shl 2)) shr 2
-    val row1Value = signAtPosition(bits, 4)
-    val row2Value = signAtPosition(bits, 5)
-    val row3Value = signAtPosition(bits, 6)
+fun constructRotationFromBits(rotation: Int): List<List<Int>> {
+    val firstIndex = rotation and 0b0011
+    val secondIndex = rotation and 0b1100 shr 2
+    val array = mutableListOf(0, 1, 2)
+    array.remove(firstIndex)
+    array.remove(secondIndex)
+    val thirdIndex = array[0]
+    val negativeFirst = ((rotation and 0b0010000) shr 4) == 1
+    val negativeSecond = ((rotation and 0b0100000) shr 5) == 1
+    val negativeThird = ((rotation and 0b1000000) shr 6) == 1
 
-    fun constructRow(position: Int, value: Int) = mutableListOf(0, 0, 0).also { it[position] = value }.subList(0, 3)
-
-    return listOf(
-        constructRow(nonZeroIndexRow1, row1Value),
-        constructRow(nonZeroIndexRow2, row2Value),
-        constructRow(0, row3Value)
+    return mutableListOf(
+        constructRow(firstIndex, if (negativeFirst) -1 else 1),
+        constructRow(secondIndex, if (negativeSecond) -1 else 1),
+        constructRow(thirdIndex, if (negativeThird) -1 else 1)
     )
 }
 
-private fun signAtPosition(bits: Int, position: Int) = if (bits and (1 shl position) == 0) 1 else -1
+private fun constructRow(position: Int, value: Int) = mutableListOf(0, 0, 0).also { it[position] = value }.subList(0, 3)
 
 data class Translation(val x: Int, val y: Int, val z: Int) {
     constructor(xyz: String) : this(

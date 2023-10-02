@@ -4,8 +4,7 @@ import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.maps.shouldContainAll
 import io.kotest.matchers.shouldBe
 import pl.edu.agh.firevox.shared.model.VoxelKey
-import pl.edu.agh.firevox.shared.model.VoxelMaterial
-import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.rotateVoxelsAndMoveToPositiveCoords
+import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.rotateVoxels
 import pl.edu.agh.firevox.shared.model.vox.VoxelsTransformations.translate
 import pl.edu.agh.firevox.shared.model.vox.chunks.Rotation
 import pl.edu.agh.firevox.shared.model.vox.chunks.Translation
@@ -31,7 +30,7 @@ internal class VoxelsTransformationsTest : ShouldSpec({
             VoxelKey(0, 0, 0) to 1,
             VoxelKey(0, 0, 1) to 2,
             VoxelKey(0, 0, 2) to 3,
-        ).rotateVoxelsAndMoveToPositiveCoords(
+        ).rotateVoxels(
             Rotation(
                 listOf(
                     listOf(1, 0, 0),

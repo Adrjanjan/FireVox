@@ -18,12 +18,12 @@ class VoxFormatParserTest : ShouldSpec({
     should("read and write the same model") {
         // given
         val input = withContext(Dispatchers.IO) {
-            getFile("vox/bigger_than_256_3.vox")
+            getFile("vox/rotatebug.vox")
         }
         // when
         val model = VoxFormatParser.read(input)
         // then
-        val outputStream = FileOutputStream("bigger_than_256_3_out.vox")
+        val outputStream = FileOutputStream("rotatebug_out.vox")
         VoxFormatParser.write(
             model.voxels,
             Palette.temperaturePalette,
