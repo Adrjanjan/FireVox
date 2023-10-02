@@ -8,11 +8,11 @@ import jakarta.persistence.*
 @Embeddable
 data class VoxelKey(
     @Column(name = "x")
-    val x: Int,
+    var x: Int,
     @Column(name = "y")
-    val y: Int,
+    var y: Int,
     @Column(name = "z")
-    val z: Int
+    var z: Int
 ) : Serializable {
     override fun toString() = "$x/$y/$z"
     override fun equals(other: Any?): Boolean {
@@ -41,6 +41,8 @@ data class VoxelKey(
     fun between(xRange: IntRange, yRange: IntRange, zRange: IntRange) = xRange.contains(x)
             && yRange.contains(y)
             && zRange.contains(z)
+
+    operator fun minus(other: VoxelKey) =  VoxelKey(this.x - other.x, this.y - other.y, this.z - other.z)
 }
 
 data class VoxelKeyIteration(

@@ -68,8 +68,13 @@ data class SceneTree(
             is ShapeNodeChunk -> {
                 val voxels: MutableMap<VoxelKey, VoxelMaterialId> = mutableMapOf()
                 node.models.forEach { model ->
-                    models[model.modelId].voxelsChunk.voxels.filter { it.value != 0 }
-                        .forEach { voxels[it.key] = it.value }
+                    val voxelsBeforeMoveTo000 = models[model.modelId].voxelsChunk.voxels
+                    val middle = VoxelKey(voxelsBeforeMoveTo000.maxOf { it.key.x } / 2,
+                        voxelsBeforeMoveTo000.maxOf { it.key.y } / 2,
+                        voxelsBeforeMoveTo000.maxOf { it.key.z } / 2
+                    )
+                    voxelsBeforeMoveTo000.filter { it.value != 0 }
+                        .forEach { voxels[it.key - middle] = it.value }
                 }
                 voxels
             }  // add all models to list?
@@ -96,7 +101,7 @@ class ParsedVoxFile(
     private val maxSize: Int = FireVoxProperties.maxSize
 ) {
 
-    val voxels = sceneTree.constructScene(models, maxSize)
+    val voxels = sceneTree.constructScene(models, maxSize).minimaliseKeys()
 
     var sizeX: Int = voxels.sizeInDimension { it.x }
     var sizeY: Int = voxels.sizeInDimension { it.y }
@@ -182,6 +187,18 @@ class ParsedVoxFile(
         }
     }
 
+}
+
+private fun MutableMap<VoxelKey, Int>.minimaliseKeys(): MutableMap<VoxelKey, Int> {
+    val xMin = this.keys.minOf { k -> k.x }
+    val yMin = this.keys.minOf { k -> k.y }
+    val zMin = this.keys.minOf { k -> k.z }
+    this.keys.forEach {
+        it.x -= xMin;
+        it.y -= yMin;
+        it.z -= zMin;
+    }
+    return this
 }
 
 class NotSupportedSceneNodeException(s: String) : Exception(s)

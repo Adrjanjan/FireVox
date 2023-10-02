@@ -112,16 +112,16 @@ object VoxFormatParser {
         val translateToShapeForModels = modelIdToTranslation.map {
             val legalIndex = it.key * 2 + 2 // since root and first group have id 0 and 1
             legalIndex to
-            (createTransformChunkBytes(
-                nodeId = legalIndex,
-                nodeAttributes = mapOf(),
-                childNodeId = legalIndex + 1,
-                translation = it.value
-            ) to createShapeChunkBytes(
-                legalIndex + 1,
-                mapOf(),
-                listOf(it.key to 0)
-            ))
+                    (createTransformChunkBytes(
+                        nodeId = legalIndex,
+                        nodeAttributes = mapOf(),
+                        childNodeId = legalIndex + 1,
+                        translation = it.value
+                    ) to createShapeChunkBytes(
+                        legalIndex + 1,
+                        mapOf(),
+                        listOf(it.key to 0)
+                    ))
         }
 
         val firstGroup = createGroupChunkBytes(
@@ -254,7 +254,7 @@ object VoxFormatParser {
                             it.key.z % tileSize
                         )
                     }
-                    if(model.isEmpty()) continue
+                    if (model.isEmpty()) continue
 
                     val modelXSize = xEndIndex - xStartIndex
                     val modelYSize = yEndIndex - yStartIndex
