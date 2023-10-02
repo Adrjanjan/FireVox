@@ -264,7 +264,11 @@ object VoxFormatParser {
                         Triple(
                             model,
                             Triple(modelXSize, modelYSize, modelZSize),
-                            Translation(xStartIndex, yStartIndex, zStartIndex)
+                            Translation(
+                                xStartIndex - tileSize + modelXSize/2,
+                                yStartIndex - tileSize + modelYSize/2,
+                                zStartIndex - tileSize + modelZSize/2 + tileSize
+                            )
                         )
                     )
                 }
