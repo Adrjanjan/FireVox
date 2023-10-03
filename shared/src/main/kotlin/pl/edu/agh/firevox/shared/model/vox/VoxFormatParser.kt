@@ -297,7 +297,8 @@ object VoxFormatParser {
 
 
         while (input.available() != 0) {
-            when (val tag = input.readTag()) {
+            val tag = input.readTag()
+            when (tag) {
                 TAG_MAIN.tagValue -> mainChunk = MainChunk(input)
                 TAG_PACK.tagValue -> PackChunk(input) // is deprecated in version 200
                 TAG_SIZE.tagValue -> models.add(
@@ -356,19 +357,10 @@ class WrongFileVersionException(s: String) : Throwable(s)
 
 class UnexpectedChunk(s: String) : Exception(s)
 
-fun LittleEndianDataOutputStream.writeTagStartData(
-    tag: String,
-    numberOfBytesOfChunkContent: Int,
-    numberOfChunksOfChildrenChunks: Int
-) = this.writeTag(tag)
-    .also { this.writeInt(numberOfBytesOfChunkContent) }
-    .also { this.writeInt(numberOfChunksOfChildrenChunks) }
-
-fun LittleEndianDataOutputStream.writeTag(tag: String) =
-    StandardCharsets.UTF_8.encode(tag).let { this.write(it.array()) }
-
-fun LittleEndianDataInputStream.readTag(size: Int = 4) =
-    String(this.readNBytes(size), StandardCharsets.UTF_8).replace("\u0000", "")
+fun LittleEndianDataInputStream.readTag(size: Int = 4): String {
+    val bytes = this.readNBytes(size)
+    return String(bytes, StandardCharsets.UTF_8).replace("\u0000", "")
+}
 
 fun LittleEndianDataInputStream.readVoxString() =
     (0 until this.readInt()).fold(StringBuffer()) { acc, _ ->
@@ -385,6 +377,17 @@ fun LittleEndianDataInputStream.readVoxDict(): Map<String, String> =
         acc[this.readVoxString()] = this.readVoxString(); acc
     }
 
+fun LittleEndianDataOutputStream.writeTagStartData(
+    tag: String,
+    numberOfBytesOfChunkContent: Int,
+    numberOfChunksOfChildrenChunks: Int
+) = this.writeTag(tag)
+    .also { this.writeInt(numberOfBytesOfChunkContent) }
+    .also { this.writeInt(numberOfChunksOfChildrenChunks) }
+
+fun LittleEndianDataOutputStream.writeTag(tag: String) =
+    this.write(tag.toByteArray(StandardCharsets.UTF_8))
+
 fun LittleEndianDataOutputStream.writeVoxDict(dict: Map<String, String>) {
     this.writeInt(dict.size)
     dict.forEach {
@@ -395,7 +398,7 @@ fun LittleEndianDataOutputStream.writeVoxDict(dict: Map<String, String>) {
 
 fun LittleEndianDataOutputStream.writeVoxString(s: String) {
     this.writeInt(s.length)
-    StandardCharsets.UTF_8.encode(s).let { this.write(it.array()) }
+    this.write(s.toByteArray(StandardCharsets.UTF_8))
 }
 
 

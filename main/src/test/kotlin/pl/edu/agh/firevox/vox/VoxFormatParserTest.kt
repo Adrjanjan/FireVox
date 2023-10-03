@@ -33,6 +33,21 @@ class VoxFormatParserTest : ShouldSpec({
             outputStream
         )
         1 == 1
+
+        // given
+//        val input2 = withContext(Dispatchers.IO) {
+//            getFile("vox/rotatebug.vox")
+//        }
+//        // given
+//        val input3 = withContext(Dispatchers.IO) {
+//            getFile("vox/rotatebug_out.vox")
+//        }
+        // when
+//        val model2 = VoxFormatParser.read(input2)
+//        val model3 = VoxFormatParser.read(input3)
+
+//        model2.voxels.equals(model3.voxels)
+
     }
 
     should("constructRotationFromBits parse bits correctly"){
