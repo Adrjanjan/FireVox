@@ -94,7 +94,7 @@ class ParsedVoxFile(
     val sceneTree: SceneTree,
     val palette: PaletteChunk,
     val colorIndexMap: IndexMapChunk?,
-    val paletteNoteChunk: PaletteNoteChunk,
+    val paletteNoteChunk: PaletteNoteChunk?,
     val materials: List<MaterialChunk>,
     val renderObjects: List<RenderObjectsChunk>,
     val cameras: List<RenderCameraChunk>,

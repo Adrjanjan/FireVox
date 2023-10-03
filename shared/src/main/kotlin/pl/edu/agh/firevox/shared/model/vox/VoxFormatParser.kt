@@ -330,7 +330,7 @@ object VoxFormatParser {
             SceneTree(transformNodeChunks, layerNodeChunks, groupNodeChunks, shapeNodeChunks),
             paletteChunk!!,
             colorIndexMap,
-            paletteNoteChunk!!,
+            paletteNoteChunk,
             materials,
             renderObjects,
             cameras,

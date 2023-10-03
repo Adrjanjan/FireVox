@@ -16,37 +16,37 @@ class VoxFormatParserTest : ShouldSpec({
 
 
     should("read and write the same model") {
-        // given
-        val input = withContext(Dispatchers.IO) {
-            getFile("vox/rotatebug.vox")
-        }
-        // when
-        val model = VoxFormatParser.read(input)
-        // then
-        val outputStream = FileOutputStream("rotatebug_out.vox")
-        VoxFormatParser.write(
-            model.voxels,
-            Palette.temperaturePalette,
-            model.sizeX,
-            model.sizeY,
-            model.sizeZ,
-            outputStream
-        )
-        1 == 1
-
-        // given
-//        val input2 = withContext(Dispatchers.IO) {
+//        // given
+//        val input = withContext(Dispatchers.IO) {
 //            getFile("vox/rotatebug.vox")
 //        }
-//        // given
-//        val input3 = withContext(Dispatchers.IO) {
-//            getFile("vox/rotatebug_out.vox")
-//        }
-        // when
-//        val model2 = VoxFormatParser.read(input2)
-//        val model3 = VoxFormatParser.read(input3)
+//        // when
+//        val model = VoxFormatParser.read(input)
+//        // then
+//        val outputStream = FileOutputStream("rotatebug_out.vox")
+//        VoxFormatParser.write(
+//            model.voxels,
+//            Palette.temperaturePalette,
+//            model.sizeX,
+//            model.sizeY,
+//            model.sizeZ,
+//            outputStream
+//        )
+//        1 == 1
 
-//        model2.voxels.equals(model3.voxels)
+//         given
+        val input2 = withContext(Dispatchers.IO) {
+            getFile("vox/rotatebug.vox")
+        }
+        // given
+        val input3 = withContext(Dispatchers.IO) {
+            getFile("vox/rotatebug_out.vox")
+        }
+        // when
+        val model2 = VoxFormatParser.read(input2)
+        val model3 = VoxFormatParser.read(input3)
+
+        model2.voxels.equals(model3.voxels)
 
     }
 
