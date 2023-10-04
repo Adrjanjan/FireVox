@@ -13,7 +13,7 @@ class Simulation(
     @Id
     val id: UUID = UUID.randomUUID(),
     val name: String,
-    @OneToOne(cascade = [CascadeType.ALL])
+    @OneToOne(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @JoinColumn(name = "simulationId")
     val parentModel: SingleModel,
     val creationDate: ZonedDateTime = ZonedDateTime.now(),

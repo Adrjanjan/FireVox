@@ -95,7 +95,6 @@ class CalculationService(
         neighbours.toMutableList().addAll(validKeysWithMissingVoxel.map {
             Voxel(
                 it,
-                version = 0,
                 evenIterationNumber = first.evenIterationNumber,
                 evenIterationMaterial = air,
                 evenIterationTemperature = air.baseTemperature,

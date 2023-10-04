@@ -1,25 +1,13 @@
 package pl.edu.agh.firevox.shared.model.simulation
 
-import jakarta.persistence.*
-import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.stereotype.Repository
-import java.util.*
-import kotlin.jvm.Transient
-
-@Entity
-@Table(name = "palette")
 data class Palette(
-    @Id
-    val paletteName: String,
-
-    @ElementCollection
+    val paletteType: PaletteType,
     val colours: Set<Colour>
 ) {
 
     companion object {
-        @Transient
         val temperaturePalette = Palette(
-            temperaturePaletteName, setOf(
+            PaletteType.TEMPERATURE_PALETTE, setOf(
                 Colour(1, 0, 0, 255),
                 Colour(2, 0, 2, 252),
                 Colour(3, 0, 3, 250),
@@ -277,9 +265,9 @@ data class Palette(
                 Colour(255, 255, 0, 0),
             )
         )
-        @Transient
+
         val basePalette = Palette (
-            baseName,
+            PaletteType.BASE_PALETTE,
             mutableSetOf(
 //                Colour(1, 0, 0, 0, 0), //AIR
                 Colour(1, 102, 102, 102), // SMOKE
@@ -319,20 +307,20 @@ data class Palette(
                 set.add(Colour(i, 0, 0, 0, 0))
             }
         )
+
+        val palettes = mapOf(
+            PaletteType.TEMPERATURE_PALETTE to temperaturePalette,
+            PaletteType.BASE_PALETTE to basePalette
+        )
     }
 
 }
 
-const val temperaturePaletteName = "Temperature Palette"
-const val baseName = "Base Palette"
-
-@Repository
-interface PaletteRepository : JpaRepository<Palette, UUID> {
-
-    fun findByPaletteName(name: String): Palette?
+enum class PaletteType {
+    TEMPERATURE_PALETTE,
+    BASE_PALETTE
 }
 
-@Embeddable
 data class Colour(
     val index: Int,
     val r: Int,

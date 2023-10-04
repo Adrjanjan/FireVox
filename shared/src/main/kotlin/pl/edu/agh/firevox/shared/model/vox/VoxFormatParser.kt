@@ -241,18 +241,17 @@ object VoxFormatParser {
                     val zStartIndex = iz * tileSize
                     val zEndIndex = min(zStartIndex + tileSize, sizeZ)
 
-                    val model = voxels.filter {
-                        it.key.between(
-                            xRange = xStartIndex until xEndIndex,
-                            yRange = yStartIndex until yEndIndex,
-                            zRange = zStartIndex until zEndIndex,
-                        )
-                    }.mapKeys {
-                        VoxelKey(
-                            it.key.x % tileSize,
-                            it.key.y % tileSize,
-                            it.key.z % tileSize
-                        )
+                    val model = mutableMapOf<VoxelKey, Int>()
+                    for ((key, value) in voxels) {
+                        if (key.between(
+                                xRange = xStartIndex until xEndIndex,
+                                yRange = yStartIndex until yEndIndex,
+                                zRange = zStartIndex until zEndIndex,
+                            )
+                        ) {
+                            model[VoxelKey(key.x % tileSize, key.y % tileSize, key.z % tileSize)] = value
+                        }
+                        if (model.size >= tileSize * tileSize * tileSize) break // single model cant be bigger than tileSize ^3
                     }
                     if (model.isEmpty()) continue
 
@@ -265,9 +264,9 @@ object VoxFormatParser {
                             model,
                             Triple(modelXSize, modelYSize, modelZSize),
                             Translation(
-                                xStartIndex - tileSize + modelXSize/2,
-                                yStartIndex - tileSize + modelYSize/2,
-                                zStartIndex - tileSize + modelZSize/2 + tileSize
+                                xStartIndex - tileSize + modelXSize / 2,
+                                yStartIndex - tileSize + modelYSize / 2,
+                                zStartIndex - tileSize + modelZSize / 2 + tileSize
                             )
                         )
                     )
