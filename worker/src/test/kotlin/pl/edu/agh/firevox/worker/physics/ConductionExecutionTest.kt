@@ -154,7 +154,4 @@ class ConductionExecutionTest(
     }
 }
 
-private fun Double.toKelvin(): Double = this + 273.15
-private fun Int.toKelvin(): Double = this + 273.15
-private fun Double.toCelsius() = this - 273.15
 

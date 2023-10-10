@@ -28,9 +28,9 @@ spring:
     stream:
       bindings:
         input-in-0:
-          destination: output-topic
+          destination: voxels-topic
           content-type: application/json
-          group: in
+          group: voxels
 
 logging:
   level:

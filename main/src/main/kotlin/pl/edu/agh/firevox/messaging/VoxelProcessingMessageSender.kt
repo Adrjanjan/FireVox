@@ -7,14 +7,14 @@ import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.VoxelKeyIteration
 
 @Service
-class MessageSender(
+class VoxelProcessingMessageSender(
     private val streamBridge: StreamBridge
 ) {
     companion object {
         val log: Logger = LoggerFactory.getLogger(this::class.java)
     }
 
-    private val topicName = "output-topic"
+    private val topicName = "voxels-topic"
 
     fun send(ki: VoxelKeyIteration) {
         log.info("Sending on queue $topicName key $ki")

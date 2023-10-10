@@ -4,6 +4,7 @@ import java.io.Serial
 import java.io.Serializable
 import java.util.*
 import jakarta.persistence.*
+import kotlin.math.sqrt
 
 @Embeddable
 data class VoxelKey(
@@ -14,6 +15,10 @@ data class VoxelKey(
     @Column(name = "z")
     var z: Int
 ) : Serializable {
+    val length: Double
+        get() = sqrt(x * x + y * y + z * z * 1.0)
+
+
     override fun toString() = "$x/$y/$z"
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
@@ -42,7 +47,12 @@ data class VoxelKey(
             && yRange.contains(y)
             && zRange.contains(z)
 
-    operator fun minus(other: VoxelKey) =  VoxelKey(this.x - other.x, this.y - other.y, this.z - other.z)
+    operator fun minus(other: VoxelKey) = VoxelKey(this.x - other.x, this.y - other.y, this.z - other.z)
+
+    fun dotProduct(other: VoxelKey): Int {
+        return x * other.x + y * other.y + z * other.z
+    }
+
 }
 
 data class VoxelKeyIteration(

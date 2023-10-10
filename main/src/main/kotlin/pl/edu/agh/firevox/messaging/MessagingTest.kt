@@ -11,7 +11,7 @@ import pl.edu.agh.firevox.shared.model.VoxelKeyIteration
 @RestController
 @RequestMapping("messaging")
 class MessagingTest(
-    val m: MessageSender
+    val m: VoxelProcessingMessageSender
 ) {
     companion object {
         val log: Logger = LoggerFactory.getLogger(this::class.java)

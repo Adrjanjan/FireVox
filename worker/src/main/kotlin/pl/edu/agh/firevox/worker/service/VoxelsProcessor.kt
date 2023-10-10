@@ -24,12 +24,4 @@ class VoxelsProcessor(
         }
     }
 
-    @Bean
-    fun radiationInput(): Consumer<VoxelKeyIteration> {
-        return Consumer<VoxelKeyIteration> { k ->
-            log.info("Processing key ${k.key} for radiation for iteration ${k.iteration}")
-            calculationService.calculateRadiation(k.key, k.iteration)
-        }
-    }
-
 }

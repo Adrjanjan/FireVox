@@ -33,10 +33,18 @@ spring:
   cloud:
     stream:
       bindings:
-        output-out-0:
-          destination: output-topic
+        voxels-out-0:
+          destination: voxels-topic
           content-type: application/json
-          group: out
+          group: voxels
+        radiation-start-out-0:
+          destination: radiation-start
+          content-type: application/json
+          group: radiation
+        radiation-start-in-0:
+          destination: radiation-start
+          content-type: application/json
+          group: radiation
 
 logging:
   level:

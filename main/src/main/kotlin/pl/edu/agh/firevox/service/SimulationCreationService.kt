@@ -1,7 +1,6 @@
 package pl.edu.agh.firevox.service
 
 import org.springframework.stereotype.Service
-import pl.edu.agh.firevox.messaging.MessageSender
 import pl.edu.agh.firevox.model.ModelDescriptionDto
 import pl.edu.agh.firevox.model.SingleModelDto
 import pl.edu.agh.firevox.shared.model.*
@@ -16,8 +15,8 @@ class SimulationCreationService(
     private val modelMergeService: ModelMergeService,
     private val voxelRepository: CustomVoxelRepository,
     private val simulationRepository: SimulationsRepository,
-    private val messageSender: MessageSender,
     private val physicalMaterialRepository: PhysicalMaterialRepository,
+    private val radiationPreprocessingStarter: RadiationPreprocessingStarter,
 ) {
 
     fun start(m: ModelDescriptionDto) = modelMergeService.createModel(m).let { s ->
@@ -36,9 +35,13 @@ class SimulationCreationService(
         s.voxels.map { it.key to materials[VoxelMaterial.fromId(it.value)]!! }
             .map { it.toEntity() }.forEach(voxelRepository::save)
 
-        s.voxels.filter { VoxelMaterial.fromId(it.value).canTransitionInFirstIteration() }
-            .map { VoxelKeyIteration(it.key, 0) }
-            .forEach(messageSender::send)
+        // process radiation here?? do we have the memory to create 3d array here or
+        radiationPreprocessingStarter.start(m.pointsOfPlanesForRadiation)
+
+//      TODO -> move to the radiationPreprocessing finish, move canTransitionInFirstIteration() to database check
+//        s.voxels.filter { VoxelMaterial.fromId(it.value).canTransitionInFirstIteration() }
+//            .map { VoxelKeyIteration(it.key, 0) }
+//            .forEach(messageSender::send)
     }
 }
 

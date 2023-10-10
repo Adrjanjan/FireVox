@@ -1,8 +1,15 @@
 package pl.edu.agh.firevox.model
 
+import pl.edu.agh.firevox.shared.model.VoxelKey
+
 data class ModelDescriptionDto(
     val outputName: String,
     val parentModel: SingleModelDto,
+    val pointsOfPlanesForRadiation: PointsToNormals
+)
+
+data class PointsToNormals(
+    val points: List<Pair<VoxelKey, VoxelKey>>
 )
 
 data class SingleModelDto(
