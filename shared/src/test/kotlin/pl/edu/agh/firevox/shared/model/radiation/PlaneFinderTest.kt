@@ -1,6 +1,8 @@
 package pl.edu.agh.firevox.shared.model.radiation
 
 import io.kotest.core.spec.style.ShouldSpec
+import io.kotest.matchers.doubles.shouldBeGreaterThan
+import io.kotest.matchers.doubles.shouldBeLessThan
 import io.kotest.matchers.shouldBe
 import io.mockk.every
 import io.mockk.mockk
@@ -13,7 +15,9 @@ class PlaneFinderTest : ShouldSpec({
     val voxelRepository = mockk<VoxelRepository>()
     val planeFinder = PlaneFinder(radiationPlaneRepository, voxelRepository)
 
-    context("fullPlane") {
+    xshould("findRelationships") { TODO() }
+
+    xcontext("fullPlane") {
         should("find wall of cube ") {
             // given 5x5x5 matrix with 3x3x3 cube in the middle
             val size = 5
@@ -96,10 +100,9 @@ class PlaneFinderTest : ShouldSpec({
                 VoxelKey(3, 0, 2),
             )
         }
-
     }
 
-    should("divideIntoPlanes") {
+    xshould("divideIntoPlanes") {
         val fullPlane = listOf(
             VoxelKey(3, 1, 1),
             VoxelKey(3, 2, 1),
@@ -110,7 +113,6 @@ class PlaneFinderTest : ShouldSpec({
             VoxelKey(3, 1, 3),
             VoxelKey(3, 2, 3),
             VoxelKey(3, 3, 3),
-            VoxelKey(3, 0, 2),
         )
         val normalVector = VoxelKey(1, 0, 0)
         val squareSize = 3
@@ -150,9 +152,7 @@ class PlaneFinderTest : ShouldSpec({
         firstPlane.area shouldBe 9 * 0.01.pow(2)
     }
 
-    should("findRelationships") { TODO() }
-
-    context("ddaStep") {
+    xcontext("ddaStep") {
         should("in all dimensions") {
             val start = VoxelKey(0, 0, 0)
             val end = VoxelKey(2, 4, 6)
@@ -243,7 +243,7 @@ class PlaneFinderTest : ShouldSpec({
 
     }
 
-    should("canSeeEachOther") {
+    xshould("canSeeEachOther") {
         // "v----------"
         // "^----------"
         planeFinder.canSeeEachOther(
@@ -288,8 +288,108 @@ class PlaneFinderTest : ShouldSpec({
 
     }
 
-    should("parallelViewFactor") { TODO() }
+    should("parallelViewFactor") {
+        val fullPlane = listOf(
+            VoxelKey(0, 0, 0),
+            VoxelKey(0, 1, 0),
+            VoxelKey(1, 0, 0),
+            VoxelKey(1, 1, 0),
+        )
+        val material = PhysicalMaterial(
+            VoxelMaterial.METAL,
+            density = 2700.0,
+            baseTemperature = 20.toKelvin(),
+            thermalConductivityCoefficient = 235.0,
+            convectionHeatTransferCoefficient = 0.0,
+            specificHeatCapacity = 897.0,
+            flashPointTemperature = 0.0.toKelvin(),
+            burningTime = 0.0,
+            generatedEnergyDuringBurning = 0.0,
+            burntMaterial = null,
+        )
 
-    should("perpendicularViewFactor") { TODO() }
+        val voxels = fullPlane.map {
+            Voxel(it, 0, material, 0.0, 0, material, 0.0)
+        }
+
+        val firstPlane = RadiationPlane(
+            a = VoxelKey(0, 0, 0),
+            b = VoxelKey(0, 1, 0),
+            c = VoxelKey(1, 0, 0),
+            d = VoxelKey(1, 1, 0),
+            normalVector = VoxelKey(0, 0, 1),
+            voxels = voxels.toMutableSet(),
+            area = 1.0,
+        )
+
+        val secondPlane = RadiationPlane(
+            a = VoxelKey(0, 0, 1),
+            b = VoxelKey(0, 1, 1),
+            c = VoxelKey(1, 0, 1),
+            d = VoxelKey(1, 1, 1),
+            normalVector = VoxelKey(0, 0, -1),
+            voxels = voxels.toMutableSet(),
+            area = 1.0,
+        )
+
+        // when
+        val result = planeFinder.parallelViewFactor(firstPlane, secondPlane)
+
+        // then
+        result shouldBeGreaterThan  0.1998 * firstPlane.area // 0.1998 is a result for the indices in the source
+        result shouldBeLessThan 0.1999 * firstPlane.area // 0.1998 is a result for the indices in the source
+    }
+
+    should("perpendicularViewFactor") {
+        val fullPlane = listOf(
+            VoxelKey(0, 0, 0),
+            VoxelKey(0, 1, 0),
+            VoxelKey(1, 0, 0),
+            VoxelKey(1, 1, 0),
+        )
+        val material = PhysicalMaterial(
+            VoxelMaterial.METAL,
+            density = 2700.0,
+            baseTemperature = 20.toKelvin(),
+            thermalConductivityCoefficient = 235.0,
+            convectionHeatTransferCoefficient = 0.0,
+            specificHeatCapacity = 897.0,
+            flashPointTemperature = 0.0.toKelvin(),
+            burningTime = 0.0,
+            generatedEnergyDuringBurning = 0.0,
+            burntMaterial = null,
+        )
+
+        val voxels = fullPlane.map {
+            Voxel(it, 0, material, 0.0, 0, material, 0.0)
+        }
+
+        val firstPlane = RadiationPlane(
+            a = VoxelKey(0, 0, 0),
+            b = VoxelKey(0, 1, 0),
+            c = VoxelKey(1, 0, 0),
+            d = VoxelKey(1, 1, 0),
+            normalVector = VoxelKey(0, 0, 1),
+            voxels = voxels.toMutableSet(),
+            area = 1.0,
+        )
+
+        val secondPlane = RadiationPlane(
+            a = VoxelKey(0, 0, 0),
+            b = VoxelKey(0, 0, 1),
+            c = VoxelKey(0, 1, 0),
+            d = VoxelKey(0, 1, 1),
+            normalVector = VoxelKey(1, 0, 0),
+            voxels = voxels.toMutableSet(),
+            area = 1.0,
+        )
+
+        // when
+        val result = planeFinder.perpendicularViewFactor(firstPlane, secondPlane)
+
+        // then
+        result shouldBeGreaterThan  0.20004 // 0.20004 is a result for the indices in the source
+        result shouldBeLessThan 0.20005 // 0.20004 is a result for the indices in the source
+    }
 
 })

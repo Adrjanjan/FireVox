@@ -165,9 +165,9 @@ class PlaneFinder(
                 if (canSeeEachOther(first, second)) {
                     if (!obstructedView(first.middle, second.middle, voxels)) {
                         val firstViewFactor = if (first.normalVector.dotProduct(second.normalVector) == 0) {
-                            perpendicularViewFactor(first.area, first, second)
+                            perpendicularViewFactor(first, second)
                         } else {
-                            parallelViewFactor(first.area, first, second)
+                            parallelViewFactor(first, second)
                         }
                         val secondViewFactor = first.area * firstViewFactor / second.area
                         first.childPlanes.add(
@@ -217,12 +217,12 @@ class PlaneFinder(
 
         while (current != end) {
             when {
-                validMove(dx, dy, dz, rayLength.x, rayLength.z, rayLength.y) && end.x > current.x -> {
+                validMove(dx, dy, dz, rayLength.x, rayLength.z, rayLength.y) -> {
                     current.x += stepX
                     rayLength.x += dx
                 }
 
-                validMove(dy, dx, dz, rayLength.y, rayLength.z, rayLength.x) && end.y > current.y -> {
+                validMove(dy, dx, dz, rayLength.y, rayLength.z, rayLength.x) -> {
                     current.y += stepY
                     rayLength.y += dy
                 }
@@ -249,12 +249,13 @@ class PlaneFinder(
             || (db == 0.0 && a <= c) // 2d dda in AC plane
             )
 
+    // https://gamedev.stackexchange.com/questions/185569/how-to-check-if-two-normals-directions-look-at-each-other
     fun canSeeEachOther(
-        fmiddle: VoxelKey, fNormalVector: VoxelKey, smiddle: VoxelKey, sNormalVector: VoxelKey
+        first: VoxelKey, firstNormalVector: VoxelKey, second: VoxelKey, secondNormalVector: VoxelKey
     ): Boolean {
-        val delta = fmiddle - smiddle
-        val dp0 = delta.dotProduct(fNormalVector)
-        val dp1 = delta.dotProduct(sNormalVector)
+        val delta = second - first
+        val dp0 = delta.dotProduct(firstNormalVector)
+        val dp1 = delta.dotProduct(secondNormalVector)
         return dp0 > 0 && dp1 < 0
     }
 
@@ -263,7 +264,7 @@ class PlaneFinder(
     )
 
     //    based on http://imartinez.etsiae.upm.es/~isidoro/tc3/Radiation%20View%20factors.pdf
-    fun parallelViewFactor(sizeFirst: Double, first: RadiationPlane, second: RadiationPlane): Double {
+    fun parallelViewFactor(first: RadiationPlane, second: RadiationPlane): Double {
         val x = mutableListOf<Double>()
         val y = mutableListOf<Double>()
         val n = mutableListOf<Double>()
@@ -302,17 +303,18 @@ class PlaneFinder(
             else -> return 0.0
         }
 
-        return 1 / (2 * PI * sizeFirst) * (1..2).sumOf { i ->
+        val d = 1 / (2 * PI * first.area) * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->
                     (1..2).sumOf { l ->
                         (-1.0).pow(i + j + k + l.toDouble()) * parallelIteratorFunction(
-                            x[i], y[j], n[k], e[l], z
+                            x[i - 1], y[j - 1], n[k - 1], e[l - 1], z
                         )
                     }
                 }
             }
         }
+        return d
     }
 
     private fun uniqueCoordinate(first: RadiationPlane, f: (VoxelKey) -> Int) =
@@ -329,7 +331,7 @@ class PlaneFinder(
         return v * p * atan(v / p) + u * q * atan(u / q) - 0.5 * z * z * ln(u * u + v * v + z * z)
     }
 
-    fun perpendicularViewFactor(sizeFirst: Double, first: RadiationPlane, second: RadiationPlane): Double {
+    fun perpendicularViewFactor(first: RadiationPlane, second: RadiationPlane): Double {
         val x = mutableListOf<Double>()
         val y = mutableListOf<Double>()
         val n = mutableListOf<Double>()
@@ -359,12 +361,12 @@ class PlaneFinder(
             }
         }
 
-        return 1 / (2 * PI * sizeFirst) * (1..2).sumOf { i ->
+        return 1 / (2 * PI * first.area) * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->
                     (1..2).sumOf { l ->
                         (-1.0).pow(i + j + k + l.toDouble()) * perpendicularIteratorFunction(
-                            x[i], y[j], n[k], e[l]
+                            x[i-1], y[j-1], n[k-1], e[l-1]
                         )
                     }
                 }
@@ -373,7 +375,8 @@ class PlaneFinder(
     }
 
     private fun perpendicularIteratorFunction(x: Double, y: Double, n: Double, e: Double): Double {
-        val C = hypot(x, e)
+        var C = hypot(x, e)
+        if(C == 0.0) C = 10e-10 // to avoid dividing by zero
         val D = (y - n) / C
         return (y - n) * C * atan(D) - 0.25 * C * C * (1 - D * D) * ln(C * C * (1 + D * D))
     }
