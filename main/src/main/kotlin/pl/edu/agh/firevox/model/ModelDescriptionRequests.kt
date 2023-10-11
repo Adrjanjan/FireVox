@@ -5,7 +5,7 @@ import pl.edu.agh.firevox.shared.model.VoxelKey
 data class ModelDescriptionDto(
     val outputName: String,
     val parentModel: SingleModelDto,
-    val pointsOfPlanesForRadiation: PointsToNormals
+    val pointsOfPlanesForRadiation: PointsToNormals? = null
 )
 
 data class PointsToNormals(

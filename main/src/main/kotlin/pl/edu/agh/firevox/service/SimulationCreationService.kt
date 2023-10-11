@@ -2,6 +2,7 @@ package pl.edu.agh.firevox.service
 
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.model.ModelDescriptionDto
+import pl.edu.agh.firevox.model.PointsToNormals
 import pl.edu.agh.firevox.model.SingleModelDto
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.VoxelMaterial.*
@@ -36,7 +37,7 @@ class SimulationCreationService(
             .map { it.toEntity() }.forEach(voxelRepository::save)
 
         // process radiation here?? do we have the memory to create 3d array here or
-        radiationPreprocessingStarter.start(m.pointsOfPlanesForRadiation)
+        radiationPreprocessingStarter.start(m.pointsOfPlanesForRadiation ?: PointsToNormals(listOf()))
 
 //      TODO -> move to the radiationPreprocessing finish, move canTransitionInFirstIteration() to database check
 //        s.voxels.filter { VoxelMaterial.fromId(it.value).canTransitionInFirstIteration() }
