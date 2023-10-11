@@ -9,6 +9,7 @@ import pl.edu.agh.firevox.model.PointsToNormals
 import pl.edu.agh.firevox.shared.model.CustomVoxelRepository
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
+import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.PaletteType
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import java.util.function.Consumer
@@ -18,7 +19,8 @@ class RadiationPreprocessingStarter(
     private val streamBridge: StreamBridge,
     private val planeFinder: PlaneFinder,
     private val voxelRepository: CustomVoxelRepository,
-    private val simulationsRepository: SimulationsRepository
+    private val simulationsRepository: SimulationsRepository,
+    private val radiationPlaneRepository: RadiationPlaneRepository,
 ) {
     companion object {
         val log: Logger = LoggerFactory.getLogger(this::class.java)
@@ -47,7 +49,7 @@ class RadiationPreprocessingStarter(
                 matrix[t.x][t.y][t.z] = u
             }
 
-            planeFinder.findPlanes(matrix, pointsToNormals.points)
+            radiationPlaneRepository.saveAll(planeFinder.findPlanes(matrix, pointsToNormals.points))
         }
     }
 

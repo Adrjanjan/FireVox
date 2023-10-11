@@ -8,17 +8,20 @@ import kotlin.math.*
 
 @Service
 class PlaneFinder(
-    private val radiationPlaneRepository: RadiationPlaneRepository,
     private val voxelRepository: VoxelRepository,
     @Value("\${firevox.voxel.size}") val voxelLength: Double = 0.01,
 ) {
 
-    fun findPlanes(voxels: Array<Array<IntArray>>, pointsToNormals: List<Pair<VoxelKey, VoxelKey>>) {
+    fun findPlanes(
+        voxels: Array<Array<IntArray>>,
+        pointsToNormals: List<Pair<VoxelKey, VoxelKey>>
+    ): List<RadiationPlane> {
         val planes = mutableListOf<RadiationPlane>()
         pointsToNormals.forEach {
             planes.addAll(divideIntoPlanes(fullPlane(voxels, it), it.second, squareSize = 10))
         }
-        radiationPlaneRepository.saveAll(findRelationships(planes, voxels))
+        val findRelationships = findRelationships(planes, voxels)
+        return findRelationships
     }
 
     fun fullPlane(voxels: Array<Array<IntArray>>, pointToNormal: Pair<VoxelKey, VoxelKey>): List<VoxelKey> {
@@ -82,23 +85,25 @@ class PlaneFinder(
         val nz = max(1, (maxZ - minZ) / squareSize)
 
         val results = mutableListOf<RadiationPlane>()
-        for (ix in 0 until nx) {
+        for (ix in 0 .. nx) {
             val xStartIndex = minX + ix * squareSize
-            val xEndIndex = min(xStartIndex + squareSize, maxX)
-            for (iy in 0 until ny) {
-                val yStartIndex = iy * squareSize
-                val yEndIndex = min(yStartIndex + squareSize, maxY)
-                for (iz in 0 until nz) {
-                    val zStartIndex = iz * squareSize
-                    val zEndIndex = min(zStartIndex + squareSize, maxZ)
+            val xEndIndex = min(xStartIndex + squareSize, maxX + 1)
+            if(xStartIndex > xEndIndex) break // only possible if end was truncated to maxX+1 but the iterations will make start bigger than end
+            for (iy in 0 .. ny) {
+                val yStartIndex = minY + iy * squareSize
+                val yEndIndex = min(yStartIndex + squareSize, maxY + 1)
+                if(yStartIndex > yEndIndex) break
+                for (iz in 0 .. nz) {
+                    val zStartIndex = minZ + iz * squareSize
+                    val zEndIndex = min(zStartIndex + squareSize, maxZ + 1)
+                    if(zStartIndex > zEndIndex) break
 
                     val voxels = mutableListOf<VoxelKey>()
                     for (key in fullPlane) {
-                        if (key.between(
-                                xRange = xStartIndex..xEndIndex,
-                                yRange = yStartIndex..yEndIndex,
-                                zRange = zStartIndex..zEndIndex,
-                            )
+                        if (
+                            (key.x in (xStartIndex until xEndIndex) || key.x == xStartIndex) &&
+                            (key.y in (yStartIndex until yEndIndex) || key.y == yStartIndex) &&
+                            (key.z in (zStartIndex until zEndIndex) || key.z == zStartIndex)
                         ) {
                             voxels.add(key)
                         }
@@ -124,9 +129,9 @@ class PlaneFinder(
                         normalVector.x != 0 -> { // plane in YZ
                             val y = voxels.maxOf { it.y }
                             val z = voxels.maxOf { it.z }
-                            a = voxels.find { it.y == yStartIndex + 1 && it.z == zStartIndex + 1 }!! // both start
-                            b = voxels.find { it.y == yStartIndex + 1 && it.z == z }!! // second on start
-                            c = voxels.find { it.y == y && it.z == zStartIndex + 1 }!! // one on end
+                            a = voxels.find { it.y == yStartIndex && it.z == zStartIndex }!! // both start
+                            b = voxels.find { it.y == yStartIndex && it.z == z }!! // second on start
+                            c = voxels.find { it.y == y && it.z == zStartIndex }!! // one on end
                             d = voxels.find { it.y == y && it.z == z }!! // both end
                         }
 
@@ -321,7 +326,7 @@ class PlaneFinder(
         uniqueCoordinate(first.a, first.b, first.c, first.d, f)
 
     private fun uniqueCoordinate(a: VoxelKey, b: VoxelKey, c: VoxelKey, d: VoxelKey, f: (VoxelKey) -> Int) =
-        listOf(f(a), f(b), f(c), f(d)).distinct().map(Int::toDouble)
+        listOf(f(a), f(b), f(c), f(d)).distinct().map(Int::toDouble).let { if(it.size == 1) listOf(it[0], it[0]) else it}
 
     private fun parallelIteratorFunction(x: Double, y: Double, n: Double, e: Double, z: Double): Double {
         val u = x - e
@@ -366,7 +371,7 @@ class PlaneFinder(
                 (1..2).sumOf { k ->
                     (1..2).sumOf { l ->
                         (-1.0).pow(i + j + k + l.toDouble()) * perpendicularIteratorFunction(
-                            x[i-1], y[j-1], n[k-1], e[l-1]
+                            x[i - 1], y[j - 1], n[k - 1], e[l - 1]
                         )
                     }
                 }
@@ -376,7 +381,7 @@ class PlaneFinder(
 
     private fun perpendicularIteratorFunction(x: Double, y: Double, n: Double, e: Double): Double {
         var C = hypot(x, e)
-        if(C == 0.0) C = 10e-10 // to avoid dividing by zero
+        if (C == 0.0) C = 10e-10 // to avoid dividing by zero
         val D = (y - n) / C
         return (y - n) * C * atan(D) - 0.25 * C * C * (1 - D * D) * ln(C * C * (1 + D * D))
     }
