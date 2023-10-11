@@ -29,26 +29,32 @@ class PlaneFinderTest : ShouldSpec({
 
     should("findPlanes") {
         // given 7x7x7 matrix with walls at
-        // x=0
-        // x=3
-        // 4<x<5 && z == 0
-        // 4<x<5 && z == 6
-        // y == 6 && 4<x<6 && 2<z<4
+        //1 x=0 -> 49 voxels
+        //2 x=3 -> 49
+        //3 5<=x<=5 && z == 0 -> 7
+        //4 5<=x<=5 && z == 6 -> 7
+        //5 y == 6 && 4<x<6 && 2<z<4 ->
         val size = 7
         val matrix = Array(size) { i ->
             Array(size) { j ->
                 IntArray(size) { k ->
-                    if (
-                        i == 0 ||
-                        i == 3 ||
-                        (i in 4..5 && (k == 0 || k == 6))||
-                        j == 6 && i in 4..6 && k in 2..4
-                    ) {
-                        1
-                    } else {
-                        0
+                    when {
+                        i == 0 -> 1
+                        i == 3 -> 2
+                        i == 5 && (k == 0) -> 3
+                        i == 5 && k == 6 -> 4
+                        j == 6 && i in 4..6 && k in 2..4 -> 5
+                        else -> 0
                     }.also {
-                        every { voxelRepository.getReferenceById(VoxelKey(i, j, k)) } returns Voxel(VoxelKey(i, j, k), 0, material, 0.0, 0, material, 0.0)
+                        every { voxelRepository.getReferenceById(VoxelKey(i, j, k)) } returns Voxel(
+                            VoxelKey(i, j, k),
+                            0,
+                            material,
+                            0.0,
+                            0,
+                            material,
+                            0.0
+                        )
                     }
                 }
             }
@@ -58,16 +64,17 @@ class PlaneFinderTest : ShouldSpec({
         // when
         val planes = planeFinder.findPlanes(
             matrix, listOf(
-                VoxelKey(0, 0, 0) to VoxelKey(1, 0, 0),  // 1
-                VoxelKey(3, 0, 0) to VoxelKey(1, 0, 0),  // 2
-                VoxelKey(4, 0, 0) to VoxelKey(0, 0, 1),  // 3
-                VoxelKey(4, 0, 6) to VoxelKey(0, 0, -1), // 4
-                VoxelKey(6, 6, 2) to VoxelKey(-1, 0, 0), // 5
+                VoxelKey(0, 0, 0) to VoxelKey(1, 0, 0),   // 1
+                VoxelKey(3, 0, 0) to VoxelKey(-1, 0, 0),  // 2
+                VoxelKey(5, 0, 0) to VoxelKey(0, 0, 1),   // 3
+                VoxelKey(5, 0, 6) to VoxelKey(0, 0, -1),  // 4
+                VoxelKey(6, 6, 2) to VoxelKey(0, -1, 0),  // 5
             )
         )
 
         // then
         // should find connections 1 <-> 2, 3 <-> 4, 3 <-> 5, 4 <-> 5
+        planes.size shouldBe 5
         planes shouldBe listOf()
     }
 

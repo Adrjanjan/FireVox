@@ -13,8 +13,7 @@ class PlaneFinder(
 ) {
 
     fun findPlanes(
-        voxels: Array<Array<IntArray>>,
-        pointsToNormals: List<Pair<VoxelKey, VoxelKey>>
+        voxels: Array<Array<IntArray>>, pointsToNormals: List<Pair<VoxelKey, VoxelKey>>
     ): List<RadiationPlane> {
         val planes = mutableListOf<RadiationPlane>()
         pointsToNormals.forEach {
@@ -35,28 +34,33 @@ class PlaneFinder(
             // Check neighboring elements along the x, y, and z axes
             val neighbors = when (normalVector) {
                 VoxelKey(0, 0, 1), VoxelKey(0, 0, -1) -> listOf(
-                    Triple(x + 1, y, z),
-                    Triple(x - 1, y, z),
-                    Triple(x, y + 1, z),
-                    Triple(x, y - 1, z),
+                    VoxelKey(x + 1, y, z),
+                    VoxelKey(x - 1, y, z),
+                    VoxelKey(x, y + 1, z),
+                    VoxelKey(x, y - 1, z),
                 )
 
                 VoxelKey(0, 1, 0), VoxelKey(0, -1, 0) -> listOf(
-                    Triple(x + 1, y, z), Triple(x - 1, y, z), Triple(x, y, z + 1), Triple(x, y, z - 1)
+                    VoxelKey(x + 1, y, z),
+                    VoxelKey(x - 1, y, z),
+                    VoxelKey(x, y, z + 1),
+                    VoxelKey(x, y, z - 1)
                 )
 
                 VoxelKey(1, 0, 0), VoxelKey(-1, 0, 0) -> listOf(
-                    Triple(x, y + 1, z), Triple(x, y - 1, z), Triple(x, y, z + 1), Triple(x, y, z - 1)
+                    VoxelKey(x, y + 1, z),
+                    VoxelKey(x, y - 1, z),
+                    VoxelKey(x, y, z + 1),
+                    VoxelKey(x, y, z - 1)
                 )
 
                 else -> listOf()
             }
 
-            for ((nx, ny, nz) in neighbors) {
-                val key = VoxelKey(nx, ny, nz)
-                if (isValidFaceElement(
-                        nx, ny, nz, voxels
-                    ) && voxels[nx][ny][nz] == voxels[startingPoint] && key !in visited
+            for (key in neighbors) {
+                if (isValidFaceElement(key.x, key.y, key.z, voxels)
+                    && voxels[key] == voxels[startingPoint]
+                    && key !in visited
                 ) {
                     stack.add(key)
                 }
@@ -85,26 +89,22 @@ class PlaneFinder(
         val nz = max(1, (maxZ - minZ) / squareSize)
 
         val results = mutableListOf<RadiationPlane>()
-        for (ix in 0 .. nx) {
+        for (ix in 0..nx) {
             val xStartIndex = minX + ix * squareSize
             val xEndIndex = min(xStartIndex + squareSize, maxX + 1)
-            if(xStartIndex > xEndIndex) break // only possible if end was truncated to maxX+1 but the iterations will make start bigger than end
-            for (iy in 0 .. ny) {
+            if (xStartIndex > xEndIndex) break // only possible if end was truncated to maxX+1 but the iterations will make start bigger than end
+            for (iy in 0..ny) {
                 val yStartIndex = minY + iy * squareSize
                 val yEndIndex = min(yStartIndex + squareSize, maxY + 1)
-                if(yStartIndex > yEndIndex) break
-                for (iz in 0 .. nz) {
+                if (yStartIndex > yEndIndex) break
+                for (iz in 0..nz) {
                     val zStartIndex = minZ + iz * squareSize
                     val zEndIndex = min(zStartIndex + squareSize, maxZ + 1)
-                    if(zStartIndex > zEndIndex) break
+                    if (zStartIndex > zEndIndex) break
 
                     val voxels = mutableListOf<VoxelKey>()
                     for (key in fullPlane) {
-                        if (
-                            (key.x in (xStartIndex until xEndIndex) || key.x == xStartIndex) &&
-                            (key.y in (yStartIndex until yEndIndex) || key.y == yStartIndex) &&
-                            (key.z in (zStartIndex until zEndIndex) || key.z == zStartIndex)
-                        ) {
+                        if ((key.x in (xStartIndex until xEndIndex) || key.x == xStartIndex) && (key.y in (yStartIndex until yEndIndex) || key.y == yStartIndex) && (key.z in (zStartIndex until zEndIndex) || key.z == zStartIndex)) {
                             voxels.add(key)
                         }
                         if (voxels.size >= squareSize * squareSize) break // single square cant be bigger than squareSize^2
@@ -120,9 +120,9 @@ class PlaneFinder(
                         normalVector.z != 0 -> { // plane in XY
                             val x = voxels.maxOf { it.x }
                             val y = voxels.maxOf { it.y }
-                            a = voxels.find { it.x == xStartIndex + 1 && it.y == yStartIndex + 1 }!! // both start
-                            b = voxels.find { it.x == xStartIndex + 1 && it.y == y }!! // second on start
-                            c = voxels.find { it.x == x && it.y == yStartIndex + 1 }!! // one on end
+                            a = voxels.find { it.x == xStartIndex && it.y == yStartIndex }!! // both start
+                            b = voxels.find { it.x == xStartIndex && it.y == y }!! // second on start
+                            c = voxels.find { it.x == x && it.y == yStartIndex }!! // one on end
                             d = voxels.find { it.x == x && it.y == y }!! // both end
                         }
 
@@ -138,9 +138,9 @@ class PlaneFinder(
                         else -> { // plane in XZ
                             val x = voxels.maxOf { it.x }
                             val z = voxels.maxOf { it.z }
-                            a = voxels.find { it.x == xStartIndex + 1 && it.z == zStartIndex + 1 }!! // both start
-                            b = voxels.find { it.x == xStartIndex + 1 && it.z == z }!! // second on start
-                            c = voxels.find { it.x == x && it.z == zStartIndex + 1 }!! // one on end
+                            a = voxels.find { it.x == xStartIndex && it.z == zStartIndex }!! // both start
+                            b = voxels.find { it.x == xStartIndex && it.z == z }!! // second on start
+                            c = voxels.find { it.x == x && it.z == zStartIndex }!! // one on end
                             d = voxels.find { it.x == x && it.z == z }!! // both end
                         }
                     }
@@ -163,12 +163,13 @@ class PlaneFinder(
     }
 
     fun findRelationships(planes: List<RadiationPlane>, voxels: Array<Array<IntArray>>): List<RadiationPlane> {
-        for (first in planes) {
-            for (second in planes) {
-                if (second.childPlanes.map(PlanesConnection::child).contains(first)) continue
+        for (i in planes.indices) {
+            for (j in (i + 1) until planes.size) {
+                val first = planes[i]
+                val second = planes[j]
 
                 if (canSeeEachOther(first, second)) {
-                    if (!obstructedView(first.middle, second.middle, voxels)) {
+                    if (!obstructedView(first, second, voxels)) {
                         val firstViewFactor = if (first.normalVector.dotProduct(second.normalVector) == 0) {
                             perpendicularViewFactor(first, second)
                         } else {
@@ -182,7 +183,7 @@ class PlaneFinder(
                         )
                         second.childPlanes.add(
                             PlanesConnection(
-                                parentPlane = first, child = second, viewFactor = secondViewFactor
+                                parentPlane = second, child = first, viewFactor = secondViewFactor
                             )
                         )
                     }
@@ -198,12 +199,22 @@ class PlaneFinder(
             normalVector.y != 0 -> uniqueCoordinate(a, b, c, d) { it.x } to uniqueCoordinate(a, b, c, d) { it.z }
             else -> uniqueCoordinate(a, b, c, d) { it.y } to uniqueCoordinate(a, b, c, d) { it.z }
         }
-        return (abs(m[0] - m[1]) + 1) * (abs(n[0] - n[1]) + 1) * voxelLength.pow(2)
+        return unitlessArea(m[0], m[1], n[0], n[1]) * voxelLength.pow(2)
     }
 
-    private fun obstructedView(start: VoxelKey, end: VoxelKey, voxels: Array<Array<IntArray>>): Boolean {
-        for ((x, y, z) in ddaStep(start, end)) {
-            if (voxels[x][y][z] != 0) return true
+    private fun unitlessArea(a: Double, b: Double, c:Double, d:Double) = (abs(a - b) + 1) * (abs(c - d) + 1)
+
+    private fun obstructedView(first: RadiationPlane, second: RadiationPlane, voxels: Array<Array<IntArray>>): Boolean {
+        val firstKeys = first.voxels.map { it.key }
+        val secondKeys = second.voxels.map { it.key }
+
+        for (key in ddaStep(first.middle, second.middle)) {
+            if (key == second.middle) return false
+            if (voxels[key] != 0) {
+                if(key in firstKeys) { continue }
+                else if(key in secondKeys) return false
+                return true
+            }
         }
         return false
     }
@@ -252,7 +263,7 @@ class PlaneFinder(
             && ((dc != 0.0 && db != 0.0 && a <= c && a <= b) // 3d dda
             || (dc == 0.0 && a <= b) // 2d dda in AB plane
             || (db == 0.0 && a <= c) // 2d dda in AC plane
-            )
+            || (dc == 0.0 && db == 0.0))
 
     // https://gamedev.stackexchange.com/questions/185569/how-to-check-if-two-normals-directions-look-at-each-other
     fun canSeeEachOther(
@@ -307,8 +318,8 @@ class PlaneFinder(
 
             else -> return 0.0
         }
-
-        val d = 1 / (2 * PI * first.area) * (1..2).sumOf { i ->
+        val A1 = unitlessArea(x[0], x[1], y[0], y[1])
+        return 1 / (2 * PI * A1) * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->
                     (1..2).sumOf { l ->
@@ -319,14 +330,14 @@ class PlaneFinder(
                 }
             }
         }
-        return d
     }
 
     private fun uniqueCoordinate(first: RadiationPlane, f: (VoxelKey) -> Int) =
         uniqueCoordinate(first.a, first.b, first.c, first.d, f)
 
     private fun uniqueCoordinate(a: VoxelKey, b: VoxelKey, c: VoxelKey, d: VoxelKey, f: (VoxelKey) -> Int) =
-        listOf(f(a), f(b), f(c), f(d)).distinct().map(Int::toDouble).let { if(it.size == 1) listOf(it[0], it[0]) else it}
+        listOf(f(a), f(b), f(c), f(d)).distinct().map(Int::toDouble)
+            .let { if (it.size == 1) listOf(it[0], it[0]) else it }
 
     private fun parallelIteratorFunction(x: Double, y: Double, n: Double, e: Double, z: Double): Double {
         val u = x - e
@@ -364,9 +375,36 @@ class PlaneFinder(
                 e.addAll(uniqueCoordinate(second) { it.x })
                 n.addAll(uniqueCoordinate(second) { it.z })
             }
+            // and symmetry for cases above
+
+            // second is horizontal with sides in XY
+            // first is vertical with sides in YZ
+            second.normalVector.z != 0 && first.normalVector.x != 0 -> {
+                x.addAll(uniqueCoordinate(first) { it.y })
+                y.addAll(uniqueCoordinate(first) { it.z })
+                e.addAll(uniqueCoordinate(second) { it.x })
+                n.addAll(uniqueCoordinate(second) { it.y })
+            }
+            // second is horizontal with sides in XZ
+            // first is vertical with sides in XY
+            second.normalVector.y != 0 && first.normalVector.z != 0 -> {
+                x.addAll(uniqueCoordinate(first) { it.x })
+                y.addAll(uniqueCoordinate(first) { it.y })
+                e.addAll(uniqueCoordinate(second) { it.x })
+                n.addAll(uniqueCoordinate(second) { it.z })
+            }
+            // second is horizontal with sides in YZ
+            // first is vertical with sides in XZ
+            second.normalVector.x != 0 && first.normalVector.y != 0 -> {
+                x.addAll(uniqueCoordinate(first) { it.x })
+                y.addAll(uniqueCoordinate(first) { it.z })
+                e.addAll(uniqueCoordinate(second) { it.y })
+                n.addAll(uniqueCoordinate(second) { it.z })
+            }
         }
 
-        return 1 / (2 * PI * first.area) * (1..2).sumOf { i ->
+        val A1 = unitlessArea(x[0], x[1], y[0], y[1])
+        return 1 / (2 * PI * A1) * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->
                     (1..2).sumOf { l ->
