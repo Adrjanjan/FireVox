@@ -2,7 +2,8 @@ package pl.edu.agh.firevox.shared.model.radiation
 
 import jakarta.persistence.*
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor
+import org.springframework.data.jpa.repository.Modifying
+import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import pl.edu.agh.firevox.shared.model.Voxel
 import pl.edu.agh.firevox.shared.model.VoxelKey
@@ -68,4 +69,22 @@ class PlanesConnection(
 }
 
 @Repository
-interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int>, JpaSpecificationExecutor<RadiationPlane>
+interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int>{
+
+    @Query(
+        """
+            select rp from RadiationPlane rp join PlanesConnection pc where pc.qNet > 0
+        """
+    )
+    fun findWithPositiveQNets(): List<RadiationPlane>
+
+
+    @Query(
+        """
+            select update_temperatures(:iteration, :volume)
+        """, nativeQuery = true
+    )
+    @Modifying
+    fun updateTemperatures(iteration: Long, volume: Double)
+
+}

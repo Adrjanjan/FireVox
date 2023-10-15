@@ -6,6 +6,7 @@ import java.util.*
 
 @Entity
 @Table(
+    name = "voxels",
     indexes = [
         Index(name = "xyz", columnList = "x, y, z", unique = true),
         Index(name = "x", columnList = "x", unique = false),
