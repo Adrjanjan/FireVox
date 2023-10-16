@@ -12,8 +12,6 @@ import java.util.*
         Index(name = "x", columnList = "x", unique = false),
         Index(name = "y", columnList = "y", unique = false),
         Index(name = "z", columnList = "z", unique = false),
-        Index(name = "xyz_odd", columnList = "x, y, z, oddIterationNumber", unique = true),
-        Index(name = "xyz_even", columnList = "x, y, z, evenIterationNumber", unique = true),
     ]
 )
 data class Voxel(
@@ -21,13 +19,11 @@ data class Voxel(
     val key: VoxelKey,
 
     // even
-    var evenIterationNumber: Int,
     @ManyToOne
     var evenIterationMaterial: PhysicalMaterial,
     var evenIterationTemperature: Double,
 
     // odd
-    var oddIterationNumber: Int,
     @ManyToOne
     var oddIterationMaterial: PhysicalMaterial,
     var oddIterationTemperature: Double,
@@ -46,6 +42,6 @@ data class Voxel(
 
     fun Double.toCelsius() = this.minus(273.15)
     override fun toString(): String {
-        return "Voxel(key=$key, evenIterationNumber=$evenIterationNumber, evenIterationMaterial=$evenIterationMaterial, evenIterationTemperature=${evenIterationTemperature.toCelsius()}, oddIterationNumber=$oddIterationNumber, oddIterationMaterial=$oddIterationMaterial, oddIterationTemperature=${oddIterationTemperature.toCelsius()}, isBoundaryCondition=$isBoundaryCondition)"
+        return "Voxel(key=$key, evenIterationMaterial=$evenIterationMaterial, evenIterationTemperature=${evenIterationTemperature.toCelsius()}, oddIterationMaterial=$oddIterationMaterial, oddIterationTemperature=${oddIterationTemperature.toCelsius()}, isBoundaryCondition=$isBoundaryCondition)"
     }
 }

@@ -13,4 +13,4 @@ spring:
 #  level:
 #    org:
 #      hibernate:
-#        SQL: INFO
+#        SQL: DEBUG

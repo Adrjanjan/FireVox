@@ -16,6 +16,7 @@ import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.Simulation
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import pl.edu.agh.firevox.shared.model.simulation.SingleModel
+import pl.edu.agh.firevox.shared.model.simulation.counters.Counter
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import pl.edu.agh.firevox.synchroniser.SynchronisationJobManager
@@ -57,15 +58,14 @@ class SimulationCreationService(
 
         radiationPreprocessingStarter.start(m.pointsOfPlanesForRadiation ?: PointsToNormals(listOf()))
 
-        countersRepository.set(CounterId.CURRENT_ITERATION, 0)
-        countersRepository.set(CounterId.MAX_ITERATIONS, (m.simulationLengthInSeconds / timeStep).toLong())
-
-        countersRepository.set(CounterId.PROCESSED_VOXEL_COUNT, 0)
-        countersRepository.set(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, 0)
-        countersRepository.set(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT, 0)
-        countersRepository.set(CounterId.PROCESSED_RADIATION_PLANES_COUNT, 0)
-        countersRepository.set(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0)
-        countersRepository.set(CounterId.NEXT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0)
+        countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
+        countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (m.simulationTimeInSeconds / timeStep).toLong()))
+        countersRepository.save(Counter(CounterId.PROCESSED_VOXEL_COUNT, 0))
+        countersRepository.save(Counter(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, 0))
+        countersRepository.save(Counter(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT, 0))
+        countersRepository.save(Counter(CounterId.PROCESSED_RADIATION_PLANES_COUNT, 0))
+        countersRepository.save(Counter(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
+        countersRepository.save(Counter(CounterId.NEXT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
     }
 
     @Bean
@@ -103,10 +103,8 @@ class SimulationCreationService(
 
 private fun Pair<VoxelKey, PhysicalMaterial>.toEntity() = Voxel(
     key = this.first,
-    evenIterationNumber = 0,
     evenIterationTemperature = this.second.baseTemperature,
     evenIterationMaterial = this.second,
-    oddIterationNumber = 0,
     oddIterationMaterial = this.second,
     oddIterationTemperature = this.second.baseTemperature,
 )

@@ -48,10 +48,8 @@ class PlaneFinderTest : ShouldSpec({
                     }.also {
                         every { voxelRepository.getReferenceById(VoxelKey(i, j, k)) } returns Voxel(
                             VoxelKey(i, j, k),
-                            0,
                             material,
                             0.0,
-                            0,
                             material,
                             0.0
                         )
@@ -189,11 +187,7 @@ class PlaneFinderTest : ShouldSpec({
 
 
         fullPlane.forEach {
-            every { voxelRepository.getReferenceById(it) } returns Voxel(it, 0, material, 0.0, 0, material, 0.0)
-        }
-
-        val voxels = fullPlane.map {
-            Voxel(it, 0, material, 0.0, 0, material, 0.0)
+            every { voxelRepository.getReferenceById(it) } returns Voxel(it, material, 0.0, material, 0.0)
         }
 
         // when
@@ -355,7 +349,7 @@ class PlaneFinderTest : ShouldSpec({
         )
 
         val voxels = fullPlane.map {
-            Voxel(it, 0, material, 0.0, 0, material, 0.0)
+            Voxel(it, material, 0.0, material, 0.0)
         }
 
         val firstPlane = RadiationPlane(
@@ -394,7 +388,7 @@ class PlaneFinderTest : ShouldSpec({
             VoxelKey(1, 1, 0),
         )
         val voxels = fullPlane.map {
-            Voxel(it, 0, material, 0.0, 0, material, 0.0)
+            Voxel(it, material, 0.0, material, 0.0)
         }
 
         val firstPlane = RadiationPlane(

@@ -5,16 +5,18 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
+import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlane
 
+@Transactional
 interface CountersRepository : JpaRepository<Counter, CounterId>, JpaSpecificationExecutor<RadiationPlane> {
 
     @Query(
         """
-            select c.count = :iteration from counters c where c.id = :id
+            select c.count = :iteration from counters c where c.id = 'CURRENT_ITERATION'
         """, nativeQuery = true
     )
-    fun canExecuteForIteration(iteration: Long, id: CounterId = CounterId.CURRENT_ITERATION) : Boolean
+    fun canExecuteForIteration(iteration: Long) : Boolean
 
     @Query(
         """
@@ -32,7 +34,13 @@ interface CountersRepository : JpaRepository<Counter, CounterId>, JpaSpecificati
     @Modifying
     fun set(id: CounterId, value: Long)
 
-    fun reset(id: CounterId) = set(id, 0)
+    @Query(
+        """
+            update Counter c set c.count = 0 where c.id = (:id) 
+        """
+    )
+    @Modifying
+    fun reset(id: CounterId)
 
 }
 

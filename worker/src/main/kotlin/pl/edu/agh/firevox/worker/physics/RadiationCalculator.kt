@@ -51,7 +51,7 @@ class RadiationCalculator(
         radiationPlane: RadiationPlane,
         iteration: Int
     ) = radiationPlane.voxels.sumOf {
-        if (it.evenIterationNumber == iteration) it.evenIterationTemperature else it.oddIterationTemperature
+        if (iteration % 2 == 0) it.evenIterationTemperature else it.oddIterationTemperature
     } / radiationPlane.voxels.size
 
 }

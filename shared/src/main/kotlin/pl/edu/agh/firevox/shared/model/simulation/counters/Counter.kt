@@ -1,13 +1,12 @@
 package pl.edu.agh.firevox.shared.model.simulation.counters
 
-import jakarta.persistence.Entity
-import jakarta.persistence.Id
-import jakarta.persistence.Table
+import jakarta.persistence.*
 
 @Entity
 @Table(name = "counters")
 class Counter(
     @Id
+    @Enumerated(EnumType.STRING)
     val id: CounterId,
     val count: Long,
 )

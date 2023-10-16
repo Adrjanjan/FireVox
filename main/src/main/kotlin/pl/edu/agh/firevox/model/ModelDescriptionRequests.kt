@@ -5,7 +5,7 @@ import pl.edu.agh.firevox.shared.model.VoxelKey
 data class ModelDescriptionDto(
     val outputName: String,
     val parentModel: SingleModelDto,
-    val simulationLengthInSeconds: Long,
+    val simulationTimeInSeconds: Long,
     val pointsOfPlanesForRadiation: PointsToNormals? = null
 )
 

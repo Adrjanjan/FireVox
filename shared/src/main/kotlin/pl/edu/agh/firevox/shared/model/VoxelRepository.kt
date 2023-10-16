@@ -3,6 +3,7 @@ package pl.edu.agh.firevox.shared.model
 import jakarta.persistence.Tuple
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Repository
 import pl.edu.agh.firevox.shared.model.simulation.PaletteType
 import pl.edu.agh.firevox.shared.model.simulation.SimulationSizeView
@@ -10,18 +11,17 @@ import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 
 @Repository
 class CustomVoxelRepository(
-    private val voxelRepository: VoxelRepository
+    val voxelRepository: VoxelRepository
 ) {
     fun findNeighbors(
         key: VoxelKey,
         type: NeighbourhoodType,
-        iteration: Int,
         modelSize: SimulationSizeView
     ): Pair<List<Voxel>, Set<VoxelKey>> {
         val result = type.keyMapping
             .map { key.copy(x = key.x + it.x, y = key.y + it.y, z = key.z + it.z) }
             .filter { verifyInbound(it, modelSize) }
-            .associateWith { findForIteration(it, iteration) }
+            .associateWith { findByIdOrNull(it) }
         return result.values.filterNotNull().toList() to result.filter { it.value == null }.keys
     }
 
@@ -33,11 +33,7 @@ class CustomVoxelRepository(
         if (k.x < 0 || k.y < 0 || k.z < 0) false
         else !(k.x > modelSize.sizeX || k.y > modelSize.sizeY || k.z > modelSize.sizeZ)
 
-    fun findForIteration(key: VoxelKey, iteration: Int) = when (iteration % 2) {
-        0 -> voxelRepository.findByKeyAndEvenIterationNumber(key, iteration - 1)
-        1 -> voxelRepository.findByKeyAndOddIterationNumber(key, iteration - 1)
-        else -> null
-    }
+    fun findByIdOrNull(key: VoxelKey) = voxelRepository.findByIdOrNull(key)
 
     fun findAllForPalette(paletteName: PaletteType, iteration: Long): Map<VoxelKey, Int> {
         return when (paletteName) {
@@ -67,8 +63,6 @@ class CustomVoxelRepository(
 }
 
 interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
-    fun findByKeyAndEvenIterationNumber(voxelKey: VoxelKey, iterationNumber: Int): Voxel?
-    fun findByKeyAndOddIterationNumber(voxelKey: VoxelKey, iterationNumber: Int): Voxel?
 
     @Query(
         """

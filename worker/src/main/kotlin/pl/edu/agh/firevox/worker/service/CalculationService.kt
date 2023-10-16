@@ -40,11 +40,10 @@ class CalculationService(
             return false
         }
 
-        val voxel = voxelRepository.findForIteration(key, iteration)
+        val voxel = voxelRepository.findByIdOrNull(key)
             ?: throw InvalidSimulationState("Calculation for voxel with key $key can't be made - voxel not found")
 
         if (voxel.isBoundaryCondition) {
-//            log.info("Voxel is boundary condition")
             setNextProperties(voxel, iteration, listOf())
             return true
         }
@@ -53,7 +52,6 @@ class CalculationService(
         val (foundNeighbors, validKeysWithMissingVoxel) = voxelRepository.findNeighbors(
             voxel.key,
             NeighbourhoodType.N_E_W_S_U_L_,
-            iteration,
             modelSize
         )
 
@@ -92,6 +90,7 @@ class CalculationService(
 
         countersRepository.increment(CounterId.PROCESSED_VOXEL_COUNT)
         countersRepository.increment(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT)
+        log.info("Voxel $key")
         return true
     }
 
@@ -104,10 +103,8 @@ class CalculationService(
         neighbours.toMutableList().addAll(validKeysWithMissingVoxel.map {
             Voxel(
                 it,
-                evenIterationNumber = first.evenIterationNumber,
                 evenIterationMaterial = air,
                 evenIterationTemperature = air.baseTemperature,
-                oddIterationNumber = first.oddIterationNumber,
                 oddIterationMaterial = air,
                 oddIterationTemperature = air.baseTemperature
             )
@@ -126,7 +123,6 @@ class CalculationService(
             0 -> {
                 val resultTemp = voxel.evenIterationTemperature + heatResults.sum()
                 val resultMaterial = voxel.evenIterationMaterial
-                voxel.oddIterationNumber = iteration
                 voxel.oddIterationTemperature = resultTemp
                 voxel.oddIterationMaterial = resultMaterial
             }
@@ -134,7 +130,6 @@ class CalculationService(
             1 -> {
                 val resultTemp = voxel.oddIterationTemperature + heatResults.sum()
                 val resultMaterial = voxel.oddIterationMaterial
-                voxel.evenIterationNumber = iteration
                 voxel.evenIterationTemperature = resultTemp
                 voxel.evenIterationMaterial = resultMaterial
             }
@@ -147,7 +142,6 @@ class CalculationService(
 
 data class VoxelState(
     val key: VoxelKey,
-    var iterationNumber: Int,
     var material: PhysicalMaterial,
     var temperature: Double,
     var burningEndIteration: Int = -1,
@@ -156,7 +150,7 @@ data class VoxelState(
 class InvalidSimulationState(s: String) : Throwable(s)
 
 fun Voxel.toVoxelState(iteration: Int) = when (iteration % 2) {
-    0 -> VoxelState(this.key, this.evenIterationNumber, this.evenIterationMaterial, this.evenIterationTemperature,)
-    1 -> VoxelState(this.key, this.oddIterationNumber, this.oddIterationMaterial, this.oddIterationTemperature,)
+    0 -> VoxelState(this.key, this.evenIterationMaterial, this.evenIterationTemperature,)
+    1 -> VoxelState(this.key, this.oddIterationMaterial, this.oddIterationTemperature,)
     else -> throw InvalidSimulationState("Number modulo 2 can't have value other than 0 or 1 ")
 }

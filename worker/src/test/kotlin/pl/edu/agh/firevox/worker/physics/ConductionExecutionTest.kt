@@ -10,6 +10,9 @@ import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.simulation.Simulation
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import pl.edu.agh.firevox.shared.model.simulation.SingleModel
+import pl.edu.agh.firevox.shared.model.simulation.counters.Counter
+import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
+import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import pl.edu.agh.firevox.worker.WorkerApplication
 import pl.edu.agh.firevox.worker.service.CalculationService
 import java.io.FileOutputStream
@@ -28,6 +31,7 @@ class ConductionExecutionTest(
     val voxelRepository: VoxelRepository,
     val physicalMaterialRepository: PhysicalMaterialRepository,
     val simulationsRepository: SimulationsRepository,
+    val countersRepository: CountersRepository,
 
     @Value("\${firevox.timestep}")
     val timeStep: Double,
@@ -35,6 +39,17 @@ class ConductionExecutionTest(
     ) : ShouldSpec({
 
     context("save voxels from file") {
+        val simulationTimeInSeconds = 100 // * 60
+        countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
+        countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
+        countersRepository.save(Counter(CounterId.PROCESSED_VOXEL_COUNT, 0))
+        countersRepository.save(Counter(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, 0))
+        countersRepository.save(Counter(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT, 0))
+        countersRepository.save(Counter(CounterId.PROCESSED_RADIATION_PLANES_COUNT, 0))
+        countersRepository.save(Counter(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
+        countersRepository.save(Counter(CounterId.NEXT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
+
+
         var voxels = mutableListOf<Voxel>()
         val baseMaterial = PhysicalMaterial(
             VoxelMaterial.METAL,
@@ -70,10 +85,8 @@ class ConductionExecutionTest(
                     voxels.add(
                         Voxel(
                             VoxelKey(x, y, z),
-                            evenIterationNumber = -1,
                             evenIterationMaterial = baseMaterial,
                             evenIterationTemperature = 20.toKelvin(),
-                            oddIterationNumber = 0,
                             oddIterationMaterial = baseMaterial,
                             oddIterationTemperature = 20.0
                         )
@@ -116,13 +129,13 @@ class ConductionExecutionTest(
         voxelRepository.flush()
 
         should("execute test") {
-            val simulationTimeInSeconds = 100 // * 60
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
 //                log.info("Iteration: $i")
                 voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
+                countersRepository.increment(CounterId.CURRENT_ITERATION)
             }
 
             val result = voxelRepository.findAll()
