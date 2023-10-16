@@ -27,10 +27,14 @@ spring:
   cloud:
     stream:
       bindings:
-        input-in-0:
-          destination: voxels-topic
+        voxels-in-0:
+          destination: voxels-process
           content-type: application/json
-          group: voxels
+          group: voxels-process
+        radiation-in-0:
+          destination: radiation-process
+          content-type: application/json
+          group: radiation-process
 
 logging:
   level:

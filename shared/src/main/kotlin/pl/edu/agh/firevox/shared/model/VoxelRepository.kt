@@ -12,7 +12,12 @@ import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 class CustomVoxelRepository(
     private val voxelRepository: VoxelRepository
 ) {
-    fun findNeighbors(key: VoxelKey, type: NeighbourhoodType, iteration: Int, modelSize: SimulationSizeView): Pair<List<Voxel>, Set<VoxelKey>> {
+    fun findNeighbors(
+        key: VoxelKey,
+        type: NeighbourhoodType,
+        iteration: Int,
+        modelSize: SimulationSizeView
+    ): Pair<List<Voxel>, Set<VoxelKey>> {
         val result = type.keyMapping
             .map { key.copy(x = key.x + it.x, y = key.y + it.y, z = key.z + it.z) }
             .filter { verifyInbound(it, modelSize) }
@@ -22,59 +27,73 @@ class CustomVoxelRepository(
 
     fun save(voxel: Voxel) = voxelRepository.save(voxel)
 
+    fun saveAll(voxels: Collection<Voxel>) = voxelRepository.saveAll(voxels)
+
     private fun verifyInbound(k: VoxelKey, modelSize: SimulationSizeView) =
         if (k.x < 0 || k.y < 0 || k.z < 0) false
         else !(k.x > modelSize.sizeX || k.y > modelSize.sizeY || k.z > modelSize.sizeZ)
 
-    fun findForIteration(key: VoxelKey, iteration: Int) = when(iteration % 2) {
+    fun findForIteration(key: VoxelKey, iteration: Int) = when (iteration % 2) {
         0 -> voxelRepository.findByKeyAndEvenIterationNumber(key, iteration - 1)
         1 -> voxelRepository.findByKeyAndOddIterationNumber(key, iteration - 1)
         else -> null
     }
 
-    fun findAllForPalette(paletteName: PaletteType): Map<VoxelKey, Int> {
+    fun findAllForPalette(paletteName: PaletteType, iteration: Long): Map<VoxelKey, Int> {
         return when (paletteName) {
-            PaletteType.TEMPERATURE_PALETTE -> voxelRepository.findAllOnlyTemperatures()
-                .map { (it.get("key") as VoxelKey )to (it.get("value__") as Double) }
+            PaletteType.TEMPERATURE_PALETTE -> voxelRepository.findAllOnlyTemperatures(iteration)
+                .map { (it.get("key") as VoxelKey) to (it.get("value__") as Double) }
                 .let { result ->
-                val min = result.minOf { it.second }
-                val max = result.maxOf { it.second }
+                    val min = result.minOf { it.second }
+                    val max = result.maxOf { it.second }
 
-                result.associate {
-                    it.first to VoxFormatParser.toPaletteLinear(
-                        value = it.second,
-                        min = min,
-                        max = max
-                    )
+                    result.associate {
+                        it.first to VoxFormatParser.toPaletteLinear(
+                            value = it.second,
+                            min = min,
+                            max = max
+                        )
+                    }
                 }
-            }
-            PaletteType.BASE_PALETTE -> voxelRepository.findAllOnlyValues()
-                .associate { (it.get("key") as VoxelKey )to (it.get("value__") as Int) }
+
+            PaletteType.BASE_PALETTE -> voxelRepository.findAllOnlyValues(iteration)
+                .associate { (it.get("key") as VoxelKey) to (it.get("value__") as Int) }
         }
     }
+
+    fun findStartingVoxels(firstIterationMaterials: Set<VoxelMaterial>) =
+        voxelRepository.findStartingVoxels(firstIterationMaterials)
 
 }
 
 interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
     fun findByKeyAndEvenIterationNumber(voxelKey: VoxelKey, iterationNumber: Int): Voxel?
     fun findByKeyAndOddIterationNumber(voxelKey: VoxelKey, iterationNumber: Int): Voxel?
-    @Query(
-        """
-            select v.key as key, 
-            case when v.evenIterationNumber > v.oddIterationNumber then v.evenIterationMaterial.id else v.oddIterationMaterial.id end as value__
-            from Voxel v
-        """
-    )
-    fun findAllOnlyValues(): List<Tuple>
 
     @Query(
         """
             select v.key as key, 
-            case when v.evenIterationNumber > v.oddIterationNumber then v.evenIterationTemperature else v.oddIterationTemperature end as value__
+            case when MOD(:iteration, 2) = 0 then v.evenIterationMaterial.id else v.oddIterationMaterial.id end as value__
             from Voxel v
         """
     )
-    fun findAllOnlyTemperatures(): List<Tuple>
+    fun findAllOnlyValues(iteration: Long): List<Tuple>
+
+    @Query(
+        """
+            select v.key as key, 
+            case when MOD(:iteration, 2) = 0 then v.evenIterationTemperature else v.oddIterationTemperature end as value__
+            from Voxel v
+        """
+    )
+    fun findAllOnlyTemperatures(iteration: Long): List<Tuple>
+
+    @Query(
+        """
+            select v.key as key from Voxel v where v.evenIterationMaterial in :firstIterationMaterials
+        """
+    )
+    fun findStartingVoxels(firstIterationMaterials: Set<VoxelMaterial>): List<VoxelKey>
 
 }
 

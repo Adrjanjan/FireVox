@@ -87,4 +87,17 @@ interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int>{
     @Modifying
     fun updateTemperatures(iteration: Long, volume: Double)
 
+
+    @Query(
+        """
+            select p.id from RadiationPlane p 
+            where :minimalAvgTemperature > (select avg(v.evenIterationTemperature) from Voxel v where v member of p.voxels)
+        """
+    )
+    fun findStartingPlanes(minimalAvgTemperature: Double): List<Int>
 }
+
+data class RadiationPlaneDto(
+    val radiationPlaneId: Int,
+    var iteration: Int,
+)

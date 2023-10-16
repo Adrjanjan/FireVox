@@ -31,7 +31,7 @@ class SimulationStartController(
     @PostMapping
     fun startSimulation(@RequestBody model: ModelDescriptionDto) {
         log.info("Starting simulation for file ${model.outputName}")
-        simulationCreationService.start(model)
+        simulationCreationService.preprocess(model)
     }
 
     @PostMapping("/model", consumes = [MediaType.APPLICATION_OCTET_STREAM_VALUE])

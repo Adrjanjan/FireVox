@@ -1,4 +1,4 @@
-package pl.edu.agh.firevox.messaging
+package pl.edu.agh.firevox.shared.messaging
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -14,7 +14,7 @@ class VoxelProcessingMessageSender(
         val log: Logger = LoggerFactory.getLogger(this::class.java)
     }
 
-    private val topicName = "voxels-topic"
+    private val topicName = "voxels-process"
 
     fun send(ki: VoxelKeyIteration) {
         log.info("Sending on queue $topicName key $ki")

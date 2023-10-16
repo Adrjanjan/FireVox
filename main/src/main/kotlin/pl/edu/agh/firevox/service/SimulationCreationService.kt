@@ -1,15 +1,26 @@
 package pl.edu.agh.firevox.service
 
+import org.springframework.beans.factory.annotation.Value
+import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import pl.edu.agh.firevox.shared.messaging.VoxelProcessingMessageSender
+import pl.edu.agh.firevox.shared.messaging.RadiationPlanesProcessingMessageSender
 import pl.edu.agh.firevox.model.ModelDescriptionDto
 import pl.edu.agh.firevox.model.PointsToNormals
 import pl.edu.agh.firevox.model.SingleModelDto
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.VoxelMaterial.*
+import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneDto
+import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.Simulation
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import pl.edu.agh.firevox.shared.model.simulation.SingleModel
+import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
+import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
+import pl.edu.agh.firevox.synchroniser.SynchronisationJobManager
 import java.util.*
+import java.util.function.Consumer
 
 @Service
 class SimulationCreationService(
@@ -18,9 +29,17 @@ class SimulationCreationService(
     private val simulationRepository: SimulationsRepository,
     private val physicalMaterialRepository: PhysicalMaterialRepository,
     private val radiationPreprocessingStarter: RadiationPreprocessingStarter,
+    private val synchronisationJobManager: SynchronisationJobManager,
+    private val voxelProcessingMessageSender: VoxelProcessingMessageSender,
+    private val radiationPlanesProcessingMessageSender: RadiationPlanesProcessingMessageSender,
+    private val countersRepository: CountersRepository,
+    private val radiationPlaneRepository: RadiationPlaneRepository,
+    @Value("\${firevox.timestep}") private val timeStep: Double,
+    @Value("\${firevox.radiation.planes.minimalAvgTemperatureForStart}") private val minimalAvgTemperature: Double,
 ) {
 
-    fun start(m: ModelDescriptionDto) = modelMergeService.createModel(m).let { s ->
+    @Transactional
+    fun preprocess(m: ModelDescriptionDto) = modelMergeService.createModel(m).let { s ->
         val simulationId = UUID.randomUUID()
         val materials = physicalMaterialRepository.findAll().associateBy { it.voxelMaterial }
         simulationRepository.save(
@@ -36,31 +55,51 @@ class SimulationCreationService(
         s.voxels.map { it.key to materials[VoxelMaterial.fromId(it.value)]!! }
             .map { it.toEntity() }.forEach(voxelRepository::save)
 
-        // process radiation here?? do we have the memory to create 3d array here or
         radiationPreprocessingStarter.start(m.pointsOfPlanesForRadiation ?: PointsToNormals(listOf()))
 
-//      TODO -> move to the radiationPreprocessing finish, move canTransitionInFirstIteration() to database check
-//        s.voxels.filter { VoxelMaterial.fromId(it.value).canTransitionInFirstIteration() }
-//            .map { VoxelKeyIteration(it.key, 0) }
-//            .forEach(messageSender::send)
-    }
-}
+        countersRepository.set(CounterId.CURRENT_ITERATION, 0)
+        countersRepository.set(CounterId.MAX_ITERATIONS, (m.simulationLengthInSeconds / timeStep).toLong())
 
-private fun VoxelMaterial.canTransitionInFirstIteration(): Boolean = setOf(
-    WOOD_HEATED,
-    WOOD_BURNING,
-    PLASTIC_HEATED,
-    PLASTIC_BURNING,
-    TEXTILE_HEATED,
-    TEXTILE_BURNING,
-    METAL_HEATED,
-    METAL_HOT,
-    METAL_VERY_HOT,
-    GLASS_HEATED,
-    GLASS_HOT,
-    GLASS_VERY_HOT,
-    FLAME,
-).contains(this)
+        countersRepository.set(CounterId.PROCESSED_VOXEL_COUNT, 0)
+        countersRepository.set(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, 0)
+        countersRepository.set(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT, 0)
+        countersRepository.set(CounterId.PROCESSED_RADIATION_PLANES_COUNT, 0)
+        countersRepository.set(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0)
+        countersRepository.set(CounterId.NEXT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0)
+    }
+
+    @Bean
+    fun simulationStart(): Consumer<Boolean> = Consumer<Boolean> { _ ->
+        voxelRepository.findStartingVoxels(firstIterationMaterials)
+            .map { VoxelKeyIteration(it, 0) }
+            .also { countersRepository.set(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, it.size.toLong()) }
+            .forEach(voxelProcessingMessageSender::send)
+
+        radiationPlaneRepository.findStartingPlanes(minimalAvgTemperature)
+            .map {  RadiationPlaneDto(it, 0) }
+            .also { countersRepository.set(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, it.size.toLong()) }
+            .forEach(radiationPlanesProcessingMessageSender::send)
+
+        synchronisationJobManager.scheduleJob()
+    }
+
+    private val firstIterationMaterials = setOf(
+        WOOD_HEATED,
+        WOOD_BURNING,
+        PLASTIC_HEATED,
+        PLASTIC_BURNING,
+        TEXTILE_HEATED,
+        TEXTILE_BURNING,
+        METAL_HEATED,
+        METAL_HOT,
+        METAL_VERY_HOT,
+        GLASS_HEATED,
+        GLASS_HOT,
+        GLASS_VERY_HOT,
+        FLAME,
+    )
+
+}
 
 private fun Pair<VoxelKey, PhysicalMaterial>.toEntity() = Voxel(
     key = this.first,

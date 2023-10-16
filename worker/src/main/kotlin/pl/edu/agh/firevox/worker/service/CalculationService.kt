@@ -8,6 +8,8 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
+import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
+import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 
 @Service
 class CalculationService(
@@ -17,11 +19,11 @@ class CalculationService(
     private val burningCalculator: BurningCalculator,
     private val ignitionCalculator: IgnitionCalculator,
     private val smokeCalculator: SmokeCalculator,
-    @Value("\${firevox.timestep}")
-    private val timeStep: Double,
+    @Value("\${firevox.timestep}") private val timeStep: Double,
     private val virtualThermometerService: VirtualThermometerService,
     private val simulationRepository: SimulationsRepository,
     private val materialRepository: PhysicalMaterialRepository,
+    private val countersRepository: CountersRepository,
 ) {
 
     companion object {
@@ -30,18 +32,21 @@ class CalculationService(
 
     /**
      * Only voxel with the given voxelKey is updated
-     * @param key
+     * @return returns true if the calculation was performed, false otherwise
      */
     @Transactional
-    fun calculate(key: VoxelKey, iteration: Int) {
-//        verifySynchronization(iteration)
+    fun calculate(key: VoxelKey, iteration: Int) : Boolean {
+        if (!countersRepository.canExecuteForIteration(iteration.toLong())) {
+            return false
+        }
+
         val voxel = voxelRepository.findForIteration(key, iteration)
             ?: throw InvalidSimulationState("Calculation for voxel with key $key can't be made - voxel not found")
 
         if (voxel.isBoundaryCondition) {
 //            log.info("Voxel is boundary condition")
             setNextProperties(voxel, iteration, listOf())
-            return
+            return true
         }
 
         val modelSize = simulationRepository.fetchSize()
@@ -84,6 +89,10 @@ class CalculationService(
         // wtedy środkowy musi pobrać energię w tej samej iteracji, żeby była zachowana spójność (energia nie znika)
         // górny nie otrzymuje żadnej energii od środkowego w tej iteracji, ponieważ środkowy tylko odbiera
         handleVirtualThermometer(key, voxel)
+
+        countersRepository.increment(CounterId.PROCESSED_VOXEL_COUNT)
+        countersRepository.increment(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT)
+        return true
     }
 
     private fun fillMissingVoxelsInsideModel(
@@ -103,7 +112,7 @@ class CalculationService(
                 oddIterationTemperature = air.baseTemperature
             )
         })
-        return neighbours;
+        return neighbours.also(voxelRepository::saveAll)
     }
 
     private fun handleVirtualThermometer(key: VoxelKey, voxel: Voxel) {
@@ -132,17 +141,6 @@ class CalculationService(
 
             else -> throw InvalidSimulationState("Number modulo 2 can't have value other than 0 or 1 ")
         }
-    }
-
-    private fun verifySynchronization(iteration: Int) {
-        //send request to state verifier if counters for a given iteration are equal
-        //     if yes start calculation
-        //     if no, resend the key on the queue and log it
-        TODO("Not yet implemented")
-    }
-
-    fun calculateRadiation(key: VoxelKey, iteration: Int) {
-        TODO("Not yet implemented")
     }
 
 }

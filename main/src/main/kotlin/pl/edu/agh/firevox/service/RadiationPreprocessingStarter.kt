@@ -7,11 +7,12 @@ import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.model.PointsToNormals
 import pl.edu.agh.firevox.shared.model.CustomVoxelRepository
-import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.PaletteType
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
+import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
+import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import java.util.function.Consumer
 
 @Service
@@ -21,6 +22,7 @@ class RadiationPreprocessingStarter(
     private val voxelRepository: CustomVoxelRepository,
     private val simulationsRepository: SimulationsRepository,
     private val radiationPlaneRepository: RadiationPlaneRepository,
+    private val countersRepository: CountersRepository,
 ) {
     companion object {
         val log: Logger = LoggerFactory.getLogger(this::class.java)
@@ -37,7 +39,7 @@ class RadiationPreprocessingStarter(
     fun radiationInput(): Consumer<PointsToNormals> {
         return Consumer<PointsToNormals> { pointsToNormals ->
             log.info("Starting radiation preprocessing")
-            val voxels = voxelRepository.findAllForPalette(PaletteType.BASE_PALETTE)
+            val voxels = voxelRepository.findAllForPalette(PaletteType.BASE_PALETTE, 0)
             val size = simulationsRepository.fetchSize()
 
             val matrix = Array(size.sizeX - 1) { _ ->
@@ -49,7 +51,14 @@ class RadiationPreprocessingStarter(
                 matrix[t.x][t.y][t.z] = u
             }
 
-            radiationPlaneRepository.saveAll(planeFinder.findPlanes(matrix, pointsToNormals.points))
+            planeFinder.findPlanes(matrix, pointsToNormals.points)
+                .also {
+                    countersRepository.set(
+                        CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
+                        it.size.toLong()
+                    )
+                }.also(radiationPlaneRepository::saveAll)
+            streamBridge.send("simulation-start", true)
         }
     }
 

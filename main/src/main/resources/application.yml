@@ -34,17 +34,29 @@ spring:
     stream:
       bindings:
         voxels-out-0:
-          destination: voxels-topic
+          destination: voxels-process
           content-type: application/json
-          group: voxels
+          group: voxels-process
+        radiation-out-0:
+          destination: radiation-process
+          content-type: application/json
+          group: radiation-process
         radiation-start-out-0:
           destination: radiation-start
           content-type: application/json
-          group: radiation
+          group: radiation-start
         radiation-start-in-0:
           destination: radiation-start
           content-type: application/json
-          group: radiation
+          group: radiation-start
+        simulation-start-in-0:
+          destination: simulation-start
+          content-type: application/json
+          group: simulation-start
+        simulation-start-out-0:
+          destination: simulation-start
+          content-type: application/json
+          group: simulation-start
 
 logging:
   level:
@@ -61,4 +73,6 @@ firevox:
   simulation:
     files:
       path: ${FIREVOX_SIMULATION_FILES_PATH:"simulation/files"}
+  synchronisation:
+    time: 1000
 
