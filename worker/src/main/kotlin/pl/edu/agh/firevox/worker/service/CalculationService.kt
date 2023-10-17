@@ -90,7 +90,7 @@ class CalculationService(
 
         countersRepository.increment(CounterId.PROCESSED_VOXEL_COUNT)
         countersRepository.increment(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT)
-        log.info("Voxel $key")
+//        log.info("Voxel $key")
         return true
     }
 
@@ -98,7 +98,6 @@ class CalculationService(
         neighbours: List<Voxel>,
         validKeysWithMissingVoxel: Set<VoxelKey>,
     ): List<Voxel> {
-        val first = neighbours.first()
         val air: PhysicalMaterial = materialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
         neighbours.toMutableList().addAll(validKeysWithMissingVoxel.map {
             Voxel(

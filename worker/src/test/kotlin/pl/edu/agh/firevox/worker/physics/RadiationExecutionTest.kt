@@ -1,15 +1,17 @@
 package pl.edu.agh.firevox.worker.physics
 
 import io.kotest.core.spec.style.ShouldSpec
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.core.io.ClassPathResource
 import pl.edu.agh.firevox.shared.model.*
-import pl.edu.agh.firevox.shared.model.simulation.Palette
-import pl.edu.agh.firevox.shared.model.simulation.Simulation
-import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
-import pl.edu.agh.firevox.shared.model.simulation.SingleModel
+import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
+import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
+import pl.edu.agh.firevox.shared.model.simulation.*
 import pl.edu.agh.firevox.shared.model.simulation.counters.Counter
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
@@ -19,6 +21,7 @@ import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
+import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -26,19 +29,19 @@ import kotlin.math.sqrt
     properties = ["firevox.timestep=0.1", "firevox.voxel.size=0.01"],
     classes = [WorkerApplication::class]
 )
-class ConductionExecutionTest(
-    val calculationService: CalculationService,
+class RadiationExecutionTest(
+    val radiationCalculator: RadiationCalculator,
     val voxelRepository: VoxelRepository,
     val physicalMaterialRepository: PhysicalMaterialRepository,
     val simulationsRepository: SimulationsRepository,
     val countersRepository: CountersRepository,
+    val radiationPlaneRepository: RadiationPlaneRepository,
+    @Value("\${firevox.timestep}") val timeStep: Double,
+    val planeFinder: PlaneFinder,
+    val synchroniserImpl: SynchroniserImpl,
+) : ShouldSpec({
 
-    @Value("\${firevox.timestep}")
-    val timeStep: Double,
-
-    ) : ShouldSpec({
-
-    context("save voxels from file") {
+    context("calculate radiation test") {
         val simulationTimeInSeconds = 100 // * 60
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
         countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
@@ -49,20 +52,36 @@ class ConductionExecutionTest(
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
         countersRepository.save(Counter(CounterId.NEXT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
 
+        // given
+        val input = withContext(Dispatchers.IO) {
+            getFile("radiation_test.vox")
+        }
+        // when
+        val model = VoxFormatParser.read(input)
 
-        var voxels = mutableListOf<Voxel>()
         val baseMaterial = PhysicalMaterial(
-            VoxelMaterial.METAL,
-            density = 2700.0,
-            baseTemperature = 20.toKelvin(),
-            thermalConductivityCoefficient = 235.0,
+            VoxelMaterial.CONCRETE,
+            density = 2392.0,
+            baseTemperature = 25.toKelvin(),
+            thermalConductivityCoefficient = 2.071,
             convectionHeatTransferCoefficient = 0.0,
-            specificHeatCapacity = 897.0,
+            specificHeatCapacity = 936.3,
             flashPointTemperature = 0.0.toKelvin(),
             burningTime = 0.0,
             generatedEnergyDuringBurning = 0.0,
             burntMaterial = null,
         ).also(physicalMaterialRepository::save)
+
+        val voxels = model.voxels.map { (k, _) ->
+            Voxel(
+                VoxelKey(k.x, k.y, k.z),
+                evenIterationMaterial = baseMaterial,
+                evenIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
+                oddIterationMaterial = baseMaterial,
+                oddIterationTemperature = 25.0.toKelvin(),
+                isBoundaryCondition = isBoundary(k)
+            )
+        }
 
         PhysicalMaterial(
             VoxelMaterial.AIR,
@@ -77,48 +96,13 @@ class ConductionExecutionTest(
             burntMaterial = null
         ).also(physicalMaterialRepository::save)
 
-        // scale - number of voxels per centimeter
-        val scale = 1
-        (0 until 30 * scale).forEach { x ->
-            (0 until 20 * scale).forEach { y ->
-                (0 until 5 * scale).forEach { z ->
-                    voxels.add(
-                        Voxel(
-                            VoxelKey(x, y, z),
-                            evenIterationMaterial = baseMaterial,
-                            evenIterationTemperature = 20.toKelvin(),
-                            oddIterationMaterial = baseMaterial,
-                            oddIterationTemperature = 20.0.toKelvin()
-                        )
-                    )
-                }
-            }
-        }
-        // hole
-        val xCenter = 15.0 * scale - 1
-        val yCenter = 10.0 * scale - 1
-        val holeRadius = 5.0 * scale
-        voxels = voxels.filterNot {
-            sqrt((it.key.x - xCenter).pow(2) + (it.key.y - yCenter).pow(2)) < holeRadius
-        }.toMutableList()
-
-        // set boundary conditions
-        voxels.filter { it.key.x == 0 }
-            .forEach {
-                it.evenIterationTemperature = 300.toKelvin()
-                it.oddIterationTemperature = 300.toKelvin()
-                it.isBoundaryCondition = true
-            }
-        voxels.filter { it.key.x == 30 * scale - 1 }
-            .forEach { it.isBoundaryCondition = true }
-
         val sizeX = voxels.maxOf { it.key.x } + 1
         val sizeY = voxels.maxOf { it.key.y } + 1
         val sizeZ = voxels.maxOf { it.key.z } + 1
 
         simulationsRepository.save(
             Simulation(
-                name = "Conduction test",
+                name = "Radiation test",
                 parentModel = SingleModel(name = "Parent model"),
                 sizeX = sizeX,
                 sizeY = sizeY,
@@ -128,18 +112,51 @@ class ConductionExecutionTest(
         voxelRepository.saveAll(voxels)
         voxelRepository.flush()
 
+        // then create planes
+        val pointsToNormals = listOf(
+            VoxelKey(0, 0, 1) to VoxelKey(1, 0, 0),
+            VoxelKey(1, 99, 1) to VoxelKey(0, -1, 0),
+            VoxelKey(99, 1, 1) to VoxelKey(-1, 0, 0),
+            VoxelKey(1, 1, 99) to VoxelKey(0, 0, -1),
+
+            VoxelKey(52, 0, 0) to VoxelKey(0, 0, 1),
+            VoxelKey(32, 0, 0) to VoxelKey(0, 0, 1),
+
+            VoxelKey(49, 10, 1) to VoxelKey(-1, 0, 0),
+            VoxelKey(50, 10, 1) to VoxelKey(1, 0, 0),
+        )
+
+        val matrix = Array(sizeX) { _ ->
+            Array(sizeY) { _ ->
+                IntArray(sizeZ) { _ -> 0 }
+            }
+        }
+
+        voxels.forEach {
+            matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
+        }
+
+        val planes = planeFinder.findPlanes(matrix, pointsToNormals)
+            .also {
+                countersRepository.set(
+                    CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
+                    it.size.toLong()
+                )
+            }.let(radiationPlaneRepository::saveAll)
+
+        radiationPlaneRepository.flush()
+
         should("execute test") {
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
-//                log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
-                countersRepository.increment(CounterId.CURRENT_ITERATION)
+                log.info("Iteration: $i")
+                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k.id!!, i) }
+                synchroniserImpl.resetCounters()
             }
 
             val result = voxelRepository.findAll()
-//            result.forEach { log.info(it.toString()) }
             val min = result.minOf { it.evenIterationTemperature }
             val max = result.maxOf { it.evenIterationTemperature }
             log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
@@ -156,7 +173,7 @@ class ConductionExecutionTest(
                 sizeX,
                 sizeY,
                 sizeZ,
-                FileOutputStream("block_with_hole_scale.vox")
+                FileOutputStream("radiation_result.vox")
             )
         }
     }
@@ -167,4 +184,7 @@ class ConductionExecutionTest(
     }
 }
 
+fun isBoundary(k: VoxelKey) = k.x in 50..99 && k.z in 0..1
 
+
+fun ShouldSpec.getFile(name: String) = ClassPathResource(name).inputStream

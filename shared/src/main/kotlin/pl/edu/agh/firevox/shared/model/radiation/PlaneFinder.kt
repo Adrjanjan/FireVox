@@ -1,7 +1,10 @@
 package pl.edu.agh.firevox.shared.model.radiation
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.VoxelRepository
 import kotlin.math.*
@@ -12,14 +15,21 @@ class PlaneFinder(
     @Value("\${firevox.voxel.size}") val voxelLength: Double = 0.01,
 ) {
 
+    companion object {
+        val log: Logger = LoggerFactory.getLogger(this::class.java)
+    }
+
+    @Transactional
     fun findPlanes(
         voxels: Array<Array<IntArray>>, pointsToNormals: List<Pair<VoxelKey, VoxelKey>>
     ): List<RadiationPlane> {
+        log.info("Preprocessing radiation planes")
         val planes = mutableListOf<RadiationPlane>()
         pointsToNormals.forEach {
             planes.addAll(divideIntoPlanes(fullPlane(voxels, it), it.second, squareSize = 10))
         }
         val findRelationships = findRelationships(planes, voxels)
+        log.info("Found ${planes.size} radiation planes")
         return findRelationships
     }
 

@@ -42,9 +42,9 @@ class RadiationPreprocessingStarter(
             val voxels = voxelRepository.findAllForPalette(PaletteType.BASE_PALETTE, 0)
             val size = simulationsRepository.fetchSize()
 
-            val matrix = Array(size.sizeX - 1) { _ ->
-                Array(size.sizeY - 1) { _ ->
-                    IntArray(size.sizeZ - 1) { _ -> 0 }
+            val matrix = Array(size.sizeX) { _ ->
+                Array(size.sizeY) { _ ->
+                    IntArray(size.sizeZ) { _ -> 0 }
                 }
             }
             voxels.forEach { (t, u) ->
