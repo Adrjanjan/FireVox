@@ -68,7 +68,7 @@ class PlaneFinder(
             }
 
             for (key in neighbors) {
-                if (isValidFaceElement(key.x, key.y, key.z, voxels)
+                if (isValidFaceElement(key, voxels, normalVector)
                     && voxels[key] == voxels[startingPoint]
                     && key !in visited
                 ) {
@@ -80,9 +80,17 @@ class PlaneFinder(
         return visited.toList()
     }
 
-    fun isValidFaceElement(x: Int, y: Int, z: Int, matrix: Array<Array<IntArray>>): Boolean {
-        return x >= 0 && x < matrix.size && y >= 0 && y < matrix[0].size && z >= 0 && z < matrix[0][0].size && matrix[x][y][z] != 0
+    fun isValidFaceElement(key: VoxelKey, matrix: Array<Array<IntArray>>, normalVector: VoxelKey): Boolean {
+        return matrix.contains(key)
+                && matrix[key] != 0
+                && matrix.contains(normalVector + key) && matrix[normalVector + key] == 0
     }
+
+    private fun Array<Array<IntArray>>.contains(
+        key: VoxelKey,
+    ) = (key.x in this.indices
+            && key.y in this[0].indices
+            && key.z in this[0][0].indices)
 
     fun divideIntoPlanes(
         fullPlane: List<VoxelKey>, normalVector: VoxelKey, squareSize: Int
@@ -130,28 +138,34 @@ class PlaneFinder(
                         normalVector.z != 0 -> { // plane in XY
                             val x = voxels.maxOf { it.x }
                             val y = voxels.maxOf { it.y }
-                            a = voxels.find { it.x == xStartIndex && it.y == yStartIndex }!! // both start
-                            b = voxels.find { it.x == xStartIndex && it.y == y }!! // second on start
-                            c = voxels.find { it.x == x && it.y == yStartIndex }!! // one on end
-                            d = voxels.find { it.x == x && it.y == y }!! // both end
+                            val f = voxels[0]
+
+                            a = VoxelKey(xStartIndex, yStartIndex, f.z)
+                            b = VoxelKey(xStartIndex, y, f.z)
+                            c = VoxelKey(x, yStartIndex, f.z)
+                            d = VoxelKey(x, y, f.z)
                         }
 
                         normalVector.x != 0 -> { // plane in YZ
                             val y = voxels.maxOf { it.y }
                             val z = voxels.maxOf { it.z }
-                            a = voxels.find { it.y == yStartIndex && it.z == zStartIndex }!! // both start
-                            b = voxels.find { it.y == yStartIndex && it.z == z }!! // second on start
-                            c = voxels.find { it.y == y && it.z == zStartIndex }!! // one on end
-                            d = voxels.find { it.y == y && it.z == z }!! // both end
+                            val f = voxels[0]
+
+                            a = VoxelKey(f.x, yStartIndex, zStartIndex)
+                            b = VoxelKey(f.x, yStartIndex, z)
+                            c = VoxelKey(f.x, y, zStartIndex)
+                            d = VoxelKey(f.x, y, z)
                         }
 
                         else -> { // plane in XZ
                             val x = voxels.maxOf { it.x }
                             val z = voxels.maxOf { it.z }
-                            a = voxels.find { it.x == xStartIndex && it.z == zStartIndex }!! // both start
-                            b = voxels.find { it.x == xStartIndex && it.z == z }!! // second on start
-                            c = voxels.find { it.x == x && it.z == zStartIndex }!! // one on end
-                            d = voxels.find { it.x == x && it.z == z }!! // both end
+                            val f = voxels[0]
+
+                            a = VoxelKey(xStartIndex, f.y, zStartIndex)
+                            b = VoxelKey(xStartIndex, f.y, z)
+                            c = VoxelKey(x, f.y, zStartIndex)
+                            d = VoxelKey(x, f.y, z)
                         }
                     }
 
@@ -212,7 +226,7 @@ class PlaneFinder(
         return unitlessArea(m[0], m[1], n[0], n[1]) * voxelLength.pow(2)
     }
 
-    private fun unitlessArea(a: Double, b: Double, c:Double, d:Double) = (abs(a - b) + 1) * (abs(c - d) + 1)
+    private fun unitlessArea(a: Double, b: Double, c: Double, d: Double) = (abs(a - b) + 1) * (abs(c - d) + 1)
 
     private fun obstructedView(first: RadiationPlane, second: RadiationPlane, voxels: Array<Array<IntArray>>): Boolean {
         val firstKeys = first.voxels.map { it.key }
@@ -221,8 +235,9 @@ class PlaneFinder(
         for (key in ddaStep(first.middle, second.middle)) {
             if (key == second.middle) return false
             if (voxels[key] != 0) {
-                if(key in firstKeys) { continue }
-                else if(key in secondKeys) return false
+                if (key in firstKeys) {
+                    continue
+                } else if (key in secondKeys) return false
                 return true
             }
         }

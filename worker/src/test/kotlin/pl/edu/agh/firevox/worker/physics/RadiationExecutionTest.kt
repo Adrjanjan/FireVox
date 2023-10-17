@@ -119,8 +119,8 @@ class RadiationExecutionTest(
             VoxelKey(99, 1, 1) to VoxelKey(-1, 0, 0),
             VoxelKey(1, 1, 99) to VoxelKey(0, 0, -1),
 
-            VoxelKey(52, 0, 0) to VoxelKey(0, 0, 1),
-            VoxelKey(32, 0, 0) to VoxelKey(0, 0, 1),
+            VoxelKey(52, 1, 0) to VoxelKey(0, 0, 1),
+            VoxelKey(32, 1, 0) to VoxelKey(0, 0, 1),
 
             VoxelKey(49, 10, 1) to VoxelKey(-1, 0, 0),
             VoxelKey(50, 10, 1) to VoxelKey(1, 0, 0),

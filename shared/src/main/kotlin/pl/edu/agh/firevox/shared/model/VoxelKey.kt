@@ -49,6 +49,8 @@ data class VoxelKey(
 
     operator fun minus(other: VoxelKey) = VoxelKey(this.x - other.x, this.y - other.y, this.z - other.z)
 
+    operator fun plus(other: VoxelKey) = VoxelKey(this.x + other.x, this.y + other.y, this.z + other.z)
+
     fun dotProduct(other: VoxelKey): Int {
         return x * other.x + y * other.y + z * other.z
     }

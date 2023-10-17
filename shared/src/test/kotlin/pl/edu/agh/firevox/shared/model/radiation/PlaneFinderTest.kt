@@ -29,10 +29,10 @@ class PlaneFinderTest : ShouldSpec({
 
     should("findPlanes") {
         // given 7x7x7 matrix with walls at
-        //1 x=0 -> 49 voxels
-        //2 x=3 -> 49
-        //3 5<=x<=5 && z == 0 -> 7
-        //4 5<=x<=5 && z == 6 -> 7
+        //1 x == 0 -> 49 voxels
+        //2 x == 3 -> 49
+        //3 x == 5 && z == 0 -> 7
+        //4 x == 5 && z == 6 -> 7
         //5 y == 6 && 4<x<6 && 2<z<4 ->
         val size = 7
         val matrix = Array(size) { i ->
@@ -71,9 +71,20 @@ class PlaneFinderTest : ShouldSpec({
         )
 
         // then
-        // should find connections 1 <-> 2, 3 <-> 4, 3 <-> 5, 4 <-> 5
+        // should find connections 1 <-> 2,  3 <-> 4, 3 <-> 5, 4 <-> 5
         planes.size shouldBe 5
-        planes shouldBe listOf()
+
+        planes[0].childPlanes[0].child shouldBe planes[1]
+        planes[1].childPlanes[0].child shouldBe planes[0]
+
+        planes[2].childPlanes[0].child shouldBe planes[3]
+        planes[2].childPlanes[1].child shouldBe planes[4]
+
+        planes[3].childPlanes[0].child shouldBe planes[2]
+        planes[3].childPlanes[1].child shouldBe planes[4]
+
+        planes[4].childPlanes[0].child shouldBe planes[2]
+        planes[4].childPlanes[1].child shouldBe planes[3]
     }
 
     context("fullPlane") {
@@ -369,15 +380,15 @@ class PlaneFinderTest : ShouldSpec({
             d = VoxelKey(1, 1, 1),
             normalVector = VoxelKey(0, 0, -1),
             voxels = voxels.toMutableSet(),
-            area = 1.0,
+            area = 4.0,
         )
 
         // when
         val result = planeFinder.parallelViewFactor(firstPlane, secondPlane)
 
         // then
-        result shouldBeGreaterThan 0.1998 * firstPlane.area // 0.1998 is a result for the indices in the source
-        result shouldBeLessThan 0.1999 * firstPlane.area // 0.1998 is a result for the indices in the source
+        result shouldBeGreaterThan 0.1998 / 4 // 0.1998 is a result for the indices in the source where area is 1, here area is 4
+        result shouldBeLessThan 0.1999 / 4 // 0.1998 is a result for the indices in the source where area is 1, here area is 4
     }
 
     should("perpendicularViewFactor") {
@@ -408,15 +419,15 @@ class PlaneFinderTest : ShouldSpec({
             d = VoxelKey(0, 1, 1),
             normalVector = VoxelKey(1, 0, 0),
             voxels = voxels.toMutableSet(),
-            area = 1.0,
+            area = 4.0,
         )
 
         // when
         val result = planeFinder.perpendicularViewFactor(firstPlane, secondPlane)
 
         // then
-        result shouldBeGreaterThan 0.20004 // 0.20004 is a result for the indices in the source
-        result shouldBeLessThan 0.20005 // 0.20004 is a result for the indices in the source
+        result shouldBeGreaterThan 0.20004 / 4 // 0.20004 is a result for the indices in the source where area is 1, here area is 4
+        result shouldBeLessThan 0.20005 / 4 // 0.20004 is a result for the indices in the source where area is 1, here area is 4
     }
 
 })
