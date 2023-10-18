@@ -42,8 +42,7 @@ class RadiationCalculator(
                 it.qNet = qNet
             }
         }
-        countersRepository.increment(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT)
-        countersRepository.increment(CounterId.NEXT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT)
+        countersRepository.increment(CounterId.PROCESSED_RADIATION_PLANES_COUNT)
         return true
     }
 

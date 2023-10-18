@@ -25,6 +25,7 @@ class PlaneFinder(
     ): List<RadiationPlane> {
         log.info("Preprocessing radiation planes")
         val planes = pointsToNormals.parallelStream().flatMap {
+            log.info("Processing plane $it")
             val fullPlane = fullPlane(voxels, it)
             divideIntoPlanes(fullPlane, it.second, squareSize = 10).stream()
         }.collect(Collectors.toList()).toMutableList()
@@ -236,6 +237,7 @@ class PlaneFinder(
 
         for (key in ddaStep(first.middle, second.middle)) {
             if (key == second.middle) return false
+            if(key.x == -1 || key.y == -1 || key.z == -1 || !voxels.contains(key)) return true
             if (voxels[key] != 0) {
                 if (key in firstKeys) {
                     continue

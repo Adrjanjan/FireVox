@@ -4,9 +4,7 @@ import jakarta.persistence.*
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
-import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
-import pl.edu.agh.firevox.shared.model.Voxel
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import kotlin.jvm.Transient
 
@@ -62,10 +60,10 @@ class PlanesConnection(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int? = null,
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    @ManyToOne(fetch = FetchType.LAZY)
     val parentPlane: RadiationPlane,
 
-    @ManyToOne(fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    @ManyToOne(fetch = FetchType.LAZY)
     val child: RadiationPlane,
 
     val viewFactor: Double

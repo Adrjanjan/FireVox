@@ -6,8 +6,13 @@ import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
+import org.springframework.test.context.DynamicPropertyRegistry
+import org.springframework.test.context.DynamicPropertySource
+import org.springframework.test.context.jdbc.Sql
+import org.testcontainers.containers.PostgreSQLContainer
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
@@ -26,8 +31,12 @@ import kotlin.math.pow
 import kotlin.math.sqrt
 
 @SpringBootTest(
-    properties = ["firevox.timestep=0.1", "firevox.voxel.size=0.01"],
-    classes = [WorkerApplication::class]
+    properties = [
+        "firevox.timestep=0.1",
+        "firevox.voxel.size=0.01",
+
+    ],
+    classes = [WorkerApplication::class, ItTestConfig::class]
 )
 class RadiationExecutionTest(
     val radiationCalculator: RadiationCalculator,
@@ -39,9 +48,13 @@ class RadiationExecutionTest(
     @Value("\${firevox.timestep}") val timeStep: Double,
     val planeFinder: PlaneFinder,
     val synchroniserImpl: SynchroniserImpl,
+    val updateTemperaturesFunctionCreator: UpdateTemperaturesFunctionCreator,
 ) : ShouldSpec({
 
     context("calculate radiation test") {
+        updateTemperaturesFunctionCreator.createUpdateTemperatures()
+        radiationPlaneRepository.flush()
+
         val simulationTimeInSeconds = 100 // * 60
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
         countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
@@ -136,14 +149,14 @@ class RadiationExecutionTest(
             matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
         }
 
-        val planes = planeFinder.findPlanes(matrix, pointsToNormals)
+        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
             .also {
                 countersRepository.set(
                     CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
                     it.size.toLong()
                 )
-            }.let(radiationPlaneRepository::saveAll)
-
+            }
+        planes = planes.let(radiationPlaneRepository::saveAll)
         radiationPlaneRepository.flush()
 
         should("execute test") {
@@ -153,7 +166,8 @@ class RadiationExecutionTest(
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
                 planes.parallelStream().forEach { k -> radiationCalculator.calculate(k.id!!, i) }
-                synchroniserImpl.resetCounters()
+                synchroniserImpl.synchroniseRadiationResults(i.toLong())
+                countersRepository.increment(CounterId.CURRENT_ITERATION)
             }
 
             val result = voxelRepository.findAll()
