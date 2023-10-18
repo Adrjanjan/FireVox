@@ -7,11 +7,11 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.VoxelRepository
+import java.util.stream.Collectors
 import kotlin.math.*
 
 @Service
 class PlaneFinder(
-    private val voxelRepository: VoxelRepository,
     @Value("\${firevox.voxel.size}") val voxelLength: Double = 0.01,
 ) {
 
@@ -24,10 +24,11 @@ class PlaneFinder(
         voxels: Array<Array<IntArray>>, pointsToNormals: List<Pair<VoxelKey, VoxelKey>>
     ): List<RadiationPlane> {
         log.info("Preprocessing radiation planes")
-        val planes = mutableListOf<RadiationPlane>()
-        pointsToNormals.forEach {
-            planes.addAll(divideIntoPlanes(fullPlane(voxels, it), it.second, squareSize = 10))
-        }
+        val planes = pointsToNormals.parallelStream().flatMap {
+            val fullPlane = fullPlane(voxels, it)
+            divideIntoPlanes(fullPlane, it.second, squareSize = 10).stream()
+        }.collect(Collectors.toList()).toMutableList()
+
         val findRelationships = findRelationships(planes, voxels)
         log.info("Found ${planes.size} radiation planes")
         return findRelationships
@@ -92,6 +93,7 @@ class PlaneFinder(
             && key.y in this[0].indices
             && key.z in this[0][0].indices)
 
+    @Transactional
     fun divideIntoPlanes(
         fullPlane: List<VoxelKey>, normalVector: VoxelKey, squareSize: Int
     ): List<RadiationPlane> {
@@ -176,7 +178,7 @@ class PlaneFinder(
                             c = c,
                             d = d,
                             normalVector = normalVector,
-                            voxels = voxels.map(voxelRepository::getReferenceById).toMutableSet(),
+                            voxels = voxels.toMutableSet(),
                             area = area(normalVector, a, b, c, d)
                         )
                     )
@@ -229,8 +231,8 @@ class PlaneFinder(
     private fun unitlessArea(a: Double, b: Double, c: Double, d: Double) = (abs(a - b) + 1) * (abs(c - d) + 1)
 
     private fun obstructedView(first: RadiationPlane, second: RadiationPlane, voxels: Array<Array<IntArray>>): Boolean {
-        val firstKeys = first.voxels.map { it.key }
-        val secondKeys = second.voxels.map { it.key }
+        val firstKeys = first.voxels
+        val secondKeys = second.voxels
 
         for (key in ddaStep(first.middle, second.middle)) {
             if (key == second.middle) return false

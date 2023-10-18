@@ -31,9 +31,9 @@ class RadiationCalculator(
         val radiationPlane = radiationPlaneRepository.findByIdOrNull(radiationPlaneId) ?:
             return true.also { log.error("Radiation plane with id $radiationPlaneId was not found") }
 
-        val avgTemperature = planeAverageTemperature(radiationPlane, iteration)
+        val avgTemperature = radiationPlaneRepository.planeAverageTemperature(radiationPlane.id!!, iteration)
         radiationPlane.childPlanes.forEach {
-            val planeAverageTemperature = planeAverageTemperature(it.child, iteration)
+            val planeAverageTemperature = radiationPlaneRepository.planeAverageTemperature(it.child.id!!, iteration)
             if(avgTemperature > planeAverageTemperature) {
                 val qNet = it.viewFactor *
                         stefanBoltzmann *
@@ -47,11 +47,5 @@ class RadiationCalculator(
         return true
     }
 
-    private fun planeAverageTemperature(
-        radiationPlane: RadiationPlane,
-        iteration: Int
-    ) = radiationPlane.voxels.sumOf {
-        if (iteration % 2 == 0) it.evenIterationTemperature else it.oddIterationTemperature
-    } / radiationPlane.voxels.size
 
 }

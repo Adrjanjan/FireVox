@@ -4,6 +4,7 @@ import jakarta.persistence.*
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
+import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import pl.edu.agh.firevox.shared.model.Voxel
 import pl.edu.agh.firevox.shared.model.VoxelKey
@@ -31,17 +32,17 @@ class RadiationPlane(
     @OneToMany(mappedBy = "parentPlane", fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
     val childPlanes: MutableList<PlanesConnection> = mutableListOf(),
 
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinTable(
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(
         name = "plane_voxels",
         joinColumns = [JoinColumn(name = "plane_id", referencedColumnName = "id")],
-        inverseJoinColumns = [
-            JoinColumn(name = "voxel_key_x", referencedColumnName = "x"),
-            JoinColumn(name = "voxel_key_y", referencedColumnName = "y"),
-            JoinColumn(name = "voxel_key_z", referencedColumnName = "z"),
-        ]
     )
-    val voxels: MutableSet<Voxel> = mutableSetOf(),
+    @AttributeOverrides(
+        AttributeOverride(name = "x", column = Column(name = "voxel_key_x")),
+        AttributeOverride(name = "y", column = Column(name = "voxel_key_y")),
+        AttributeOverride(name = "z", column = Column(name = "voxel_key_z"))
+    )
+    val voxels: MutableSet<VoxelKey> = mutableSetOf(),
 
     val area: Double,
 ) {
@@ -74,14 +75,27 @@ class PlanesConnection(
 }
 
 @Repository
-interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int>{
+interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int> {
+
 
     @Query(
         """
-            select rp from RadiationPlane rp join PlanesConnection pc where pc.qNet > 0
+            select case when MOD(:iteration, 2) = 0 
+                then avg(v.evenIterationTemperature) 
+                else avg(v.oddIterationTemperature) end 
+            from Voxel v 
+            where v.key IN (select p.voxels from RadiationPlane p where p.id = :id)
         """
     )
-    fun findWithPositiveQNets(): List<RadiationPlane>
+    fun planeAverageTemperature(id: Int, iteration: Int): Double
+
+// replaced by the function below
+//    @Query(
+//        """
+//            select rp from RadiationPlane rp join PlanesConnection pc where pc.qNet > 0
+//        """
+//    )
+//    fun findWithPositiveQNets(): List<RadiationPlane>
 
 
     @Query(
@@ -96,7 +110,9 @@ interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int>{
     @Query(
         """
             select p.id from RadiationPlane p 
-            where :minimalAvgTemperature > (select avg(v.evenIterationTemperature) from Voxel v where v member of p.voxels)
+            where :minimalAvgTemperature > (
+                select avg(v.evenIterationTemperature) from Voxel v where v.key member of p.voxels
+            )
         """
     )
     fun findStartingPlanes(minimalAvgTemperature: Double): List<Int>

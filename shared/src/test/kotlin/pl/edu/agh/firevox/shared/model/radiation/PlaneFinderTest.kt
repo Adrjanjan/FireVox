@@ -12,7 +12,7 @@ import kotlin.math.pow
 class PlaneFinderTest : ShouldSpec({
     // given
     val voxelRepository = mockk<VoxelRepository>()
-    val planeFinder = PlaneFinder(voxelRepository)
+    val planeFinder = PlaneFinder()
 
     val material = PhysicalMaterial(
         VoxelMaterial.METAL,
@@ -369,7 +369,7 @@ class PlaneFinderTest : ShouldSpec({
             c = VoxelKey(1, 0, 0),
             d = VoxelKey(1, 1, 0),
             normalVector = VoxelKey(0, 0, 1),
-            voxels = voxels.toMutableSet(),
+            voxels = voxels.map(Voxel::key).toMutableSet(),
             area = 1.0,
         )
 
@@ -379,7 +379,7 @@ class PlaneFinderTest : ShouldSpec({
             c = VoxelKey(1, 0, 1),
             d = VoxelKey(1, 1, 1),
             normalVector = VoxelKey(0, 0, -1),
-            voxels = voxels.toMutableSet(),
+            voxels = voxels.map(Voxel::key).toMutableSet(),
             area = 4.0,
         )
 
@@ -408,7 +408,7 @@ class PlaneFinderTest : ShouldSpec({
             c = VoxelKey(1, 0, 0),
             d = VoxelKey(1, 1, 0),
             normalVector = VoxelKey(0, 0, 1),
-            voxels = voxels.toMutableSet(),
+            voxels = voxels.map(Voxel::key).toMutableSet(),
             area = 1.0,
         )
 
@@ -418,7 +418,7 @@ class PlaneFinderTest : ShouldSpec({
             c = VoxelKey(0, 1, 0),
             d = VoxelKey(0, 1, 1),
             normalVector = VoxelKey(1, 0, 0),
-            voxels = voxels.toMutableSet(),
+            voxels = voxels.map(Voxel::key).toMutableSet(),
             area = 4.0,
         )
 
