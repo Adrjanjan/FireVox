@@ -91,7 +91,7 @@ class RadiationExecutionTest(
                 evenIterationMaterial = baseMaterial,
                 evenIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
                 oddIterationMaterial = baseMaterial,
-                oddIterationTemperature = 25.0.toKelvin(),
+                oddIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
                 isBoundaryCondition = isBoundary(k)
             )
         }
@@ -198,7 +198,7 @@ class RadiationExecutionTest(
     }
 }
 
-fun isBoundary(k: VoxelKey) = k.x in 50..99 && k.z in 0..1
+fun isBoundary(k: VoxelKey) = k.x in 50..99 && k.z == 0
 
 
 fun ShouldSpec.getFile(name: String) = ClassPathResource(name).inputStream

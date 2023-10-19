@@ -2,6 +2,8 @@ package pl.edu.agh.firevox.worker.physics
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
@@ -11,6 +13,11 @@ import org.testcontainers.containers.PostgreSQLContainer
 @Configuration
 @PropertySource("classpath:application.yml")
 class ItTestConfig {
+
+    companion object {
+        val log: Logger = LoggerFactory.getLogger(this::class.java)
+    }
+
     @Bean
     fun postgreSQLContainer(): PostgreSQLContainer<*> {
         val postgresContainer = PostgreSQLContainer("postgres:latest")
@@ -26,7 +33,7 @@ class ItTestConfig {
         postgreSQLContainer.jdbcUrl,
         postgreSQLContainer.username,
         postgreSQLContainer.password
-    )
+    ).also { log.error(it.toString()) }
 
     @Bean
     @Primary
