@@ -2,9 +2,9 @@ package pl.edu.agh.firevox.shared.model.radiation
 
 import jakarta.persistence.*
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
+import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import kotlin.jvm.Transient
 
@@ -88,21 +88,22 @@ interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int> {
     fun planeAverageTemperature(id: Int, iteration: Int): Double
 
 // replaced by the function below
-//    @Query(
-//        """
-//            select rp from RadiationPlane rp join PlanesConnection pc where pc.qNet > 0
-//        """
-//    )
-//    fun findWithPositiveQNets(): List<RadiationPlane>
+    @Query(
+        """
+            select rp from RadiationPlane rp join PlanesConnection pc where pc.qNet > 0
+        """
+    )
+    fun findWithPositiveQNets(): List<RadiationPlane>
 
 
     @Query(
         """
-            select update_temperatures(:iteration, :volume)
+            select update_temperatures(:iteration \:\:integer, :volume \:\:numeric)
         """, nativeQuery = true
     )
-    @Modifying
-    fun updateTemperatures(iteration: Long, volume: Double)
+//    @Modifying
+    @Transactional
+    fun updateTemperatures(iteration: Long, volume: Double) : Any
 
 
     @Query(

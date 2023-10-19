@@ -6,29 +6,23 @@ import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.core.io.ClassPathResource
-import org.springframework.test.context.DynamicPropertyRegistry
-import org.springframework.test.context.DynamicPropertySource
-import org.springframework.test.context.jdbc.Sql
-import org.testcontainers.containers.PostgreSQLContainer
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
-import pl.edu.agh.firevox.shared.model.simulation.*
+import pl.edu.agh.firevox.shared.model.simulation.Palette
+import pl.edu.agh.firevox.shared.model.simulation.Simulation
+import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
+import pl.edu.agh.firevox.shared.model.simulation.SingleModel
 import pl.edu.agh.firevox.shared.model.simulation.counters.Counter
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
-import pl.edu.agh.firevox.worker.WorkerApplication
-import pl.edu.agh.firevox.worker.service.CalculationService
-import java.io.FileOutputStream
-import kotlin.math.roundToInt
-
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
-import kotlin.math.pow
-import kotlin.math.sqrt
+import pl.edu.agh.firevox.worker.WorkerApplication
+import java.io.FileOutputStream
+import kotlin.math.roundToInt
 
 @SpringBootTest(
     properties = [
@@ -166,7 +160,9 @@ class RadiationExecutionTest(
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
                 planes.parallelStream().forEach { k -> radiationCalculator.calculate(k.id!!, i) }
+                log.info("Finished calculations")
                 synchroniserImpl.synchroniseRadiationResults(i.toLong())
+                log.info("Finished synchronisation")
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
             }
 

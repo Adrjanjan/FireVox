@@ -27,7 +27,7 @@ class RadiationCalculator(
     @Transactional
     fun calculate(radiationPlaneId: Int, iteration: Int): Boolean {
         if (!countersRepository.canExecuteForIteration(iteration.toLong())) return false
-        log.info("Calculating for plane $radiationPlaneId and iteration $iteration")
+//        log.info("Calculating for plane $radiationPlaneId and iteration $iteration")
         val radiationPlane = radiationPlaneRepository.findByIdOrNull(radiationPlaneId) ?:
             return true.also { log.error("Radiation plane with id $radiationPlaneId was not found") }
 
