@@ -25,7 +25,7 @@ class PhysicalMaterial(
 
 ) {
     @Id
-    private val id: Int = voxelMaterial.colorId
+    val id: Int = voxelMaterial.colorId
 
     fun isSolid() = this.voxelMaterial in listOf(
         VoxelMaterial.METAL,

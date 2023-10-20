@@ -2,17 +2,20 @@ package pl.edu.agh.firevox.shared.model.radiation
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import pl.edu.agh.firevox.shared.model.PhysicalMaterial
+import pl.edu.agh.firevox.shared.model.PhysicalMaterialRepository
 import pl.edu.agh.firevox.shared.model.VoxelKey
-import pl.edu.agh.firevox.shared.model.VoxelRepository
 import java.util.stream.Collectors
 import kotlin.math.*
 
 @Service
-class PlaneFinder(
+class PlaneFinder @Autowired constructor(
     @Value("\${firevox.voxel.size}") val voxelLength: Double = 0.01,
+    private val physicalMaterialRepository: PhysicalMaterialRepository,
 ) {
 
     companion object {
@@ -24,10 +27,11 @@ class PlaneFinder(
         voxels: Array<Array<IntArray>>, pointsToNormals: List<Pair<VoxelKey, VoxelKey>>
     ): List<RadiationPlane> {
         log.info("Preprocessing radiation planes")
+        val materials = physicalMaterialRepository.findAll().associateBy { it.id }
         val planes = pointsToNormals.parallelStream().flatMap {
             log.info("Processing plane $it")
             val fullPlane = fullPlane(voxels, it)
-            divideIntoPlanes(fullPlane, it.second, squareSize = 10).stream()
+            divideIntoPlanes(fullPlane, it.second, materials[voxels[fullPlane.first()]]!!, squareSize = 10).stream()
         }.collect(Collectors.toList()).toMutableList()
 
         val findRelationships = findRelationships(planes, voxels)
@@ -96,7 +100,7 @@ class PlaneFinder(
 
     @Transactional
     fun divideIntoPlanes(
-        fullPlane: List<VoxelKey>, normalVector: VoxelKey, squareSize: Int
+        fullPlane: List<VoxelKey>, normalVector: VoxelKey, material: PhysicalMaterial, squareSize: Int
     ): List<RadiationPlane> {
         val minX = fullPlane.minOf { it.x }
         val minY = fullPlane.minOf { it.y }
@@ -180,7 +184,8 @@ class PlaneFinder(
                             d = d,
                             normalVector = normalVector,
                             voxels = voxels.toMutableSet(),
-                            area = area(normalVector, a, b, c, d)
+                            area = area(normalVector, a, b, c, d),
+                            heatToTemperatureFactor = voxels.size * voxels.size * voxelLength.pow(3) * material.density * material.specificHeatCapacity
                         )
                     )
                 }
@@ -205,12 +210,12 @@ class PlaneFinder(
                         val secondViewFactor = first.area * firstViewFactor / second.area
                         first.childPlanes.add(
                             PlanesConnection(
-                                parentPlane = first, child = second, viewFactor = firstViewFactor
+                                parent = first, child = second, viewFactor = firstViewFactor
                             )
                         )
                         second.childPlanes.add(
                             PlanesConnection(
-                                parentPlane = second, child = first, viewFactor = secondViewFactor
+                                parent = second, child = first, viewFactor = secondViewFactor
                             )
                         )
                     }
@@ -237,7 +242,7 @@ class PlaneFinder(
 
         for (key in ddaStep(first.middle, second.middle)) {
             if (key == second.middle) return false
-            if(key.x == -1 || key.y == -1 || key.z == -1 || !voxels.contains(key)) return true
+            if (key.x == -1 || key.y == -1 || key.z == -1 || !voxels.contains(key)) return true
             if (voxels[key] != 0) {
                 if (key in firstKeys) {
                     continue

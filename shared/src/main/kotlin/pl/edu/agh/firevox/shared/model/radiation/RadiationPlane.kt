@@ -2,6 +2,7 @@ package pl.edu.agh.firevox.shared.model.radiation
 
 import jakarta.persistence.*
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import org.springframework.transaction.annotation.Transactional
@@ -27,7 +28,7 @@ class RadiationPlane(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Int? = null,
 
-    @OneToMany(mappedBy = "parentPlane", fetch = FetchType.LAZY, cascade = [CascadeType.ALL])
+    @OneToMany(mappedBy = "parent", cascade = [CascadeType.ALL])
     val childPlanes: MutableList<PlanesConnection> = mutableListOf(),
 
     @ElementCollection(fetch = FetchType.LAZY)
@@ -43,6 +44,8 @@ class RadiationPlane(
     val voxels: MutableSet<VoxelKey> = mutableSetOf(),
 
     val area: Double,
+
+    val heatToTemperatureFactor: Double,
 ) {
     @Transient
     val middle = VoxelKey((a.x + b.x + c.x + d.x) / 4, (a.y + b.y + c.y + d.y) / 4, (a.z + b.z + c.z + d.z) / 4)
@@ -61,7 +64,7 @@ class PlanesConnection(
     val id: Int? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
-    val parentPlane: RadiationPlane,
+    val parent: RadiationPlane,
 
     @ManyToOne(fetch = FetchType.LAZY)
     val child: RadiationPlane,
@@ -115,6 +118,10 @@ interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int> {
         """
     )
     fun findStartingPlanes(minimalAvgTemperature: Double): List<Int>
+
+    @Query("update planes_connections set q_net = 0.0", nativeQuery = true)
+    @Modifying
+    fun resetQNet()
 }
 
 data class RadiationPlaneDto(

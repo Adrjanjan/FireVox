@@ -12,7 +12,8 @@ import kotlin.math.pow
 class PlaneFinderTest : ShouldSpec({
     // given
     val voxelRepository = mockk<VoxelRepository>()
-    val planeFinder = PlaneFinder()
+    val physicalMaterialRepository = mockk<PhysicalMaterialRepository>()
+    val planeFinder = PlaneFinder(0.01, physicalMaterialRepository)
 
     val material = PhysicalMaterial(
         VoxelMaterial.METAL,
@@ -202,7 +203,27 @@ class PlaneFinderTest : ShouldSpec({
         }
 
         // when
-        val planes = planeFinder.divideIntoPlanes(fullPlane, normalVector, squareSize)
+        val air = PhysicalMaterial(
+            VoxelMaterial.AIR,
+            density = 1.204,
+            baseTemperature = 20.toKelvin(),
+            thermalConductivityCoefficient = 25.87,
+            convectionHeatTransferCoefficient = 0.0,
+            specificHeatCapacity = 1.0061,
+            flashPointTemperature = 0.0.toKelvin(),
+            burningTime = 0.0,
+            generatedEnergyDuringBurning = 0.0,
+            burntMaterial = null
+        )
+
+        every {physicalMaterialRepository.findAll() } returns listOf(air)
+
+        val planes = planeFinder.divideIntoPlanes(
+            fullPlane,
+            normalVector,
+            air,
+            squareSize
+        )
 
         // then
         val firstPlane = planes[0]
@@ -371,6 +392,7 @@ class PlaneFinderTest : ShouldSpec({
             normalVector = VoxelKey(0, 0, 1),
             voxels = voxels.map(Voxel::key).toMutableSet(),
             area = 1.0,
+            heatToTemperatureFactor = 0.0
         )
 
         val secondPlane = RadiationPlane(
@@ -381,6 +403,7 @@ class PlaneFinderTest : ShouldSpec({
             normalVector = VoxelKey(0, 0, -1),
             voxels = voxels.map(Voxel::key).toMutableSet(),
             area = 4.0,
+            heatToTemperatureFactor = 0.0
         )
 
         // when
@@ -410,6 +433,7 @@ class PlaneFinderTest : ShouldSpec({
             normalVector = VoxelKey(0, 0, 1),
             voxels = voxels.map(Voxel::key).toMutableSet(),
             area = 1.0,
+            heatToTemperatureFactor = 0.0
         )
 
         val secondPlane = RadiationPlane(
@@ -420,6 +444,7 @@ class PlaneFinderTest : ShouldSpec({
             normalVector = VoxelKey(1, 0, 0),
             voxels = voxels.map(Voxel::key).toMutableSet(),
             area = 4.0,
+            heatToTemperatureFactor = 0.0
         )
 
         // when

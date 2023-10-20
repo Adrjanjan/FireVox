@@ -2,6 +2,7 @@ package pl.edu.agh.firevox.shared.model
 
 import jakarta.persistence.Tuple
 import org.springframework.data.jpa.repository.JpaRepository
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Repository
@@ -72,6 +73,15 @@ interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
         """
     )
     fun findAllOnlyValues(iteration: Long): List<Tuple>
+
+    @Modifying
+    @Query("update Voxel v set v.evenIterationTemperature = v.evenIterationTemperature + :tempIncrease where v.key in :keys")
+    fun incrementEvenTemperature(keys: MutableSet<VoxelKey>, tempIncrease : Double)
+
+    @Modifying
+    @Query("update Voxel v set v.oddIterationTemperature = v.oddIterationTemperature + :tempIncrease where v.key in :keys")
+    fun incrementOddTemperature(keys: MutableSet<VoxelKey>, tempIncrease : Double)
+
 
     @Query(
         """

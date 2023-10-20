@@ -5,13 +5,12 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
-import pl.edu.agh.firevox.shared.model.VoxelRepository
-import pl.edu.agh.firevox.shared.model.radiation.RadiationPlane
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import kotlin.math.pow
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 
 /**
  * Moved to shared so can be used in tests in worker
@@ -20,7 +19,7 @@ import kotlin.math.pow
 class SynchroniserImpl    (
     private val countersRepository: CountersRepository,
     private val radiationPlaneRepository: RadiationPlaneRepository,
-    private val voxelRepository: VoxelRepository,
+    private val synchronisePlanes: SynchronisePlanes,
     @Value("\${firevox.voxel.size}") val voxelLength: Double = 0.01,
 ) {
     private val volume: Double = voxelLength.pow(3)
@@ -63,63 +62,15 @@ class SynchroniserImpl    (
         return iteration
     }
 
+    @Transactional
     fun synchroniseRadiationResults(iteration: Long) {
-//        radiationPlaneRepository.updateTemperatures(iteration, volume)
         radiationPlaneRepository.findWithPositiveQNets().parallelStream().forEach { radiationPlane ->
             log.info("Synchronisation for plane ${radiationPlane.id}")
-            synchroniseRadiation(iteration, radiationPlane)
+            synchronisePlanes.synchroniseRadiation(iteration, radiationPlane)
         }
+        radiationPlaneRepository.resetQNet()
     }
 
-    @Transactional
-    fun synchroniseRadiation(
-        iteration: Long,
-        radiationPlane: RadiationPlane
-    ) {
-        if (iteration % 2 == 0L) { // even
-            radiationPlane.childPlanes.forEach { connection ->
-//                    log.info("Synchronisation for plane ${radiationPlane.id} for connection ${connection.id} | child")
-                // child
-                val voxelsCount = connection.child.voxels.count()
-                voxelRepository.findAllById(connection.child.voxels).forEach {
-                    val material = it.evenIterationMaterial
-                    val sourceMass = voxelsCount * volume * material.density
-                    val tempIncrease = connection.qNet / (sourceMass * material.specificHeatCapacity * voxelsCount)
-                    it.evenIterationTemperature += tempIncrease
-                }
-//                    log.info("Synchronisation for plane ${radiationPlane.id} for connection ${connection.id} | parent")
-                // parent
-                voxelRepository.findAllById(connection.parentPlane.voxels).forEach {
-                    val material = it.evenIterationMaterial
-                    val sourceMass = voxelsCount * volume * material.density
-                    val tempDecrease = connection.qNet / (sourceMass * material.specificHeatCapacity * voxelsCount)
-                    it.evenIterationTemperature -= tempDecrease
-                }
-            }
-        } else { // odd
-            radiationPlane.childPlanes.forEach { connection ->
-                log.info("Synchronisation for plane ${radiationPlane.id} for connection ${connection.id} | child")
-
-                // child
-                val childVoxelsCount = connection.child.voxels.count()
-                voxelRepository.findAllById(connection.child.voxels).forEach {
-                    val material = it.oddIterationMaterial
-                    val sourceMass = childVoxelsCount * volume * material.density
-                    val tempIncrease = connection.qNet / (sourceMass * material.specificHeatCapacity * childVoxelsCount)
-                    it.oddIterationTemperature += tempIncrease
-                }
-                // parent
-                val parentVoxelsCount = connection.parentPlane.voxels.count()
-                voxelRepository.findAllById(connection.parentPlane.voxels).forEach {
-                    val material = it.oddIterationMaterial
-                    val sourceMass = parentVoxelsCount * volume * material.density
-                    val tempDecrease =
-                        connection.qNet / (sourceMass * material.specificHeatCapacity * parentVoxelsCount)
-                    it.oddIterationTemperature -= tempDecrease
-                }
-            }
-        }
-    }
 
 }
 
