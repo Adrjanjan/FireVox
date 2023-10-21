@@ -9,6 +9,7 @@ import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.PropertySource
 import org.testcontainers.containers.PostgreSQLContainer
+import org.testcontainers.containers.output.Slf4jLogConsumer
 
 @Configuration
 @PropertySource("classpath:application.yml")
@@ -24,7 +25,10 @@ class ItTestConfig {
             .withDatabaseName("firevox")
             .withUsername("firevox")
             .withPassword("firevox")
+        postgresContainer.setCommand("postgres", "-c", "fsync=off", "-c", "log_statement=all");
         postgresContainer.start()
+        log.debug(postgresContainer.logs); // prints startup logs
+        postgresContainer.followOutput(Slf4jLogConsumer(log))
         return postgresContainer
     }
 

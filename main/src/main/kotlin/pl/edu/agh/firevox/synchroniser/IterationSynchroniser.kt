@@ -24,8 +24,15 @@ class IterationSynchroniser(
 
     @Transactional
     override fun execute(jobExecutionContext: JobExecutionContext) {
-        val iteration = synchroniserImpl.resetCounters()
+        val iteration = countersRepository.findByIdOrNull(CounterId.CURRENT_ITERATION)?.count!!
+        SynchroniserImpl.log.info("Running synchronisation $iteration")
+        synchroniserImpl.verifyIterationFinish(iteration)
+        synchroniserImpl.synchroniseRadiationResults(iteration)
+        synchroniserImpl.resetCounters(iteration)
+        verifyJobFinish(iteration)
+    }
 
+    private fun verifyJobFinish(iteration: Long) {
         if (iteration == countersRepository.findByIdOrNull(CounterId.MAX_ITERATIONS)?.count!!) {
             log.info("Finishing simulation on iteration $iteration")
             synchronisationJobManager.pause()

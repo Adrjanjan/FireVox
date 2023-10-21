@@ -10,7 +10,6 @@ import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import kotlin.math.pow
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.transaction.support.TransactionTemplate
 
 /**
  * Moved to shared so can be used in tests in worker
@@ -29,19 +28,8 @@ class SynchroniserImpl    (
     }
 
     @Transactional
-    fun resetCounters(): Long {
-        val iteration = countersRepository.findByIdOrNull(CounterId.CURRENT_ITERATION)?.count!!
-        log.info("Running synchronisation $iteration")
-
-        val processedVoxels = countersRepository.findByIdOrNull(CounterId.PROCESSED_VOXEL_COUNT)!!
-        val shouldBeProcessedVoxels =
-            countersRepository.findByIdOrNull(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT)!!
-        if (processedVoxels.count != shouldBeProcessedVoxels.count) throw IterationNotFinishedException(iteration)
-
-        val processedPlanes = countersRepository.findByIdOrNull(CounterId.PROCESSED_RADIATION_PLANES_COUNT)!!
-        val shouldBeProcessedPlanes =
-            countersRepository.findByIdOrNull(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT)!!
-        if (processedPlanes.count != shouldBeProcessedPlanes.count) throw IterationNotFinishedException(iteration)
+    fun resetCounters(iteration: Long): Long {
+        verifyIterationFinish(iteration)
 
         synchroniseRadiationResults(iteration)
 
@@ -62,7 +50,19 @@ class SynchroniserImpl    (
         return iteration
     }
 
-    @Transactional
+    fun verifyIterationFinish(iteration: Long): Long {
+        val processedVoxels = countersRepository.findByIdOrNull(CounterId.PROCESSED_VOXEL_COUNT)!!
+        val shouldBeProcessedVoxels =
+            countersRepository.findByIdOrNull(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT)!!
+        if (processedVoxels.count != shouldBeProcessedVoxels.count) throw IterationNotFinishedException(iteration)
+
+        val processedPlanes = countersRepository.findByIdOrNull(CounterId.PROCESSED_RADIATION_PLANES_COUNT)!!
+        val shouldBeProcessedPlanes =
+            countersRepository.findByIdOrNull(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT)!!
+        if (processedPlanes.count != shouldBeProcessedPlanes.count) throw IterationNotFinishedException(iteration)
+        return iteration
+    }
+
     fun synchroniseRadiationResults(iteration: Long) {
         radiationPlaneRepository.findWithPositiveQNets().parallelStream().forEach { radiationPlane ->
             log.info("Synchronisation for plane ${radiationPlane.id}")

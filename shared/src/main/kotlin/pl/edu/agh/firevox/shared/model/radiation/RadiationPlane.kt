@@ -5,7 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
-import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import kotlin.jvm.Transient
 
@@ -35,6 +34,7 @@ class RadiationPlane(
     @CollectionTable(
         name = "plane_voxels",
         joinColumns = [JoinColumn(name = "plane_id", referencedColumnName = "id")],
+        indexes = [Index(name = "plane_voxels_id", columnList = "plane_id")]
     )
     @AttributeOverrides(
         AttributeOverride(name = "x", column = Column(name = "voxel_key_x")),
@@ -105,7 +105,6 @@ interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int> {
         """, nativeQuery = true
     )
 //    @Modifying
-    @Transactional
     fun updateTemperatures(iteration: Long, volume: Double) : Any
 
 
