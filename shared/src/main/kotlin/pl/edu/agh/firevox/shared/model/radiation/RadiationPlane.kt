@@ -2,7 +2,6 @@ package pl.edu.agh.firevox.shared.model.radiation
 
 import jakarta.persistence.*
 import org.springframework.data.jpa.repository.JpaRepository
-import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
 import pl.edu.agh.firevox.shared.model.VoxelKey
@@ -43,16 +42,15 @@ class RadiationPlane(
     )
     val voxels: MutableSet<VoxelKey> = mutableSetOf(),
 
-    val area: Double,
+    val voxelsCount: Int,
 
-    val heatToTemperatureFactor: Double,
+    val area: Double,
 ) {
     @Transient
     val middle = VoxelKey((a.x + b.x + c.x + d.x) / 4, (a.y + b.y + c.y + d.y) / 4, (a.z + b.z + c.z + d.z) / 4)
     override fun toString(): String {
         return "RadiationPlane(id=$id, middle=$middle)"
     }
-
 
 }
 
@@ -69,7 +67,11 @@ class PlanesConnection(
     @ManyToOne(fetch = FetchType.LAZY)
     val child: RadiationPlane,
 
-    val viewFactor: Double
+    val viewFactor: Double,
+
+    val parentVoxelsCount: Int,
+
+    val childVoxelsCount: Int,
 
 ) {
     var qNet: Double = 0.0
@@ -90,24 +92,6 @@ interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int> {
     )
     fun planeAverageTemperature(id: Int, iteration: Int): Double
 
-// replaced by the function below
-    @Query(
-        """
-            select rp from RadiationPlane rp join PlanesConnection pc where pc.qNet > 0
-        """
-    )
-    fun findWithPositiveQNets(): List<RadiationPlane>
-
-
-    @Query(
-        """
-            select update_temperatures(:iteration \:\:integer, :volume \:\:numeric)
-        """, nativeQuery = true
-    )
-//    @Modifying
-    fun updateTemperatures(iteration: Long, volume: Double) : Any
-
-
     @Query(
         """
             select p.id from RadiationPlane p 
@@ -118,9 +102,6 @@ interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int> {
     )
     fun findStartingPlanes(minimalAvgTemperature: Double): List<Int>
 
-    @Query("update planes_connections set q_net = 0.0", nativeQuery = true)
-    @Modifying
-    fun resetQNet()
 }
 
 data class RadiationPlaneDto(

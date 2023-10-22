@@ -2,14 +2,15 @@ package pl.edu.agh.firevox.shared.synchroniser
 
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.core.RowMapper
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
-import kotlin.math.pow
-import org.springframework.transaction.annotation.Transactional
+import java.sql.ResultSet
 
 /**
  * Moved to shared so can be used in tests in worker
@@ -17,11 +18,9 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class SynchroniserImpl    (
     private val countersRepository: CountersRepository,
-    private val radiationPlaneRepository: RadiationPlaneRepository,
     private val synchronisePlanes: SynchronisePlanes,
-    @Value("\${firevox.voxel.size}") val voxelLength: Double = 0.01,
+    private val jdbcTemplate: JdbcTemplate
 ) {
-    private val volume: Double = voxelLength.pow(3)
 
     companion object {
         val log: Logger = LoggerFactory.getLogger(this::class.java)
@@ -64,14 +63,39 @@ class SynchroniserImpl    (
     }
 
     fun synchroniseRadiationResults(iteration: Long) {
-        radiationPlaneRepository.findWithPositiveQNets().parallelStream().forEach { radiationPlane ->
-            log.info("Synchronisation for plane ${radiationPlane.id}")
-            synchronisePlanes.synchroniseRadiation(iteration, radiationPlane)
+        val planesConnections = getPlanesConnections()
+
+        planesConnections.parallelStream().forEach { connection ->
+            synchronisePlanes.synchroniseRadiation(iteration, connection)
         }
-        radiationPlaneRepository.resetQNet()
+        jdbcTemplate.update("update planes_connections set q_net = 0.0")
     }
 
+    fun getPlanesConnections(): List<PlaneConnectionDto> {
+        val sql = "SELECT pc.id, pc.q_net, pc.child_id, pc.parent_id, pc.parent_voxels_count, pc.child_voxels_count " +
+                "FROM planes_connections pc " +
+                "WHERE pc.q_net > 0.0"
+        return jdbcTemplate.query(sql, planeConnectionDtoRowMapper)
+    }
+
+    private val planeConnectionDtoRowMapper = RowMapper<PlaneConnectionDto>{ rs: ResultSet, _: Int ->
+        PlaneConnectionDto(
+            rs.getInt("parent_id"),
+            rs.getInt("child_id"),
+            rs.getDouble("q_net"),
+            rs.getInt("parent_voxels_count"),
+            rs.getInt("child_voxels_count"),
+        )
+    }
 
 }
+
+data class PlaneConnectionDto(
+    val parentId: Int,
+    val childId: Int,
+    val qNet: Double,
+    val parentVoxelsCount: Int,
+    val childVoxelsCount: Int,
+)
 
 class IterationNotFinishedException(iteration: Long) : Exception("$iteration")

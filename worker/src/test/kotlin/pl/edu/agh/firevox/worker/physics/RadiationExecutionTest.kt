@@ -42,13 +42,9 @@ class RadiationExecutionTest(
     @Value("\${firevox.timestep}") val timeStep: Double,
     val planeFinder: PlaneFinder,
     val synchroniserImpl: SynchroniserImpl,
-    val updateTemperaturesFunctionCreator: UpdateTemperaturesFunctionCreator,
 ) : ShouldSpec({
 
     context("calculate radiation test") {
-        updateTemperaturesFunctionCreator.createUpdateTemperatures()
-        radiationPlaneRepository.flush()
-
         val simulationTimeInSeconds = 100 // * 60
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
         countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
@@ -164,6 +160,7 @@ class RadiationExecutionTest(
                 synchroniserImpl.synchroniseRadiationResults(i.toLong())
                 log.info("Finished synchronisation")
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
+                log.info("Finished increment")
             }
 
             val result = voxelRepository.findAll()

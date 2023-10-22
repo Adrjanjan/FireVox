@@ -4,6 +4,7 @@ import org.quartz.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId

@@ -221,7 +221,6 @@ class PlaneFinderTest : ShouldSpec({
         val planes = planeFinder.divideIntoPlanes(
             fullPlane,
             normalVector,
-            air,
             squareSize
         )
 
@@ -391,8 +390,8 @@ class PlaneFinderTest : ShouldSpec({
             d = VoxelKey(1, 1, 0),
             normalVector = VoxelKey(0, 0, 1),
             voxels = voxels.map(Voxel::key).toMutableSet(),
+            voxelsCount = voxels.size,
             area = 1.0,
-            heatToTemperatureFactor = 0.0
         )
 
         val secondPlane = RadiationPlane(
@@ -402,8 +401,8 @@ class PlaneFinderTest : ShouldSpec({
             d = VoxelKey(1, 1, 1),
             normalVector = VoxelKey(0, 0, -1),
             voxels = voxels.map(Voxel::key).toMutableSet(),
+            voxelsCount = voxels.size,
             area = 4.0,
-            heatToTemperatureFactor = 0.0
         )
 
         // when
@@ -432,8 +431,8 @@ class PlaneFinderTest : ShouldSpec({
             d = VoxelKey(1, 1, 0),
             normalVector = VoxelKey(0, 0, 1),
             voxels = voxels.map(Voxel::key).toMutableSet(),
+            voxelsCount = voxels.size,
             area = 1.0,
-            heatToTemperatureFactor = 0.0
         )
 
         val secondPlane = RadiationPlane(
@@ -443,8 +442,8 @@ class PlaneFinderTest : ShouldSpec({
             d = VoxelKey(0, 1, 1),
             normalVector = VoxelKey(1, 0, 0),
             voxels = voxels.map(Voxel::key).toMutableSet(),
+            voxelsCount = voxels.size,
             area = 4.0,
-            heatToTemperatureFactor = 0.0
         )
 
         // when

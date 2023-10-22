@@ -6,7 +6,6 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import pl.edu.agh.firevox.shared.model.PhysicalMaterial
 import pl.edu.agh.firevox.shared.model.PhysicalMaterialRepository
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import java.util.stream.Collectors
@@ -27,11 +26,10 @@ class PlaneFinder @Autowired constructor(
         voxels: Array<Array<IntArray>>, pointsToNormals: List<Pair<VoxelKey, VoxelKey>>
     ): List<RadiationPlane> {
         log.info("Preprocessing radiation planes")
-        val materials = physicalMaterialRepository.findAll().associateBy { it.id }
         val planes = pointsToNormals.parallelStream().flatMap {
             log.info("Processing plane $it")
             val fullPlane = fullPlane(voxels, it)
-            divideIntoPlanes(fullPlane, it.second, materials[voxels[fullPlane.first()]]!!, squareSize = 10).stream()
+            divideIntoPlanes(fullPlane, it.second, squareSize = 10).stream()
         }.collect(Collectors.toList()).toMutableList()
 
         val findRelationships = findRelationships(planes, voxels)
@@ -100,7 +98,7 @@ class PlaneFinder @Autowired constructor(
 
     @Transactional
     fun divideIntoPlanes(
-        fullPlane: List<VoxelKey>, normalVector: VoxelKey, material: PhysicalMaterial, squareSize: Int
+        fullPlane: List<VoxelKey>, normalVector: VoxelKey,squareSize: Int
     ): List<RadiationPlane> {
         val minX = fullPlane.minOf { it.x }
         val minY = fullPlane.minOf { it.y }
@@ -184,8 +182,8 @@ class PlaneFinder @Autowired constructor(
                             d = d,
                             normalVector = normalVector,
                             voxels = voxels.toMutableSet(),
+                            voxelsCount = voxels.size,
                             area = area(normalVector, a, b, c, d),
-                            heatToTemperatureFactor = voxels.size * voxels.size * voxelLength.pow(3) * material.density * material.specificHeatCapacity
                         )
                     )
                 }
@@ -210,12 +208,14 @@ class PlaneFinder @Autowired constructor(
                         val secondViewFactor = first.area * firstViewFactor / second.area
                         first.childPlanes.add(
                             PlanesConnection(
-                                parent = first, child = second, viewFactor = firstViewFactor
+                                parent = first, child = second, viewFactor = firstViewFactor,
+                                parentVoxelsCount = first.voxelsCount, childVoxelsCount = second.voxelsCount
                             )
                         )
                         second.childPlanes.add(
                             PlanesConnection(
-                                parent = second, child = first, viewFactor = secondViewFactor
+                                parent = second, child = first, viewFactor = secondViewFactor,
+                                parentVoxelsCount = second.voxelsCount, childVoxelsCount = first.voxelsCount
                             )
                         )
                     }
