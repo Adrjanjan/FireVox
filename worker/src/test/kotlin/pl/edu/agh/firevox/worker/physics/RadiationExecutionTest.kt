@@ -28,7 +28,6 @@ import kotlin.math.roundToInt
     properties = [
         "firevox.timestep=0.1",
         "firevox.voxel.size=0.01",
-
     ],
     classes = [WorkerApplication::class, ItTestConfig::class]
 )
@@ -82,7 +81,7 @@ class RadiationExecutionTest(
                 evenIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
                 oddIterationMaterial = baseMaterial,
                 oddIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
-                isBoundaryCondition = isBoundary(k)
+                isBoundaryCondition = false //isBoundary(k)
             )
         }
 
@@ -191,7 +190,7 @@ class RadiationExecutionTest(
     }
 }
 
-fun isBoundary(k: VoxelKey) = k.x in 50..99 && k.z == 0
+fun isBoundary(k: VoxelKey) = k.x in 52..99 && k.z == 0
 
 
 fun ShouldSpec.getFile(name: String) = ClassPathResource(name).inputStream

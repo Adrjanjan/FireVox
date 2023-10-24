@@ -3,6 +3,7 @@ package pl.edu.agh.firevox.worker.physics
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.PhysicalMaterial
+import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.worker.service.VoxelState
 import kotlin.math.pow
 
@@ -22,7 +23,7 @@ class BurningCalculator(
      * C = material.heatCapacity
      * deltaQ = delta T * generatedEnergyPerSecond
     **/
-    fun calculate(voxel: VoxelState, timeStep: Double, iteration: Int): Pair<Double, PhysicalMaterial?> {
+    fun calculate(voxel: VoxelState, timeStep: Double, iteration: Int, voxelsToSend: MutableList<VoxelKey>): Pair<Double, PhysicalMaterial?> {
         val volume: Double = voxelLength.pow(3)
         val currentMaterial = voxel.material
         val mass = currentMaterial.density * volume

@@ -75,6 +75,10 @@ class PlanesConnection(
 
 ) {
     var qNet: Double = 0.0
+
+    override fun toString(): String {
+        return "PlanesConnection(id=$id, parent=$parent, child=$child)"
+    }
 }
 
 @Repository

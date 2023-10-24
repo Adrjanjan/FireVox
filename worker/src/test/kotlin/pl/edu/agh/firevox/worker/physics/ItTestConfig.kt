@@ -25,10 +25,15 @@ class ItTestConfig {
             .withDatabaseName("firevox")
             .withUsername("firevox")
             .withPassword("firevox")
-        postgresContainer.setCommand("postgres", "-c", "fsync=off", "-c", "log_statement=all");
+        postgresContainer.setCommand(
+            "postgres",
+            "-c", "fsync=off",
+//            "-c", "log_statement=all",
+//            "-c", "work_mem=32MB"
+        )
         postgresContainer.start()
-        log.debug(postgresContainer.logs); // prints startup logs
-        postgresContainer.followOutput(Slf4jLogConsumer(log))
+//        log.debug(postgresContainer.logs); // prints startup logs
+//        postgresContainer.followOutput(Slf4jLogConsumer(log))
         return postgresContainer
     }
 

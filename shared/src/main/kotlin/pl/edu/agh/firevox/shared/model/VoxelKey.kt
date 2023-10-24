@@ -59,5 +59,5 @@ data class VoxelKey(
 
 data class VoxelKeyIteration(
     val key: VoxelKey,
-    var iteration: Int
+    val iteration: Int
 )

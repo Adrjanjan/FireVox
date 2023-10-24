@@ -7,6 +7,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import pl.edu.agh.firevox.shared.messaging.VoxelProcessingMessageSender
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
@@ -24,6 +25,7 @@ class CalculationService(
     private val simulationRepository: SimulationsRepository,
     private val materialRepository: PhysicalMaterialRepository,
     private val countersRepository: CountersRepository,
+    private val voxelProcessingMessageSender: VoxelProcessingMessageSender,
 ) {
 
     companion object {
@@ -43,11 +45,17 @@ class CalculationService(
         val voxel = voxelRepository.findByIdOrNull(key)
             ?: throw InvalidSimulationState("Calculation for voxel with key $key can't be made - voxel not found")
 
+        if(voxel.lastProcessedIteration >= iteration) {
+            // only '=' is valid but
+            return true
+        }
+
         if (voxel.isBoundaryCondition) {
             setNextProperties(voxel, iteration, listOf())
             return true
         }
 
+        val voxelsToSendForSameIteration = mutableListOf<VoxelKey>()
         val modelSize = simulationRepository.fetchSize()
         val (foundNeighbors, validKeysWithMissingVoxel) = voxelRepository.findNeighbors(
             voxel.key,
@@ -61,13 +69,13 @@ class CalculationService(
 
         // heat transfer calculators
         val conductionResult = if (voxelState.material.isSolid()) {
-            conductionCalculator.calculate(voxelState, neighbours, timeStep)
+            conductionCalculator.calculate(voxelState, neighbours, timeStep, voxelsToSendForSameIteration)
         } else 0.0
         val convectionResult = if (voxelState.material.isFluid())
-          convectionCalculator.calculate(voxelState, neighbours, timeStep)
+          convectionCalculator.calculate(voxelState, neighbours, timeStep, voxelsToSendForSameIteration)
         else 0.0
         val burningResult = if (voxelState.material.isFlammable())
-          burningCalculator.calculate(voxelState, timeStep, iteration)
+          burningCalculator.calculate(voxelState, timeStep, iteration, voxelsToSendForSameIteration)
         else 0.0 to voxelState.material
         val heatResults = listOf(
             conductionResult,
@@ -81,16 +89,14 @@ class CalculationService(
 
         setNextProperties(voxel, iteration, heatResults)
         voxelRepository.save(voxel)
-//        sendVoxelsForNextIteration(voxel) // każda z metod wyżej musi jeszcze zwracać voxel, który wymaga zmiany?
-//        wtedy ta zmiana dopiero w następnej iteracji? czy już w tej?
-        // załóżmy, że dolny wysyła energię do środkowego
-        // wtedy środkowy musi pobrać energię w tej samej iteracji, żeby była zachowana spójność (energia nie znika)
-        // górny nie otrzymuje żadnej energii od środkowego w tej iteracji, ponieważ środkowy tylko odbiera
         handleVirtualThermometer(key, voxel)
+
+        voxelsToSendForSameIteration.forEach {
+            voxelProcessingMessageSender.send(it, iteration)
+        }
 
         countersRepository.increment(CounterId.PROCESSED_VOXEL_COUNT)
         countersRepository.increment(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT)
-//        log.info("Voxel $key")
         return true
     }
 
@@ -118,6 +124,7 @@ class CalculationService(
     }
 
     private fun setNextProperties(voxel: Voxel, iteration: Int, heatResults: List<Double>) {
+        voxel.lastProcessedIteration = iteration
         return when (iteration % 2) {
             0 -> {
                 val resultTemp = voxel.evenIterationTemperature + heatResults.sum()

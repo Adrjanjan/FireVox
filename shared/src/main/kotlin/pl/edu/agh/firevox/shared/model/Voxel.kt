@@ -12,6 +12,8 @@ data class Voxel(
     @EmbeddedId
     val key: VoxelKey,
 
+    var lastProcessedIteration : Int = 0,
+
     // even
     @ManyToOne
     var evenIterationMaterial: PhysicalMaterial,

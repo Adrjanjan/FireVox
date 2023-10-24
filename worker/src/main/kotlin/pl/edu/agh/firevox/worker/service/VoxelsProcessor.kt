@@ -32,7 +32,7 @@ class VoxelsProcessor(
                 if(k.iteration.toLong() == countersRepository.findByIdOrNull(CounterId.MAX_ITERATIONS)?.count!!){
                     log.info("Finishing calculation for voxel ${k.key} on iteration ${k.iteration}")
                 }
-                voxelProcessingMessageSender.send(k.also { it.iteration += 1 })
+                voxelProcessingMessageSender.send(k.key, k.iteration + 1)
             }
         }
     }
