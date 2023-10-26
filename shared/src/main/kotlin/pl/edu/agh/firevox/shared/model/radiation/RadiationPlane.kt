@@ -19,7 +19,8 @@ class RadiationPlane(
     val c: VoxelKey,
     @Transient
     val d: VoxelKey,
-    @Transient
+
+    // no longer transient so it can be used to detection during flame creation
     val normalVector: VoxelKey,
 
     @Id
@@ -45,6 +46,9 @@ class RadiationPlane(
     val voxelsCount: Int,
 
     val area: Double,
+
+    @Transient
+    val fullPlane: List<VoxelKey> = listOf(),
 ) {
     @Transient
     val middle = VoxelKey((a.x + b.x + c.x + d.x) / 4, (a.y + b.y + c.y + d.y) / 4, (a.z + b.z + c.z + d.z) / 4)

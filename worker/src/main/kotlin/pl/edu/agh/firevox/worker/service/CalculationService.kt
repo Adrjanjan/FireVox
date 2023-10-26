@@ -150,13 +150,14 @@ data class VoxelState(
     val key: VoxelKey,
     var material: PhysicalMaterial,
     var temperature: Double,
+    val wasProcessedThisIteration: Boolean,
     var burningEndIteration: Int = -1,
 )
 
 class InvalidSimulationState(s: String) : Throwable(s)
 
 fun Voxel.toVoxelState(iteration: Int) = when (iteration % 2) {
-    0 -> VoxelState(this.key, this.evenIterationMaterial, this.evenIterationTemperature,)
-    1 -> VoxelState(this.key, this.oddIterationMaterial, this.oddIterationTemperature,)
+    0 -> VoxelState(this.key, this.evenIterationMaterial, this.evenIterationTemperature, this.lastProcessedIteration >= iteration)
+    1 -> VoxelState(this.key, this.oddIterationMaterial, this.oddIterationTemperature, this.lastProcessedIteration >= iteration)
     else -> throw InvalidSimulationState("Number modulo 2 can't have value other than 0 or 1 ")
 }

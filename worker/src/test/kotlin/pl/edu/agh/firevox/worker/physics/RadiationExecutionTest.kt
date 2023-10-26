@@ -125,7 +125,7 @@ class RadiationExecutionTest(
             VoxelKey(32, 1, 0) to VoxelKey(0, 0, 1),
 
             VoxelKey(49, 10, 1) to VoxelKey(-1, 0, 0),
-            VoxelKey(50, 10, 1) to VoxelKey(1, 0, 0),
+            VoxelKey(51, 10, 1) to VoxelKey(1, 0, 0),
         )
 
         val matrix = Array(sizeX) { _ ->
@@ -154,7 +154,7 @@ class RadiationExecutionTest(
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k.id!!, i) }
+                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
                 log.info("Finished calculations")
                 synchroniserImpl.synchroniseRadiationResults(i.toLong())
                 log.info("Finished synchronisation")
@@ -190,7 +190,7 @@ class RadiationExecutionTest(
     }
 }
 
-fun isBoundary(k: VoxelKey) = k.x in 52..99 && k.z == 0
+fun isBoundary(k: VoxelKey) = k.x in 52..98 && k.z == 0
 
 
 fun ShouldSpec.getFile(name: String) = ClassPathResource(name).inputStream

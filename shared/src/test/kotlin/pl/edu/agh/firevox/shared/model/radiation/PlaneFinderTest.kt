@@ -251,10 +251,10 @@ class PlaneFinderTest : ShouldSpec({
                 VoxelKey(1, 2, 2),
                 VoxelKey(1, 2, 3),
                 VoxelKey(1, 2, 4),
-                VoxelKey(1, 3, 4),
+                VoxelKey(2, 2, 4),
                 VoxelKey(2, 3, 4),
                 VoxelKey(2, 3, 5),
-                VoxelKey(2, 3, 6),
+                VoxelKey(2, 4, 5),
                 VoxelKey(2, 4, 6),
             )
         }
@@ -275,10 +275,10 @@ class PlaneFinderTest : ShouldSpec({
                 VoxelKey(1, 2, 4),
                 VoxelKey(1, 2, 3),
                 VoxelKey(1, 2, 2),
-                VoxelKey(1, 1, 2),
+                VoxelKey(0, 2, 2),
                 VoxelKey(0, 1, 2),
                 VoxelKey(0, 1, 1),
-                VoxelKey(0, 1, 0),
+                VoxelKey(0, 0, 1),
                 VoxelKey(0, 0, 0),
             )
         }
@@ -315,10 +315,10 @@ class PlaneFinderTest : ShouldSpec({
                 VoxelKey(0, 1, 2),
                 VoxelKey(0, 2, 2),
                 VoxelKey(0, 2, 3),
-                VoxelKey(0, 2, 4),
+                VoxelKey(0, 3, 3),
                 VoxelKey(0, 3, 4),
                 VoxelKey(0, 3, 5),
-                VoxelKey(0, 3, 6),
+                VoxelKey(0, 4, 5),
                 VoxelKey(0, 4, 6),
             )
         }
@@ -392,6 +392,7 @@ class PlaneFinderTest : ShouldSpec({
             voxels = voxels.map(Voxel::key).toMutableSet(),
             voxelsCount = voxels.size,
             area = 1.0,
+            fullPlane = fullPlane,
         )
 
         val secondPlane = RadiationPlane(
@@ -403,14 +404,16 @@ class PlaneFinderTest : ShouldSpec({
             voxels = voxels.map(Voxel::key).toMutableSet(),
             voxelsCount = voxels.size,
             area = 4.0,
+            fullPlane = fullPlane,
         )
 
         // when
         val result = planeFinder.parallelViewFactor(firstPlane, secondPlane)
 
         // then
-        result shouldBeGreaterThan 0.1998 / 4 // 0.1998 is a result for the indices in the source where area is 1, here area is 4
-        result shouldBeLessThan 0.1999 / 4 // 0.1998 is a result for the indices in the source where area is 1, here area is 4
+//        https://kanamesasaki.github.io/viewfactor/
+        result shouldBeGreaterThan 0.4152531
+        result shouldBeLessThan 0.4152533
     }
 
     should("perpendicularViewFactor") {
@@ -433,6 +436,7 @@ class PlaneFinderTest : ShouldSpec({
             voxels = voxels.map(Voxel::key).toMutableSet(),
             voxelsCount = voxels.size,
             area = 1.0,
+            fullPlane = fullPlane,
         )
 
         val secondPlane = RadiationPlane(
@@ -444,14 +448,15 @@ class PlaneFinderTest : ShouldSpec({
             voxels = voxels.map(Voxel::key).toMutableSet(),
             voxelsCount = voxels.size,
             area = 4.0,
+            fullPlane = fullPlane,
         )
 
         // when
         val result = planeFinder.perpendicularViewFactor(firstPlane, secondPlane)
 
         // then
-        result shouldBeGreaterThan 0.20004 / 4 // 0.20004 is a result for the indices in the source where area is 1, here area is 4
-        result shouldBeLessThan 0.20005 / 4 // 0.20004 is a result for the indices in the source where area is 1, here area is 4
+        result shouldBeGreaterThan 0.20004
+        result shouldBeLessThan 0.20005
     }
 
 })

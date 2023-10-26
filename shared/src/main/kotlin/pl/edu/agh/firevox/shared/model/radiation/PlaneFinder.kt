@@ -98,7 +98,7 @@ class PlaneFinder @Autowired constructor(
 
     @Transactional
     fun divideIntoPlanes(
-        fullPlane: List<VoxelKey>, normalVector: VoxelKey,squareSize: Int
+        fullPlane: List<VoxelKey>, normalVector: VoxelKey, squareSize: Int
     ): List<RadiationPlane> {
         val minX = fullPlane.minOf { it.x }
         val minY = fullPlane.minOf { it.y }
@@ -184,6 +184,7 @@ class PlaneFinder @Autowired constructor(
                             voxels = voxels.toMutableSet(),
                             voxelsCount = voxels.size,
                             area = area(normalVector, a, b, c, d),
+                            fullPlane = fullPlane,
                         )
                     )
                 }
@@ -205,7 +206,13 @@ class PlaneFinder @Autowired constructor(
                         } else {
                             parallelViewFactor(first, second)
                         }
-                        val secondViewFactor = first.area * firstViewFactor / second.area
+
+                        val secondViewFactor = if (second.normalVector.dotProduct(first.normalVector) == 0) {
+                            perpendicularViewFactor(second, first)
+                        } else {
+                            parallelViewFactor(second, first)
+                        }
+
                         first.childPlanes.add(
                             PlanesConnection(
                                 parent = first, child = second, viewFactor = firstViewFactor,
@@ -234,19 +241,18 @@ class PlaneFinder @Autowired constructor(
         return unitlessArea(m[0], m[1], n[0], n[1]) * voxelLength.pow(2)
     }
 
-    private fun unitlessArea(a: Double, b: Double, c: Double, d: Double) = (abs(a - b) + 1) * (abs(c - d) + 1)
+    private fun unitlessArea(a: Double, b: Double, c: Double, d: Double) = abs(a - b) * abs(c - d)
 
     private fun obstructedView(first: RadiationPlane, second: RadiationPlane, voxels: Array<Array<IntArray>>): Boolean {
         val firstKeys = first.voxels
-        val secondKeys = second.voxels
 
         for (key in ddaStep(first.middle, second.middle)) {
             if (key == second.middle) return false
-            if (key.x == -1 || key.y == -1 || key.z == -1 || !voxels.contains(key)) return true
+            if (key.x == -1 || key.y == -1 || key.z == -1 || !voxels.contains(key)) return true // out of the model
             if (voxels[key] != 0) {
-                if (key in firstKeys) {
-                    continue
-                } else if (key in secondKeys) return false
+                if (key in firstKeys || key in second.fullPlane) {
+                    continue // ray still in first plane or is on the same level that the second see ie (55, 99, 5) -> (55, 5, 0)
+                } else if (key in second.voxels) return false // ray in second plane
                 return true
             }
         }
@@ -287,17 +293,17 @@ class PlaneFinder @Autowired constructor(
     }
 
     private fun validMove(
-        da: Double,
-        dc: Double,
-        db: Double,
-        a: Double,
-        b: Double,
-        c: Double,
-    ) = (da != 0.0) // there is no step in this direction
-            && ((dc != 0.0 && db != 0.0 && a <= c && a <= b) // 3d dda
-            || (dc == 0.0 && a <= b) // 2d dda in AB plane
-            || (db == 0.0 && a <= c) // 2d dda in AC plane
-            || (dc == 0.0 && db == 0.0))
+        dirInA: Double,
+        dirInC: Double,
+        dirInB: Double,
+        rayLengthA: Double,
+        rayLengthB: Double,
+        rayLengthC: Double,
+    ) = (dirInA != 0.0) // there is no step in this direction
+            && ((dirInC != 0.0 && dirInB != 0.0 && rayLengthA <= rayLengthC && rayLengthA <= rayLengthB) // 3d dda
+            || (dirInC == 0.0 && rayLengthA <= rayLengthB) // 2d dda in AB plane
+            || (dirInB == 0.0 && rayLengthA <= rayLengthC) // 2d dda in AC plane
+            || (dirInC == 0.0 && dirInB == 0.0)) // 1d dda in A plane
 
     // https://gamedev.stackexchange.com/questions/185569/how-to-check-if-two-normals-directions-look-at-each-other
     fun canSeeEachOther(
@@ -352,14 +358,14 @@ class PlaneFinder @Autowired constructor(
 
             else -> return 0.0
         }
-        val A1 = unitlessArea(x[0], x[1], y[0], y[1])
-        return 1 / (2 * PI * A1) * (1..2).sumOf { i ->
+        val A1 = 1/unitlessArea(x[0], x[1], y[0], y[1])
+        return A1 * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->
                     (1..2).sumOf { l ->
                         (-1.0).pow(i + j + k + l.toDouble()) * parallelIteratorFunction(
                             x[i - 1], y[j - 1], n[k - 1], e[l - 1], z
-                        )
+                        ) / (2 * PI)
                     }
                 }
             }
@@ -370,8 +376,9 @@ class PlaneFinder @Autowired constructor(
         uniqueCoordinate(first.a, first.b, first.c, first.d, f)
 
     private fun uniqueCoordinate(a: VoxelKey, b: VoxelKey, c: VoxelKey, d: VoxelKey, f: (VoxelKey) -> Int) =
-        listOf(f(a), f(b), f(c), f(d)).distinct().map(Int::toDouble)
+        listOf(f(a), f(b), f(c), f(d)).distinct()
             .let { if (it.size == 1) listOf(it[0], it[0]) else it }
+            .let { if(it[0] > it[1]) listOf(it[1].toDouble(), it[0] + 1.0) else listOf(it[0].toDouble(), it[1] + 1.0) }
 
     private fun parallelIteratorFunction(x: Double, y: Double, n: Double, e: Double, z: Double): Double {
         val u = x - e
@@ -437,14 +444,14 @@ class PlaneFinder @Autowired constructor(
             }
         }
 
-        val A1 = unitlessArea(x[0], x[1], y[0], y[1])
-        return 1 / (2 * PI * A1) * (1..2).sumOf { i ->
+        val A1 = 1/unitlessArea(x[0], x[1], y[0], y[1])
+        return A1 * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->
                     (1..2).sumOf { l ->
                         (-1.0).pow(i + j + k + l.toDouble()) * perpendicularIteratorFunction(
                             x[i - 1], y[j - 1], n[k - 1], e[l - 1]
-                        )
+                        ) / (2 * PI)
                     }
                 }
             }
@@ -453,7 +460,7 @@ class PlaneFinder @Autowired constructor(
 
     private fun perpendicularIteratorFunction(x: Double, y: Double, n: Double, e: Double): Double {
         var C = hypot(x, e)
-        if (C == 0.0) C = 10e-10 // to avoid dividing by zero
+        if (C == 0.0) C = 10e-6 // to avoid dividing by zero
         val D = (y - n) / C
         return (y - n) * C * atan(D) - 0.25 * C * C * (1 - D * D) * ln(C * C * (1 + D * D))
     }
@@ -462,6 +469,6 @@ class PlaneFinder @Autowired constructor(
 
 private operator fun Array<Array<IntArray>>.get(key: VoxelKey): Int = this[key.x][key.y][key.z]
 
-private fun Int.sq() = this * this
+private fun Int.sq() = this * this.toDouble()
 
 data class Vector(var x: Double, var y: Double, var z: Double)

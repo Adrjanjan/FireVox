@@ -12,8 +12,6 @@ data class Voxel(
     @EmbeddedId
     val key: VoxelKey,
 
-    var lastProcessedIteration : Int = 0,
-
     // even
     @ManyToOne
     var evenIterationMaterial: PhysicalMaterial,
@@ -25,6 +23,7 @@ data class Voxel(
     var oddIterationTemperature: Double,
 
     var isBoundaryCondition: Boolean = false,
+    var lastProcessedIteration : Int = 0,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
