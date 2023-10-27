@@ -49,6 +49,7 @@ class CalculationService(
             // only '=' is valid but
             return true
         }
+        handleVirtualThermometer(key, voxel) // before calculations to include radiation from previous iteration in saving
 
         if (voxel.isBoundaryCondition) {
             setNextProperties(voxel, iteration, listOf())
@@ -89,9 +90,10 @@ class CalculationService(
 
         setNextProperties(voxel, iteration, heatResults)
         voxelRepository.save(voxel)
-        handleVirtualThermometer(key, voxel)
 
-        voxelsToSendForSameIteration.forEach {
+        voxelsToSendForSameIteration.also {
+            countersRepository.add(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, it.size)
+        }.forEach {
             voxelProcessingMessageSender.send(it, iteration)
         }
 

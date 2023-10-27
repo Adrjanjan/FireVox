@@ -3,7 +3,7 @@ package pl.edu.agh.firevox.shared.model
 import jakarta.persistence.*
 
 @Entity
-@Table(name="materials")
+@Table(name = "materials")
 class PhysicalMaterial(
     @Column(nullable = false)
     val voxelMaterial: VoxelMaterial,

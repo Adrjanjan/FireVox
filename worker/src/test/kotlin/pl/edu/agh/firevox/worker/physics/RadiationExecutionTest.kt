@@ -21,6 +21,7 @@ import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
 import pl.edu.agh.firevox.worker.WorkerApplication
+import pl.edu.agh.firevox.worker.service.CalculationService
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
@@ -32,6 +33,7 @@ import kotlin.math.roundToInt
     classes = [WorkerApplication::class, ItTestConfig::class]
 )
 class RadiationExecutionTest(
+    val calculationService: CalculationService,
     val radiationCalculator: RadiationCalculator,
     val voxelRepository: VoxelRepository,
     val physicalMaterialRepository: PhysicalMaterialRepository,
@@ -154,6 +156,8 @@ class RadiationExecutionTest(
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
+                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
+                log.info("Finished conduction")
                 planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
                 log.info("Finished calculations")
                 synchroniserImpl.synchroniseRadiationResults(i.toLong())

@@ -32,11 +32,8 @@ class ConductionExecutionTest(
     val physicalMaterialRepository: PhysicalMaterialRepository,
     val simulationsRepository: SimulationsRepository,
     val countersRepository: CountersRepository,
-
-    @Value("\${firevox.timestep}")
-    val timeStep: Double,
-
-    ) : ShouldSpec({
+    @Value("\${firevox.timestep}") val timeStep: Double,
+) : ShouldSpec({
 
     context("save voxels from file") {
         val simulationTimeInSeconds = 100 // * 60

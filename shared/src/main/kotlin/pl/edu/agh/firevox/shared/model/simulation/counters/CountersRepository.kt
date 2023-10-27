@@ -28,6 +28,14 @@ interface CountersRepository : JpaRepository<Counter, CounterId>, JpaSpecificati
 
     @Query(
         """
+           update Counter c set c.count = c.count + :add where c.id = (:id) 
+        """
+    )
+    @Modifying
+    fun add(@Param("id") id: CounterId, add: Int)
+
+    @Query(
+        """
             update Counter c set c.count = (:value) where c.id = (:id) 
         """
     )

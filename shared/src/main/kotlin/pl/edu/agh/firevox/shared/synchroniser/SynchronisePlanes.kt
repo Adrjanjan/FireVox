@@ -42,7 +42,8 @@ class SynchronisePlanes(
                   (SELECT voxel_key_x, voxel_key_y, voxel_key_z
                    FROM plane_voxels
                    WHERE plane_id = $planeId)
-            and m.id = v.odd_iteration_material_id;
+            and m.id = v.odd_iteration_material_id
+            and v.is_boundary_condition = false; 
         """.trimIndent()
         jdbcTemplate.update(sql)
     }
@@ -57,7 +58,8 @@ class SynchronisePlanes(
                   (SELECT voxel_key_x, voxel_key_y, voxel_key_z
                    FROM plane_voxels
                    WHERE plane_id = $planeId)
-            and m.id = v.odd_iteration_material_id;
+            and m.id = v.odd_iteration_material_id
+            and v.is_boundary_condition = false;
         """.trimIndent()
         jdbcTemplate.update(sql)
     }
