@@ -55,23 +55,29 @@ class ConductionExecutionTest(
             thermalConductivityCoefficient = 235.0,
             convectionHeatTransferCoefficient = 0.0,
             specificHeatCapacity = 897.0,
-            flashPointTemperature = 0.0.toKelvin(),
-            burningTime = 0.0,
-            generatedEnergyDuringBurning = 0.0,
-            burntMaterial = null,
+            ignitionTemperature = null,
+            burningTime = null,
+            timeToIgnition = null,
+            autoignitionTemperature = null,
+            effectiveHeatOfCombustion = null,
+            smokeEmission = null,
+            deformationTemperature = 1000.0.toKelvin(),
         ).also(physicalMaterialRepository::save)
 
         PhysicalMaterial(
-            VoxelMaterial.AIR,
+            voxelMaterial = VoxelMaterial.AIR,
             density = 1.204,
-            baseTemperature = 20.toKelvin(),
+            baseTemperature = 20.0.toKelvin(),
             thermalConductivityCoefficient = 25.87,
             convectionHeatTransferCoefficient = 0.0,
             specificHeatCapacity = 1.0061,
-            flashPointTemperature = 0.0.toKelvin(),
-            burningTime = 0.0,
-            generatedEnergyDuringBurning = 0.0,
-            burntMaterial = null
+            ignitionTemperature = null,
+            timeToIgnition = null,
+            autoignitionTemperature = null,
+            burningTime = null,
+            effectiveHeatOfCombustion = null,
+            smokeEmission = null,
+            deformationTemperature = null
         ).also(physicalMaterialRepository::save)
 
         // scale - number of voxels per centimeter

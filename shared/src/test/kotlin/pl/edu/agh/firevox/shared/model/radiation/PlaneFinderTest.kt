@@ -22,10 +22,13 @@ class PlaneFinderTest : ShouldSpec({
         thermalConductivityCoefficient = 235.0,
         convectionHeatTransferCoefficient = 0.0,
         specificHeatCapacity = 897.0,
-        flashPointTemperature = 0.0.toKelvin(),
-        burningTime = 0.0,
-        generatedEnergyDuringBurning = 0.0,
-        burntMaterial = null,
+        ignitionTemperature = null,
+        timeToIgnition = null,
+        autoignitionTemperature = null,
+        burningTime = null,
+        effectiveHeatOfCombustion = null,
+        smokeEmission = null,
+        deformationTemperature = 700.toKelvin()
     )
 
     should("findPlanes") {
@@ -204,19 +207,22 @@ class PlaneFinderTest : ShouldSpec({
 
         // when
         val air = PhysicalMaterial(
-            VoxelMaterial.AIR,
+            voxelMaterial = VoxelMaterial.AIR,
             density = 1.204,
-            baseTemperature = 20.toKelvin(),
+            baseTemperature = 20.0,
             thermalConductivityCoefficient = 25.87,
             convectionHeatTransferCoefficient = 0.0,
             specificHeatCapacity = 1.0061,
-            flashPointTemperature = 0.0.toKelvin(),
-            burningTime = 0.0,
-            generatedEnergyDuringBurning = 0.0,
-            burntMaterial = null
+            ignitionTemperature = null,
+            timeToIgnition = null,
+            autoignitionTemperature = null,
+            burningTime = null,
+            effectiveHeatOfCombustion = null,
+            smokeEmission = null,
+            deformationTemperature = null
         )
 
-        every {physicalMaterialRepository.findAll() } returns listOf(air)
+        every { physicalMaterialRepository.findAll() } returns listOf(air)
 
         val planes = planeFinder.divideIntoPlanes(
             fullPlane,
@@ -380,7 +386,7 @@ class PlaneFinderTest : ShouldSpec({
         )
 
         val voxels = fullPlane.map {
-            Voxel(it, material, 0.0, material, 0.0)
+            Voxel(it, material, 0.0, oddIterationMaterial = material, oddIterationTemperature = 0.0)
         }
 
         val firstPlane = RadiationPlane(
@@ -424,7 +430,7 @@ class PlaneFinderTest : ShouldSpec({
             VoxelKey(1, 1, 0),
         )
         val voxels = fullPlane.map {
-            Voxel(it, material, 0.0, material, 0.0)
+            Voxel(it, material, 0.0, oddIterationMaterial = material, oddIterationTemperature = 0.0)
         }
 
         val firstPlane = RadiationPlane(

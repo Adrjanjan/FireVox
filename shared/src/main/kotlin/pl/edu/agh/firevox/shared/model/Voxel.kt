@@ -22,6 +22,11 @@ data class Voxel(
     var oddIterationMaterial: PhysicalMaterial,
     var oddIterationTemperature: Double,
 
+    var evenSmokeConcentration: Double = 0.0,
+    var oddSmokeConcentration: Double = 0.0,
+
+    var ignitingEndIteration: Int? = null,
+    var burningEndIteration: Int? = null,
     var isBoundaryCondition: Boolean = false,
     var lastProcessedIteration : Int = 0,
 ) {

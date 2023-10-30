@@ -70,10 +70,13 @@ class RadiationExecutionTest(
             thermalConductivityCoefficient = 2.071,
             convectionHeatTransferCoefficient = 0.0,
             specificHeatCapacity = 936.3,
-            flashPointTemperature = 0.0.toKelvin(),
-            burningTime = 0.0,
-            generatedEnergyDuringBurning = 0.0,
-            burntMaterial = null,
+            ignitionTemperature = null,
+            burningTime = null,
+            timeToIgnition = null,
+            autoignitionTemperature = null,
+            effectiveHeatOfCombustion = null,
+            smokeEmission = null,
+            deformationTemperature = null,
         ).also(physicalMaterialRepository::save)
 
         val voxels = model.voxels.map { (k, _) ->
@@ -94,10 +97,13 @@ class RadiationExecutionTest(
             thermalConductivityCoefficient = 25.87,
             convectionHeatTransferCoefficient = 0.0,
             specificHeatCapacity = 1.0061,
-            flashPointTemperature = 0.0.toKelvin(),
-            burningTime = 0.0,
-            generatedEnergyDuringBurning = 0.0,
-            burntMaterial = null
+            ignitionTemperature = null,
+            burningTime = null,
+            timeToIgnition = null,
+            autoignitionTemperature = null,
+            effectiveHeatOfCombustion = null,
+            smokeEmission = null,
+            deformationTemperature = null,
         ).also(physicalMaterialRepository::save)
 
         val sizeX = voxels.maxOf { it.key.x } + 1

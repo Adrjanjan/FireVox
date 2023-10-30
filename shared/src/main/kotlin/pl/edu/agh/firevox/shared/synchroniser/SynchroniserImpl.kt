@@ -53,12 +53,13 @@ class SynchroniserImpl    (
         val processedVoxels = countersRepository.findByIdOrNull(CounterId.PROCESSED_VOXEL_COUNT)!!
         val shouldBeProcessedVoxels =
             countersRepository.findByIdOrNull(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT)!!
-        if (processedVoxels.count != shouldBeProcessedVoxels.count) throw IterationNotFinishedException(iteration)
+        // new voxels to process may be added dynamically
+        if (processedVoxels.count >= shouldBeProcessedVoxels.count) throw IterationNotFinishedException(iteration)
 
         val processedPlanes = countersRepository.findByIdOrNull(CounterId.PROCESSED_RADIATION_PLANES_COUNT)!!
         val shouldBeProcessedPlanes =
             countersRepository.findByIdOrNull(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT)!!
-        if (processedPlanes.count != shouldBeProcessedPlanes.count) throw IterationNotFinishedException(iteration)
+        if (processedPlanes.count >= shouldBeProcessedPlanes.count) throw IterationNotFinishedException(iteration)
         return iteration
     }
 
