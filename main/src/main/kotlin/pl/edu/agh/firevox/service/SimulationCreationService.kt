@@ -84,18 +84,9 @@ class SimulationCreationService(
     }
 
     private val firstIterationMaterials = setOf(
-        WOOD_HEATED,
         WOOD_BURNING,
-        PLASTIC_HEATED,
         PLASTIC_BURNING,
-        TEXTILE_HEATED,
         TEXTILE_BURNING,
-        METAL_HEATED,
-        METAL_HOT,
-        METAL_VERY_HOT,
-        GLASS_HEATED,
-        GLASS_HOT,
-        GLASS_VERY_HOT,
         FLAME,
     )
 

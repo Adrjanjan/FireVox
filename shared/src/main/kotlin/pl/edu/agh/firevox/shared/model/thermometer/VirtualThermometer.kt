@@ -9,5 +9,6 @@ class VirtualThermometer(
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Int = 0,
     val voxelKey: VoxelKey,
+    @Lob
     var measurements: String = ""
 )

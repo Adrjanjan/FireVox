@@ -82,6 +82,11 @@ class PhysicalMaterial(
     fun isLiquid() = this.voxelMaterial in listOf(
         VoxelMaterial.WATER,
     )
+
+    override fun toString(): String {
+        return voxelMaterial.name
+    }
+
 }
 
 @Configuration

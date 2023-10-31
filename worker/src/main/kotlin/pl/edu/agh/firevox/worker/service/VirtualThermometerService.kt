@@ -3,9 +3,11 @@ package pl.edu.agh.firevox.worker.service
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.thermometer.VirtualThermometer
 import pl.edu.agh.firevox.shared.model.thermometer.VirtualThermometerRepository
+import pl.edu.agh.firevox.shared.model.toCelsius
 
 @Service
 class VirtualThermometerService(
@@ -28,9 +30,13 @@ class VirtualThermometerService(
 
     fun check(key: VoxelKey) = virtualThermometerRepository.existsByVoxelKey(key)
 
+    @Transactional
     fun update(key: VoxelKey, value: Double) {
-        virtualThermometerRepository.updateValue(key, value)
+        virtualThermometerRepository.findByVoxelKey(key)?.let {
+            it.measurements += ", ${value.toCelsius()}"
+        }
     }
 
+    @Transactional
     fun getMeasurements(key: VoxelKey) = virtualThermometerRepository.findByVoxelKey(key)?.measurements ?: ""
 }

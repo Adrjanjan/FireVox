@@ -90,22 +90,6 @@ class RadiationExecutionTest(
             )
         }
 
-        PhysicalMaterial(
-            VoxelMaterial.AIR,
-            density = 1.204,
-            baseTemperature = 20.toKelvin(),
-            thermalConductivityCoefficient = 25.87,
-            convectionHeatTransferCoefficient = 0.0,
-            specificHeatCapacity = 1.0061,
-            ignitionTemperature = null,
-            burningTime = null,
-            timeToIgnition = null,
-            autoignitionTemperature = null,
-            effectiveHeatOfCombustion = null,
-            smokeEmission = null,
-            deformationTemperature = null,
-        ).also(physicalMaterialRepository::save)
-
         val sizeX = voxels.maxOf { it.key.x } + 1
         val sizeY = voxels.maxOf { it.key.y } + 1
         val sizeZ = voxels.maxOf { it.key.z } + 1

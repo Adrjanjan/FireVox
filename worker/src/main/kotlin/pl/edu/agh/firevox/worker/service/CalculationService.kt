@@ -57,9 +57,13 @@ class CalculationService(
             // only '=' is valid but
             return true
         }
+        val voxelState = voxel.toVoxelState(iteration)
+
         handleVirtualThermometer(
-            key, voxel
+            key, voxelState
         ) // before calculations to include radiation from previous iteration in saving
+
+//        log.info("Processing voxel $voxel for iteration $iteration")
 
         if (voxel.isBoundaryCondition) {
             setNextProperties(voxel, iteration, listOf(), null, 0.0, null, null)
@@ -74,7 +78,6 @@ class CalculationService(
 
         val neighbours =
             fillMissingVoxelsInsideModel(foundNeighbors, validKeysWithMissingVoxel).map { it.toVoxelState(iteration) }
-        val voxelState = voxel.toVoxelState(iteration)
 
         // heat transfer calculators
         val conductionResult = if (voxelState.material.isSolid() || voxelState.material.isFluid()) {
@@ -103,11 +106,11 @@ class CalculationService(
         setNextProperties(voxel, iteration, heatResults, newMaterial, smokeUpdate, null, null)
         voxelRepository.save(voxel)
 
-        voxelsToSendForSameIteration.also {
-            countersRepository.add(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, it.size)
-        }.forEach {
-            voxelProcessingMessageSender.send(it, iteration)
-        }
+//        voxelsToSendForSameIteration.also {
+//            countersRepository.add(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, it.size)
+//        }.forEach {
+//            voxelProcessingMessageSender.send(it, iteration)
+//        }
 
         countersRepository.increment(CounterId.PROCESSED_VOXEL_COUNT)
         countersRepository.increment(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT)
@@ -160,9 +163,9 @@ class CalculationService(
         return neighbours.also(voxelRepository::saveAll)
     }
 
-    private fun handleVirtualThermometer(key: VoxelKey, voxel: Voxel) {
+    private fun handleVirtualThermometer(key: VoxelKey, voxel: VoxelState) {
         if (virtualThermometerService.check(key)) {
-            virtualThermometerService.update(key, voxel.oddIterationTemperature)
+            virtualThermometerService.update(key, voxel.temperature)
         }
     }
 
