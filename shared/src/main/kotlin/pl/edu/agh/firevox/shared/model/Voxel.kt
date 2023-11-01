@@ -25,8 +25,8 @@ data class Voxel(
     var evenSmokeConcentration: Double = 0.0,
     var oddSmokeConcentration: Double = 0.0,
 
-    var ignitingEndIteration: Int? = null,
-    var burningEndIteration: Int? = null,
+    var ignitingCounter: Int = 0,
+    var burningCounter: Int = 0,
     var isBoundaryCondition: Boolean = false,
     var lastProcessedIteration : Int = 0,
 ) {

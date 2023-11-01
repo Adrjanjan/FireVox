@@ -32,7 +32,9 @@ class PhysicalMaterial(
     val smokeEmission: Double?, // no unit
     val deformationTemperature: Double?, // unit K
 
+    val burnsCompletely: Boolean = false
 ) {
+
     @Id
     val id: Int = voxelMaterial.colorId
 
@@ -77,6 +79,12 @@ class PhysicalMaterial(
     fun transfersSmoke() = this.voxelMaterial in listOf(
         VoxelMaterial.AIR,
         VoxelMaterial.SMOKE,
+    )
+
+    fun canContainOxygen() = this.voxelMaterial in listOf(
+        VoxelMaterial.AIR,
+        VoxelMaterial.SMOKE,
+        VoxelMaterial.FLAME,
     )
 
     fun isLiquid() = this.voxelMaterial in listOf(

@@ -54,19 +54,17 @@ class CalculationService(
             ?: throw InvalidSimulationState("Calculation for voxel with key $key can't be made - voxel not found")
 
         if (voxel.lastProcessedIteration >= iteration) {
-            // only '=' is valid but
+            // only '=' is valid but for the sake of not crashing
             return true
         }
         val voxelState = voxel.toVoxelState(iteration)
 
-        handleVirtualThermometer(
-            key, voxelState
-        ) // before calculations to include radiation from previous iteration in saving
+        handleVirtualThermometer(key, voxelState)
 
 //        log.info("Processing voxel $voxel for iteration $iteration")
 
         if (voxel.isBoundaryCondition) {
-            setNextProperties(voxel, iteration, listOf(), null, 0.0, null, null)
+            setNextProperties(voxel, iteration, listOf(), null, 0.0, voxel.ignitingCounter, voxel.burningCounter)
             return true
         }
 
@@ -123,26 +121,63 @@ class CalculationService(
         iteration: Int,
         smokeUpdate: Double
     ) = when {
-        // TODO
-        voxelState.material.isFlammable() // ignite flammable
-        -> ignitionCalculator.calculate(voxelState, neighbours, timeStep, iteration)
+        // 1 air -> smoke
+        voxelState.material.voxelMaterial == VoxelMaterial.AIR && smokeUpdate > 0
+        -> physicalMaterialRepository.findByVoxelMaterial(
+            if (voxelState.temperature < smokeIntoFireThreshold) VoxelMaterial.SMOKE else VoxelMaterial.FLAME
+        )
 
-        voxelState.material.isBurning() && voxelState.burningEndIteration!! > iteration // burning finished
-//        -> physicalMaterialRepository.findByVoxelMaterial(burningToBurnt[voxelState.material.voxelMaterial]!!)
-        -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
-
-        voxelState.material.transfersSmoke() // is air/smoke but started burning below be flame
+        // 2 smoke -> flame && flame start
+        voxelState.material.transfersSmoke() // is air/smoke but voxel below started burning
                 && neighbours.firstOrNull { it.key.isBelow(voxelState.key) }?.material?.isBurning() == true
                 || voxelState.material.voxelMaterial == VoxelMaterial.SMOKE && voxelState.temperature > smokeIntoFireThreshold
         -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.FLAME)
 
-        smokeUpdate > 0 // transfersSmoke() + smokeUpdate > 0 -> smoke
-        -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.SMOKE)
-
-        voxelState.material.transfersSmoke() && voxelState.smokeConcentration + smokeUpdate == 0.0
-            // transfers smoke + smokeConcentration == 0
+        // 3 flame -> air
+        voxelState.material.voxelMaterial == VoxelMaterial.FLAME
+                && voxelState.temperature < smokeIntoFireThreshold
+                && voxelState.smokeConcentration == 0.0
         -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
 
+        // 4 air -> flame
+        voxelState.material.voxelMaterial == VoxelMaterial.AIR
+                && voxelState.temperature > smokeIntoFireThreshold
+                && voxelState.smokeConcentration > 0.0
+        -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.FLAME)
+
+        // 5 flame -> smoke
+        voxelState.material.voxelMaterial == VoxelMaterial.FLAME
+                && voxelState.temperature < smokeIntoFireThreshold
+                && voxelState.smokeConcentration > 0.0
+        -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.SMOKE)
+
+        // 6 smoke -> air
+        voxelState.material.transfersSmoke() && voxelState.smokeConcentration + smokeUpdate == 0.0
+        -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
+
+        // 7 glass -> air
+        voxelState.material.voxelMaterial == VoxelMaterial.GLASS
+                && voxelState.temperature >= voxelState.material.deformationTemperature!!
+        -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
+
+        // 11 flammable -> burning
+        voxelState.material.isFlammable() // ignite flammable
+        -> ignitionCalculator.calculate(voxelState, neighbours, timeStep, iteration)
+
+        // 13 burning -> burnt
+        // 15 burnt -> air
+        voxelState.material.isBurning()
+                && voxelState.burningCounter * timeStep > voxelState.material.burningTime!!
+        -> if (voxelState.material.burnsCompletely)
+            physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
+        else voxelState.material
+
+
+        // 8 glass -> glass
+        // 9 metal -> metal
+        // 12 burning -> burning
+        // 10 flammable -> flammable
+        // 14 burnt -> burnt
         else -> voxelState.material
     }
 
@@ -175,24 +210,25 @@ class CalculationService(
         heatResults: List<Double>,
         newMaterial: PhysicalMaterial?,
         smokeUpdate: Double,
-        ignitingEndIteration: Int?,
-        burningEndIteration: Int?,
+        ignitingCounter: Int? = null,
+        burningCounter: Int? = null,
     ) {
+        // state not used outside
         voxel.lastProcessedIteration = iteration
-        return if (iteration % 2 == 0) {
+        ignitingCounter?.also { voxel.ignitingCounter = it }
+        burningCounter?.also { voxel.burningCounter = it }
+
+        // state used outside voxel
+        if (iteration % 2 == 0) {
             val resultTemp = voxel.evenIterationTemperature + heatResults.sum()
             voxel.oddIterationTemperature = resultTemp
             voxel.oddIterationMaterial = newMaterial ?: voxel.oddIterationMaterial
             voxel.oddSmokeConcentration = smokeUpdate
-            voxel.ignitingEndIteration = ignitingEndIteration
-            voxel.burningEndIteration = burningEndIteration
         } else {
             val resultTemp = voxel.oddIterationTemperature + heatResults.sum()
             voxel.evenIterationTemperature = resultTemp
             voxel.evenIterationMaterial = newMaterial ?: voxel.evenIterationMaterial
             voxel.evenSmokeConcentration = smokeUpdate
-            voxel.ignitingEndIteration = ignitingEndIteration
-            voxel.burningEndIteration = burningEndIteration
         }
     }
 
@@ -204,8 +240,6 @@ data class VoxelState(
     var temperature: Double,
     val wasProcessedThisIteration: Boolean,
     val smokeConcentration: Double,
-    var ignitingEndIteration: Int?,
-    var burningEndIteration: Int?,
     var ignitingCounter: Int = 0,
     var burningCounter: Int = 0,
 )
@@ -219,8 +253,8 @@ fun Voxel.toVoxelState(iteration: Int) = if (iteration % 2 == 0)
         this.evenIterationTemperature,
         this.lastProcessedIteration >= iteration,
         this.evenSmokeConcentration,
-        this.burningEndIteration,
-        this.ignitingEndIteration,
+        this.ignitingCounter,
+        this.burningCounter,
     ) else
     VoxelState(
         this.key,
@@ -228,6 +262,6 @@ fun Voxel.toVoxelState(iteration: Int) = if (iteration % 2 == 0)
         this.oddIterationTemperature,
         this.lastProcessedIteration >= iteration,
         this.oddSmokeConcentration,
-        this.burningEndIteration,
-        this.ignitingEndIteration,
+        this.ignitingCounter,
+        this.burningCounter,
     )
