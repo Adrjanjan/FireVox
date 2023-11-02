@@ -75,7 +75,7 @@ class RadiationExecutionTest(
             timeToIgnition = null,
             autoignitionTemperature = null,
             effectiveHeatOfCombustion = null,
-            smokeEmission = null,
+            smokeEmissionPerSecond = null,
             deformationTemperature = null,
         ).also(physicalMaterialRepository::save)
 

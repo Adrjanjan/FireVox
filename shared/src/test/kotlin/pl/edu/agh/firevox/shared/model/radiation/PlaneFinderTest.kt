@@ -27,7 +27,7 @@ class PlaneFinderTest : ShouldSpec({
         autoignitionTemperature = null,
         burningTime = null,
         effectiveHeatOfCombustion = null,
-        smokeEmission = null,
+        smokeEmissionPerSecond = null,
         deformationTemperature = 700.toKelvin()
     )
 
@@ -218,7 +218,7 @@ class PlaneFinderTest : ShouldSpec({
             autoignitionTemperature = null,
             burningTime = null,
             effectiveHeatOfCombustion = null,
-            smokeEmission = null,
+            smokeEmissionPerSecond = null,
             deformationTemperature = null
         )
 

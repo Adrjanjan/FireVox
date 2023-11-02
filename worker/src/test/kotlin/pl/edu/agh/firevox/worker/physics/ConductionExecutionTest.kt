@@ -60,7 +60,7 @@ class ConductionExecutionTest(
             timeToIgnition = null,
             autoignitionTemperature = null,
             effectiveHeatOfCombustion = null,
-            smokeEmission = null,
+            smokeEmissionPerSecond = null,
             deformationTemperature = 1000.0.toKelvin(),
         ).also(physicalMaterialRepository::save)
 

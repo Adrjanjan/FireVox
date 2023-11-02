@@ -29,7 +29,7 @@ class PhysicalMaterial(
     val burningTime: Double?, // unit s
     val effectiveHeatOfCombustion: Double?, // unit J/s
 
-    val smokeEmission: Double?, // no unit
+    val smokeEmissionPerSecond: Double?, // no unit
     val deformationTemperature: Double?, // unit K
 
     val burnsCompletely: Boolean = false
@@ -122,7 +122,7 @@ class MaterialsConfig(
             autoignitionTemperature = null,
             burningTime = null,
             effectiveHeatOfCombustion = null,
-            smokeEmission = null,
+            smokeEmissionPerSecond = null,
             deformationTemperature = null
         ).let(materials::add)
 
