@@ -28,7 +28,7 @@ data class Voxel(
     var ignitingCounter: Int = 0,
     var burningCounter: Int = 0,
     var isBoundaryCondition: Boolean = false,
-    var lastProcessedIteration : Int = 0,
+    var lastProcessedIteration : Int = -1,
 ) {
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

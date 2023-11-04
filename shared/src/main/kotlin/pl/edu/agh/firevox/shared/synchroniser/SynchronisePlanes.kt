@@ -35,7 +35,7 @@ class SynchronisePlanes(
     fun updateOddTemperature(qNet: Double, planeId: Int, voxelsCount: Int) {
         val sql = """
             UPDATE voxels v
-            SET odd_iteration_temperature = v.odd_iteration_temperature +
+            SET odd_iteration_temperature = v.odd_iteration_temperature +  
                                             $qNet / ($volume * m.density * m.specific_heat_capacity * $voxelsCount)
             from materials m
             WHERE (v.x, v.y, v.z) IN

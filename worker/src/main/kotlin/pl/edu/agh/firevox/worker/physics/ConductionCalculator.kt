@@ -23,12 +23,12 @@ class ConductionCalculator(
         val volume: Double = voxelLength.pow(3)
         val currentMaterial = voxel.material
 
-        val lambda = currentMaterial.thermalConductivityCoefficient /
+        val lambda = 1 /
                 (currentMaterial.density * volume * currentMaterial.specificHeatCapacity)
 
         return lambda * voxelLength * timeStep * voxels.filter { includeInConduction(it, voxel) } .also { vs ->
             voxelsToSend.addAll(vs.filterNot { it.wasProcessedThisIteration }.map { it.key })
-        }.sumOf { (it.temperature - voxel.temperature) }
+        }.sumOf { (it.material.thermalConductivityCoefficient * it.temperature - voxel.material.thermalConductivityCoefficient * voxel.temperature) }
     }
 
     private fun includeInConduction(it: VoxelState, voxel: VoxelState) = it.key != voxel.key

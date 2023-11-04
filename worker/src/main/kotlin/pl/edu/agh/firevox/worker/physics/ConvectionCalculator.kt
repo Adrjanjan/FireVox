@@ -21,17 +21,18 @@ class ConvectionCalculator(
      * m = material.density * V
      * C = material.heatCapacity
      **/
-    fun calculate(voxel: VoxelState, voxels: List<VoxelState>, timeStep: Double, voxelsToSend: MutableList<VoxelKey>): Double {
+    fun calculate(
+        voxel: VoxelState, voxels: List<VoxelState>, timeStep: Double, voxelsToSend: MutableList<VoxelKey>
+    ): Double {
         val lower = voxels.firstOrNull { it.key.isBelow(voxel.key) && it.material.isFluid() }
         val upper = voxels.firstOrNull { it.key.isAbove(voxel.key) && it.material.isFluid() }
         val currentMaterial = voxel.material
-        val alpha = currentMaterial.convectionHeatTransferCoefficient /
-                (currentMaterial.density * voxelLength.pow(5) * currentMaterial.specificHeatCapacity)
+        val alpha = 1 / (currentMaterial.density * voxelLength.pow(5) * currentMaterial.specificHeatCapacity)
         val currentAsTd = upper?.also { voxelsToSend.add(it.key) }
-            ?.let { alpha * (voxel.temperature - it.temperature) * timeStep }
+            ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient * voxel.temperature - it.material.convectionHeatTransferCoefficient * it.temperature) * timeStep }
             ?: 0.0
         val currentAsTu = lower?.also { voxelsToSend.add(it.key) }
-            ?.let { alpha * (voxel.temperature - it.temperature) * timeStep }
+            ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient * voxel.temperature - it.material.convectionHeatTransferCoefficient * it.temperature) * timeStep }
             ?: 0.0
         //
         return voxel.temperature + currentAsTd + currentAsTu

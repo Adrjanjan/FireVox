@@ -9,9 +9,9 @@ import pl.edu.agh.firevox.shared.model.CustomVoxelRepository
 import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.simulation.PaletteType
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
+import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
+import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
-import pl.edu.agh.firevox.synchroniser.CounterId
-import pl.edu.agh.firevox.synchroniser.CountersRepository
 import java.io.OutputStream
 
 @Service

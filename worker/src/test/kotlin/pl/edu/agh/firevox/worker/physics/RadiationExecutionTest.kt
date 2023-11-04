@@ -29,6 +29,7 @@ import kotlin.math.roundToInt
     properties = [
         "firevox.timestep=0.1",
         "firevox.voxel.size=0.01",
+        "firevox.smokeIntoFireThreshold=150",
     ],
     classes = [WorkerApplication::class, ItTestConfig::class]
 )

@@ -38,5 +38,6 @@ class VirtualThermometerService(
     }
 
     @Transactional
-    fun getMeasurements(key: VoxelKey) = virtualThermometerRepository.findByVoxelKey(key)?.measurements ?: ""
+    fun getMeasurements(key: VoxelKey) =
+        virtualThermometerRepository.findByVoxelKey(key)?.measurements?.substring(2) ?: ""
 }
