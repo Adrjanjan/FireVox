@@ -2,14 +2,19 @@ package pl.edu.agh.firevox.worker.physics
 
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.VoxelKey
-import pl.edu.agh.firevox.shared.model.VoxelMaterial
 import pl.edu.agh.firevox.worker.service.VoxelState
 import kotlin.math.min
 
 @Service
 class SmokeCalculator {
 
-    fun calculate(voxel: VoxelState, neighbours: List<VoxelState>, timeStep: Double, iteration: Int): Double {
+    fun calculate(
+        voxel: VoxelState,
+        neighbours: List<VoxelState>,
+        timeStep: Double,
+        iteration: Int,
+        voxelsToSend: MutableSet<VoxelKey>,
+    ): Double {
         val upper = neighbours.firstOrNull { it.key.isAbove(voxel.key) }
         val canUpperAccept = upper?.let {
             !it.material.isSolid() && it.smokeConcentration + smokeTransfer(
@@ -35,6 +40,7 @@ class SmokeCalculator {
                 // smoke is transferred
                 gainedSmoke += smokeTransfer(n.smokeConcentration, voxel.smokeConcentration) * voxelFactor
                 lostSmoke += smokeTransfer(voxel.smokeConcentration, n.smokeConcentration) * nFactor
+                voxelsToSend.add(n.key)
             }
         }
         return voxel.smokeConcentration + gainedSmoke - lostSmoke

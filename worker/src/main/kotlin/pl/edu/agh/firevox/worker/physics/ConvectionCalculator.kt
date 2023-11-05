@@ -11,6 +11,8 @@ class ConvectionCalculator(
     @Value("\${firevox.voxel.size}") val voxelLength: Double,
 ) {
 
+    private val delta = 10e-5
+    private val lPow5 = voxelLength.pow(5)
     /**
      * Only natural convection is included
      *
@@ -22,17 +24,19 @@ class ConvectionCalculator(
      * C = material.heatCapacity
      **/
     fun calculate(
-        voxel: VoxelState, voxels: List<VoxelState>, timeStep: Double, voxelsToSend: MutableList<VoxelKey>
+        voxel: VoxelState, voxels: List<VoxelState>, timeStep: Double, voxelsToSend: MutableSet<VoxelKey>
     ): Double {
         val lower = voxels.firstOrNull { it.key.isBelow(voxel.key) && it.material.isFluid() }
         val upper = voxels.firstOrNull { it.key.isAbove(voxel.key) && it.material.isFluid() }
         val currentMaterial = voxel.material
-        val alpha = 1 / (currentMaterial.density * voxelLength.pow(5) * currentMaterial.specificHeatCapacity)
-        val currentAsTd = upper?.also { voxelsToSend.add(it.key) }
+        val alpha = 1 / (currentMaterial.density * lPow5 * currentMaterial.specificHeatCapacity) //  1/mass(density * length.pow(3)) * area(length.pow(2)) * shc
+        val currentAsTd = upper
             ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient * voxel.temperature - it.material.convectionHeatTransferCoefficient * it.temperature) * timeStep }
+            ?.also { if(it > delta) voxelsToSend.add(upper.key) }
             ?: 0.0
-        val currentAsTu = lower?.also { voxelsToSend.add(it.key) }
+        val currentAsTu = lower
             ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient * voxel.temperature - it.material.convectionHeatTransferCoefficient * it.temperature) * timeStep }
+            ?.also { if(it > delta) voxelsToSend.add(lower.key) }
             ?: 0.0
         //
         return voxel.temperature + currentAsTd + currentAsTu

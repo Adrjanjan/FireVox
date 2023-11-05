@@ -1,5 +1,7 @@
 package pl.edu.agh.firevox.shared.model.simulation
 
+import pl.edu.agh.firevox.shared.model.VoxelMaterial
+
 data class Palette(
     val paletteType: PaletteType,
     val colours: Set<Colour>
@@ -270,38 +272,38 @@ data class Palette(
             PaletteType.BASE_PALETTE,
             mutableSetOf(
 //                Colour(1, 0, 0, 0, 0), //AIR
-                Colour(1, 102, 102, 102), // SMOKE
+                Colour(VoxelMaterial.SMOKE.colorId, 102, 102, 102),
                 // Bronze
-                Colour(2, 153, 34, 0), // WOOD
-                Colour(3, 204, 68, 0), // WOOD_HEATED
-                Colour(4, 255, 102, 0), // WOOD_BURNING
-                Colour(5, 102, 0, 0), // WOOD_BURNT
+                Colour(VoxelMaterial.WOOD.colorId, 153, 34, 0),
+//                Colour(VoxelMaterial.WOOD_HEATED.colorId, 204, 68, 0),
+                Colour(VoxelMaterial.WOOD_BURNING.colorId, 255, 102, 0),
+                Colour(VoxelMaterial.WOOD_BURNT.colorId, 102, 0, 0),
                 // Green
-                Colour(6, 0, 119, 0), // PLASTIC
-                Colour(7, 0, 187, 0), // PLASTIC_HEATED
-                Colour(8, 0, 255, 0), // PLASTIC_BURNING
-                Colour(9, 0, 51, 0), // PLASTIC_BURNT
+                Colour(VoxelMaterial.PLASTIC.colorId, 0, 119, 0),
+//                Colour(VoxelMaterial.PLASTIC_HEATED.colorId, 0, 187, 0),
+                Colour(VoxelMaterial.PLASTIC_BURNING.colorId, 0, 255, 0),
+                Colour(VoxelMaterial.PLASTIC_BURNT.colorId, 0, 51, 0),
                 // Pink
-                Colour(10, 153, 0, 153), // TEXTILE
-                Colour(11, 204, 0, 204), // TEXTILE_HEATED //179?
-                Colour(12, 255, 0, 255), // TEXTILE_BURNING
-                Colour(13, 102, 0, 102), // TEXTILE_BURNT
+                Colour(VoxelMaterial.TEXTILE.colorId, 153, 0, 153),
+//                Colour(VoxelMaterial.TEXTILE_HEATED.colorId, 204, 0, 204),
+                Colour(VoxelMaterial.TEXTILE_BURNING.colorId, 255, 0, 255),
+                Colour(VoxelMaterial.TEXTILE_BURNT.colorId, 102, 0, 102),
                 // Blue
-                Colour(14, 0, 0, 102), // METAL
-                Colour(15, 0, 0, 153), // METAL_HEATED
-                Colour(16, 0, 0, 204), // METAL_HOT
-                Colour(17, 0, 0, 255), // METAL_VERY_HOT
+                Colour(VoxelMaterial.METAL.colorId, 0, 0, 102),
+//                Colour(VoxelMaterial.METAL_HEATED.colorId, 0, 0, 153),
+//                Colour(VoxelMaterial.METAL_HOT.colorId, 0, 0, 204),
+//                Colour(VoxelMaterial.METAL_VERY_HOT.colorId, 0, 0, 255),
                 // Yellow
-                Colour(18, 102, 102, 0), // GLASS
-                Colour(19, 153, 153, 0), // GLASS_HEATED
-                Colour(20, 204, 204, 0), // GLASS_HOT
-                Colour(21, 255, 255, 0), // GLASS_VERY_HOT
+                Colour(VoxelMaterial.GLASS.colorId, 102, 102, 0),
+//                Colour(VoxelMaterial.GLASS_HEATED.colorId, 153, 153, 0),
+//                Colour(VoxelMaterial.GLASS_HOT.colorId, 204, 204, 0),
+//                Colour(VoxelMaterial.GLASS_VERY_HOT.colorId, 255, 255, 0),
                 // Gray
-                Colour(22, 34, 34, 34), // CONCRETE
+                Colour(VoxelMaterial.CONCRETE.colorId, 34, 34, 34),
                 // Red
-                Colour(23, 255, 0, 0), // FLAME
+                Colour(VoxelMaterial.FLAME.colorId, 255, 0, 0),
                 // White
-                Colour(24, 255, 255, 255), // WATER
+                Colour(VoxelMaterial.WATER.colorId, 255, 255, 255),
             ).also { set ->
                 for (i in set.maxOf { it.index }..256)
                 set.add(Colour(i, 0, 0, 0, 0))

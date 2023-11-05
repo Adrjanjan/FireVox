@@ -21,7 +21,7 @@ class BurningCalculator(
      * C = material.heatCapacity
      * deltaQ = delta T * generatedEnergyPerSecond
     **/
-    fun calculate(voxel: VoxelState, timeStep: Double, iteration: Int, voxelsToSend: MutableList<VoxelKey>): Double {
+    fun calculate(voxel: VoxelState, timeStep: Double, iteration: Int): Double {
         voxel.burningCounter += 1
         val volume: Double = voxelLength.pow(3)
         val currentMaterial = voxel.material

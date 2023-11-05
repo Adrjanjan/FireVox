@@ -68,7 +68,7 @@ class CalculationService(
             return true
         }
 
-        val voxelsToSendForSameIteration = mutableListOf<VoxelKey>()
+        val voxelsToSendForSameIteration = mutableSetOf<VoxelKey>()
         val modelSize = simulationRepository.fetchSize()
         val (foundNeighbors, validKeysWithMissingVoxel) = voxelRepository.findNeighbors(
             voxel.key, NeighbourhoodType.N_E_W_S_U_L_, modelSize
@@ -84,18 +84,16 @@ class CalculationService(
 
         val convectionResult = if (voxelState.material.isFluid()) convectionCalculator.calculate(
             voxelState, neighbours, timeStep, voxelsToSendForSameIteration
-        )
-        else 0.0
+        ) else 0.0
 
         val burningResult = if (voxelState.material.isBurning()) burningCalculator.calculate(
-            voxelState, timeStep, iteration, voxelsToSendForSameIteration
-        ) else 0.0
+            voxelState, timeStep, iteration ) else 0.0
         val heatResults = listOf(
             conductionResult, convectionResult, burningResult
         )
 
         val smokeUpdate = if (voxelState.material.transfersSmoke()) {
-            smokeTransferCalculator.calculate(voxelState, neighbours, timeStep, iteration)
+            smokeTransferCalculator.calculate(voxelState, neighbours, timeStep, iteration, voxelsToSendForSameIteration)
         } else 0.0
 
         // state change calculations

@@ -114,7 +114,7 @@ class MaterialsConfig(
         PhysicalMaterial(
             voxelMaterial = VoxelMaterial.AIR,
             density = 1.204,
-            baseTemperature = 20.0.toKelvin(),
+            baseTemperature = 25.0.toKelvin(),
             thermalConductivityCoefficient = 25.87,
             convectionHeatTransferCoefficient = 38.0,
             specificHeatCapacity = 1015.0,

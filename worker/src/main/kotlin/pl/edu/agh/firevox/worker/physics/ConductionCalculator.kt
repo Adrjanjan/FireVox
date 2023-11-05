@@ -18,7 +18,7 @@ class ConductionCalculator(
         voxel: VoxelState,
         voxels: List<VoxelState>,
         timeStep: Double,
-        voxelsToSend: MutableList<VoxelKey>
+        voxelsToSend: MutableSet<VoxelKey>
     ): Double {
         val volume: Double = voxelLength.pow(3)
         val currentMaterial = voxel.material

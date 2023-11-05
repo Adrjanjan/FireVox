@@ -32,7 +32,7 @@ import kotlin.math.roundToInt
     ],
     classes = [WorkerApplication::class, ItTestConfig::class]
 )
-class RadiationExecutionTest(
+class SmokeExecutionTest(
     val calculationService: CalculationService,
     val radiationCalculator: RadiationCalculator,
     val voxelRepository: VoxelRepository,
@@ -63,32 +63,20 @@ class RadiationExecutionTest(
         // when
         val model = VoxFormatParser.read(input)
 
-        val baseMaterial = PhysicalMaterial(
-            VoxelMaterial.CONCRETE,
-            density = 2392.0,
-            baseTemperature = 25.toKelvin(),
-            thermalConductivityCoefficient = 2.071,
-            convectionHeatTransferCoefficient = 0.0,
-            specificHeatCapacity = 936.3,
-            ignitionTemperature = null,
-            burningTime = null,
-            timeToIgnition = null,
-            autoignitionTemperature = null,
-            effectiveHeatOfCombustion = null,
-            smokeEmissionPerSecond = null,
-            deformationTemperature = null,
-        ).also(physicalMaterialRepository::save)
+        val wood = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.WOOD)
+        val concrete = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.CONCRETE)
+        val air = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
 
         val voxels = model.voxels.map { (k, _) ->
             Voxel(
                 VoxelKey(k.x, k.y, k.z),
-                evenIterationMaterial = baseMaterial,
-                evenIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
-                oddIterationMaterial = baseMaterial,
-                oddIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
+                evenIterationMaterial = if (isWood(k)) wood else concrete,
+                evenIterationTemperature = if (isWood(k)) 700.toKelvin() else 25.toKelvin(),
+                oddIterationMaterial = if (isWood(k)) wood else concrete,
+                oddIterationTemperature = if (isWood(k)) 700.toKelvin() else 25.toKelvin(),
                 isBoundaryCondition = false //isBoundary(k)
             )
-        }
+        }.toMutableList()
 
         val sizeX = voxels.maxOf { it.key.x } + 1
         val sizeY = voxels.maxOf { it.key.y } + 1
@@ -96,49 +84,67 @@ class RadiationExecutionTest(
 
         simulationsRepository.save(
             Simulation(
-                name = "Radiation test",
+                name = "Smoke Test",
                 parentModel = SingleModel(name = "Parent model"),
                 sizeX = sizeX,
                 sizeY = sizeY,
                 sizeZ = sizeZ,
             )
         )
-        voxelRepository.saveAll(voxels)
-        voxelRepository.flush()
 
         // then create planes
-        val pointsToNormals = listOf(
-            VoxelKey(0, 0, 1) to VoxelKey(1, 0, 0),
-            VoxelKey(1, 99, 1) to VoxelKey(0, -1, 0),
-            VoxelKey(99, 1, 1) to VoxelKey(-1, 0, 0),
-            VoxelKey(1, 1, 99) to VoxelKey(0, 0, -1),
-
-            VoxelKey(52, 1, 0) to VoxelKey(0, 0, 1),
-            VoxelKey(32, 1, 0) to VoxelKey(0, 0, 1),
-
-            VoxelKey(49, 10, 1) to VoxelKey(-1, 0, 0),
-            VoxelKey(51, 10, 1) to VoxelKey(1, 0, 0),
-        )
-
-        val matrix = Array(sizeX) { _ ->
-            Array(sizeY) { _ ->
-                IntArray(sizeZ) { _ -> 0 }
+//        val pointsToNormals = listOf(
+//            VoxelKey(0, 0, 1) to VoxelKey(1, 0, 0),
+//            VoxelKey(1, 99, 1) to VoxelKey(0, -1, 0),
+//            VoxelKey(99, 1, 1) to VoxelKey(-1, 0, 0),
+//            VoxelKey(1, 1, 99) to VoxelKey(0, 0, -1),
+//
+//            VoxelKey(52, 1, 0) to VoxelKey(0, 0, 1),
+//            VoxelKey(32, 1, 0) to VoxelKey(0, 0, 1),
+//
+//            VoxelKey(49, 10, 1) to VoxelKey(-1, 0, 0),
+//            VoxelKey(51, 10, 1) to VoxelKey(1, 0, 0),
+//        )
+//
+        val matrix = Array(sizeX) { x ->
+            Array(sizeY) { y ->
+                IntArray(sizeZ) { z -> 0 }
             }
         }
 
         voxels.forEach {
-            matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
+            matrix[it.key.x][it.key.y][it.key.z] = it.evenIterationMaterial.voxelMaterial.colorId
         }
 
-        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
-            .also {
-                countersRepository.set(
-                    CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
-                    it.size.toLong()
-                )
+        matrix.forEachIndexed { x, array ->
+            array.forEachIndexed { y, ints ->
+                ints.forEachIndexed { z, i ->
+                    if(i == 0) {
+                        Voxel(
+                            VoxelKey(x, y, z),
+                            evenIterationMaterial = air,
+                            evenIterationTemperature = 25.toKelvin(),
+                            oddIterationMaterial = air,
+                            oddIterationTemperature = 25.toKelvin(),
+                            isBoundaryCondition = false
+                        ).also(voxels::add)
+                    }
+                }
             }
-        planes = planes.let(radiationPlaneRepository::saveAll)
-        radiationPlaneRepository.flush()
+        }
+
+        voxelRepository.saveAll(voxels)
+        voxelRepository.flush()
+//
+//        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
+//            .also {
+//                countersRepository.set(
+//                    CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
+//                    it.size.toLong()
+//                )
+//            }
+//        planes = planes.let(radiationPlaneRepository::saveAll)
+//        radiationPlaneRepository.flush()
 
         should("execute test") {
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
@@ -147,34 +153,46 @@ class RadiationExecutionTest(
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
                 voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
-                log.info("Finished conduction")
-                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
+                log.info("Finished main calculator")
+//                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
                 log.info("Finished calculations")
-                synchroniserImpl.synchroniseRadiationResults(i.toLong())
-                log.info("Finished synchronisation")
+//                synchroniserImpl.synchroniseRadiationResults(i.toLong())
+//                log.info("Finished synchronisation")
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
                 log.info("Finished increment")
-            }
 
+                if (i % 100 == 0) {
+                    val result = voxelRepository.findAll()
+                    val min = result.minOf { it.evenIterationTemperature }
+                    val max = result.maxOf { it.evenIterationTemperature }
+                    VoxFormatParser.write(
+                        result.associate {
+                            it.key to VoxFormatParser.toPaletteLinear(
+                                value = it.evenIterationTemperature,
+                                min = min,
+                                max = max
+                            )
+                        },
+                        Palette.temperaturePalette,
+                        sizeX,
+                        sizeY,
+                        sizeZ,
+                        FileOutputStream("smoke_result_${iterationNumber * timeStep}s.vox")
+                    )
+                    VoxFormatParser.write(
+                        result.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
+                        Palette.basePalette,
+                        sizeX,
+                        sizeY,
+                        sizeZ,
+                        FileOutputStream("smoke_result_${iterationNumber * timeStep}s.vox")
+                    )
+                }
+            }
             val result = voxelRepository.findAll()
             val min = result.minOf { it.evenIterationTemperature }
             val max = result.maxOf { it.evenIterationTemperature }
             log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
-
-            VoxFormatParser.write(
-                result.associate {
-                    it.key to VoxFormatParser.toPaletteLinear(
-                        value = it.evenIterationTemperature,
-                        min = min,
-                        max = max
-                    )
-                },
-                Palette.temperaturePalette,
-                sizeX,
-                sizeY,
-                sizeZ,
-                FileOutputStream("radiation_result.vox")
-            )
         }
     }
 
@@ -184,4 +202,4 @@ class RadiationExecutionTest(
     }
 }
 
-private fun isBoundary(k: VoxelKey) = k.x in 52..98 && k.z == 0
+private fun isWood(k: VoxelKey) = k.x in 52..98 && k.z == 0
