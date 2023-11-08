@@ -152,7 +152,7 @@ class SmokeExecutionTest(
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
+                voxels.parallelStream().forEach { v -> calculationService.calculateGivenVoxel(v, i)}
                 log.info("Finished main calculator")
 //                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
                 log.info("Finished calculations")
@@ -177,7 +177,7 @@ class SmokeExecutionTest(
                         sizeX,
                         sizeY,
                         sizeZ,
-                        FileOutputStream("smoke_result_${iterationNumber * timeStep}s.vox")
+                        FileOutputStream("temp_smoke_result_${iterationNumber * timeStep}s.vox")
                     )
                     VoxFormatParser.write(
                         result.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
@@ -185,7 +185,7 @@ class SmokeExecutionTest(
                         sizeX,
                         sizeY,
                         sizeZ,
-                        FileOutputStream("smoke_result_${iterationNumber * timeStep}s.vox")
+                        FileOutputStream("mat_smoke_result_${iterationNumber * timeStep}s.vox")
                     )
                 }
             }
@@ -202,4 +202,4 @@ class SmokeExecutionTest(
     }
 }
 
-private fun isWood(k: VoxelKey) = k.x in 52..98 && k.z == 0
+private fun isWood(k: VoxelKey) = k.x in 52..98 && k.z == 0 && k.y in 25..75

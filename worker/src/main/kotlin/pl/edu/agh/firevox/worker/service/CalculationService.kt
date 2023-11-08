@@ -7,6 +7,7 @@ import jakarta.transaction.Transactional
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.jdbc.core.JdbcTemplate
 import pl.edu.agh.firevox.shared.messaging.VoxelProcessingMessageSender
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
@@ -27,7 +28,8 @@ class CalculationService(
     private val countersRepository: CountersRepository,
     private val voxelProcessingMessageSender: VoxelProcessingMessageSender,
     private val physicalMaterialRepository: PhysicalMaterialRepository,
-    @Value("\${firevox.smokeIntoFireThreshold}") private val smokeIntoFireThreshold: Double = 150 + 273.15
+    @Value("\${firevox.smokeIntoFireThreshold}") private val smokeIntoFireThreshold: Double = 150 + 273.15,
+    private val jdbcTemplate: JdbcTemplate,
 ) {
 
     private val burningToBurnt = mapOf(
@@ -57,25 +59,38 @@ class CalculationService(
             // only '=' is valid but for the sake of not crashing
             return true
         }
+        val (calculationFinishedCorrectly, voxelsToSendForSameIteration) = calculateGivenVoxel(voxel, iteration)
+
+        voxelsToSendForSameIteration.also {
+            countersRepository.add(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, it.size)
+        }.forEach {
+            voxelProcessingMessageSender.send(it, iteration)
+        }
+
+        countersRepository.increment(CounterId.PROCESSED_VOXEL_COUNT)
+        countersRepository.increment(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT)
+        return calculationFinishedCorrectly
+    }
+
+    @Transactional
+    fun calculateGivenVoxel(voxel: Voxel, iteration: Int): Pair<Boolean, Set<VoxelKey>> {
         val voxelState = voxel.toVoxelState(iteration)
-
-        handleVirtualThermometer(key, voxelState)
-
-//        log.info("Processing voxel $voxel for iteration $iteration")
+        handleVirtualThermometer(voxel.key, voxelState)
+        //        log.info("Processing voxel $voxel for iteration $iteration")
 
         if (voxel.isBoundaryCondition) {
             setNextProperties(voxel, iteration, listOf(), null, 0.0, voxel.ignitingCounter, voxel.burningCounter)
-            return true
+            return true to setOf()
         }
 
         val voxelsToSendForSameIteration = mutableSetOf<VoxelKey>()
         val modelSize = simulationRepository.fetchSize()
-        val (foundNeighbors, validKeysWithMissingVoxel) = voxelRepository.findNeighbors(
-            voxel.key, NeighbourhoodType.N_E_W_S_U_L_, modelSize
-        )
 
-        val neighbours =
-            fillMissingVoxelsInsideModel(foundNeighbors, validKeysWithMissingVoxel).map { it.toVoxelState(iteration) }
+        val neighbours = fillMissingVoxelsInsideModel(
+            voxelRepository.findNeighbors(
+                voxel.key, NeighbourhoodType.N_E_W_S_U_L_, modelSize
+            )
+        ).map { it.toVoxelState(iteration) }
 
         // heat transfer calculators
         val conductionResult = if (voxelState.material.isSolid() || voxelState.material.isFluid()) {
@@ -87,7 +102,8 @@ class CalculationService(
         ) else 0.0
 
         val burningResult = if (voxelState.material.isBurning()) burningCalculator.calculate(
-            voxelState, timeStep, iteration ) else 0.0
+            voxelState, timeStep, iteration
+        ) else 0.0
         val heatResults = listOf(
             conductionResult, convectionResult, burningResult
         )
@@ -101,16 +117,7 @@ class CalculationService(
 
         setNextProperties(voxel, iteration, heatResults, newMaterial, smokeUpdate, null, null)
         voxelRepository.save(voxel)
-
-//        voxelsToSendForSameIteration.also {
-//            countersRepository.add(CounterId.CURRENT_ITERATION_VOXELS_TO_PROCESS_COUNT, it.size)
-//        }.forEach {
-//            voxelProcessingMessageSender.send(it, iteration)
-//        }
-
-        countersRepository.increment(CounterId.PROCESSED_VOXEL_COUNT)
-        countersRepository.increment(CounterId.NEXT_ITERATION_VOXELS_TO_PROCESS_COUNT)
-        return true
+        return true to voxelsToSendForSameIteration
     }
 
     private fun nextPhysicalMaterial(
@@ -150,7 +157,7 @@ class CalculationService(
         -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.SMOKE)
 
         // 6 smoke -> air
-        voxelState.material.transfersSmoke() && voxelState.smokeConcentration + smokeUpdate == 0.0
+        voxelState.material.voxelMaterial == VoxelMaterial.SMOKE && voxelState.smokeConcentration + smokeUpdate == 0.0
         -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
 
         // 7 glass -> air
@@ -180,11 +187,11 @@ class CalculationService(
     }
 
     private fun fillMissingVoxelsInsideModel(
-        neighbours: List<Voxel>,
-        validKeysWithMissingVoxel: Set<VoxelKey>,
+        neighbours: Pair<List<Voxel>, Set<VoxelKey>>,
     ): List<Voxel> {
         val air: PhysicalMaterial = materialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
-        neighbours.toMutableList().addAll(validKeysWithMissingVoxel.map {
+        val result = neighbours.first.toMutableList()
+        result.addAll(neighbours.second.map {
             Voxel(
                 it,
                 evenIterationMaterial = air,
@@ -193,13 +200,17 @@ class CalculationService(
                 oddIterationTemperature = air.baseTemperature,
             )
         })
-        return neighbours.also(voxelRepository::saveAll)
+        return result.also(voxelRepository::saveAll)
     }
 
     private fun handleVirtualThermometer(key: VoxelKey, voxel: VoxelState) {
-        if (virtualThermometerService.check(key)) {
-            virtualThermometerService.update(key, voxel.temperature)
-        }
+        jdbcTemplate.update("""
+            update virtual_thermometer set measurements = concat(measurements, '${", " + voxel.temperature.toCelsius()}')
+            where x = ${voxel.key.x} and y = ${voxel.key.y} and z = ${voxel.key.z}
+        """.trimIndent())
+//        if (virtualThermometerService.check(key)) {
+//            virtualThermometerService.update(key, voxel.temperature)
+//        }
     }
 
     private fun setNextProperties(
@@ -212,21 +223,41 @@ class CalculationService(
         burningCounter: Int? = null,
     ) {
         // state not used outside
-        voxel.lastProcessedIteration = iteration
-        ignitingCounter?.also { voxel.ignitingCounter = it }
-        burningCounter?.also { voxel.burningCounter = it }
+//        voxel.lastProcessedIteration = iteration
+//        ignitingCounter?.also { voxel.ignitingCounter = it }
+//        burningCounter?.also { voxel.burningCounter = it }
 
         // state used outside voxel
         if (iteration % 2 == 0) {
             val resultTemp = voxel.evenIterationTemperature + heatResults.sum()
-            voxel.oddIterationTemperature = resultTemp
-            voxel.oddIterationMaterial = newMaterial ?: voxel.oddIterationMaterial
-            voxel.oddSmokeConcentration = smokeUpdate
+//            voxel.oddIterationTemperature = resultTemp
+//            voxel.oddIterationMaterial = newMaterial ?: voxel.oddIterationMaterial
+//            voxel.oddSmokeConcentration = smokeUpdate
+            jdbcTemplate.update("""
+                update voxels v set 
+                odd_iteration_temperature = $resultTemp,
+                odd_iteration_material_id = ${newMaterial?.id ?: voxel.oddIterationMaterial.id},
+                odd_smoke_concentration = $smokeUpdate,
+                last_processed_iteration = $iteration 
+                ${ignitingCounter?.let{", igniting_counter = $it"} ?: ""}
+                ${burningCounter?.let{", burning_counter = $it"} ?: ""}
+                where v.x = ${voxel.key.x} and v.y = ${voxel.key.y} and v.z = ${voxel.key.z};                 
+            """.trimIndent())
         } else {
             val resultTemp = voxel.oddIterationTemperature + heatResults.sum()
-            voxel.evenIterationTemperature = resultTemp
-            voxel.evenIterationMaterial = newMaterial ?: voxel.evenIterationMaterial
-            voxel.evenSmokeConcentration = smokeUpdate
+//            voxel.evenIterationTemperature = resultTemp
+//            voxel.evenIterationMaterial = newMaterial ?: voxel.evenIterationMaterial
+//            voxel.evenSmokeConcentration = smokeUpdate
+            jdbcTemplate.update("""
+                update voxels v set 
+                even_iteration_temperature = $resultTemp,
+                even_iteration_material_id = ${newMaterial?.id ?: voxel.oddIterationMaterial.id},
+                even_smoke_concentration = $smokeUpdate,
+                last_processed_iteration = $iteration 
+                ${ignitingCounter?.let{", igniting_counter = $it"} ?: ""}
+                ${burningCounter?.let{", burning_counter = $it"} ?: ""}
+                where v.x = ${voxel.key.x} and v.y = ${voxel.key.y} and v.z = ${voxel.key.z};                 
+            """.trimIndent())
         }
     }
 

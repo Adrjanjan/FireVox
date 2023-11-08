@@ -221,8 +221,8 @@ class RadiationSimpleExecutionTest(
         ).also(physicalMaterialRepository::save)
 
         val voxels = listOf(0).flatMap { x ->
-            (0..9).flatMap { y ->
-                (0..9).map { z ->
+            (1..10).flatMap { y ->
+                (1..10).map { z ->
                     Voxel(
                         VoxelKey(x, y, z),
                         evenIterationMaterial = baseMaterial,
@@ -237,7 +237,7 @@ class RadiationSimpleExecutionTest(
 
         voxels.addAll(
             (1..10).flatMap { x ->
-                (0..9).flatMap { y ->
+                (1..10).flatMap { y ->
                     listOf(0).map { z ->
                         Voxel(
                             VoxelKey(x, y, z),
@@ -305,7 +305,7 @@ class RadiationSimpleExecutionTest(
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
+                voxels.parallelStream().forEach { v -> calculationService.calculateGivenVoxel(v, i) }
                 log.info("Finished conduction")
                 planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
                 log.info("Finished radiation")

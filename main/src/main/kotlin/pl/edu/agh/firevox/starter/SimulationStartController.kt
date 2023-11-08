@@ -17,7 +17,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.deleteRecursively
 
 @RestController
-@RequestMapping("start")
+@RequestMapping("simulation")
 class SimulationStartController(
     private val simulationCreationService: SimulationCreationService,
     @Value("\${firevox.simulation.files.path}")
@@ -32,6 +32,15 @@ class SimulationStartController(
     fun startSimulation(@RequestBody model: ModelDescriptionDto) {
         log.info("Starting simulation for file ${model.outputName}")
         simulationCreationService.preprocess(model)
+    }
+
+    @PostMapping
+    fun stopSimulation(@RequestBody model: ModelDescriptionDto) {
+        log.info("Stoping simulation for file ${model.outputName}")
+        TODO()
+        // rabbit cleanup
+        // database cleanup
+
     }
 
     @PostMapping("/model", consumes = [MediaType.APPLICATION_OCTET_STREAM_VALUE])

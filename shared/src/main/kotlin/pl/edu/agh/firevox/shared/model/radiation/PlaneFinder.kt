@@ -420,7 +420,7 @@ class PlaneFinder @Autowired constructor(
 
             // second is horizontal with sides in XY
             // first is vertical with sides in YZ
-            second.normalVector.z != 0 && first.normalVector.x != 0 -> {
+            first.normalVector.x != 0 && second.normalVector.z != 0 -> {
                 x.addAll(uniqueCoordinate(first) { it.y })
                 y.addAll(uniqueCoordinate(first) { it.z })
                 e.addAll(uniqueCoordinate(second) { it.x })
@@ -428,7 +428,7 @@ class PlaneFinder @Autowired constructor(
             }
             // second is horizontal with sides in XZ
             // first is vertical with sides in XY
-            second.normalVector.y != 0 && first.normalVector.z != 0 -> {
+            first.normalVector.z != 0 && second.normalVector.y != 0 -> {
                 x.addAll(uniqueCoordinate(first) { it.x })
                 y.addAll(uniqueCoordinate(first) { it.y })
                 e.addAll(uniqueCoordinate(second) { it.x })
@@ -436,7 +436,7 @@ class PlaneFinder @Autowired constructor(
             }
             // second is horizontal with sides in YZ
             // first is vertical with sides in XZ
-            second.normalVector.x != 0 && first.normalVector.y != 0 -> {
+            first.normalVector.y != 0 && second.normalVector.x != 0 -> {
                 x.addAll(uniqueCoordinate(first) { it.x })
                 y.addAll(uniqueCoordinate(first) { it.z })
                 e.addAll(uniqueCoordinate(second) { it.y })

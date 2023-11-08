@@ -19,28 +19,24 @@ import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
-import kotlin.math.pow
-import kotlin.math.sqrt
+import pl.edu.agh.firevox.worker.service.VirtualThermometerService
 
 @SpringBootTest(
-    properties = [
-        "firevox.timestep=0.1",
-        "firevox.voxel.size=0.01",
-        "firevox.smokeIntoFireThreshold=150",
-    ],
+    properties = ["firevox.timestep=0.1", "firevox.voxel.size=0.01", "firevox.smokeIntoFireThreshold: 393.15"],
     classes = [WorkerApplication::class]
 )
-class ConductionExecutionTest(
+class SimpleSmokeVerificationTest(
     val calculationService: CalculationService,
     val voxelRepository: VoxelRepository,
     val physicalMaterialRepository: PhysicalMaterialRepository,
     val simulationsRepository: SimulationsRepository,
     val countersRepository: CountersRepository,
     @Value("\${firevox.timestep}") val timeStep: Double,
+    private val virtualThermometerService: VirtualThermometerService,
 ) : ShouldSpec({
 
     context("save voxels from file") {
-        val simulationTimeInSeconds = 100 // * 60
+        val simulationTimeInSeconds = 10 // * 60
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
         countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
         countersRepository.save(Counter(CounterId.PROCESSED_VOXEL_COUNT, 0))
@@ -51,7 +47,6 @@ class ConductionExecutionTest(
         countersRepository.save(Counter(CounterId.NEXT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
 
 
-        var voxels = mutableListOf<Voxel>()
         val baseMaterial = PhysicalMaterial(
             VoxelMaterial.METAL,
             density = 2700.0,
@@ -68,40 +63,46 @@ class ConductionExecutionTest(
             deformationTemperature = 1000.0.toKelvin(),
         ).also(physicalMaterialRepository::save)
 
-        // scale - number of voxels per centimeter
-        val scale = 1
-        (0 until 30 * scale).forEach { x ->
-            (0 until 20 * scale).forEach { y ->
-                (0 until 5 * scale).forEach { z ->
-                    voxels.add(
-                        Voxel(
-                            VoxelKey(x, y, z),
-                            evenIterationMaterial = baseMaterial,
-                            evenIterationTemperature = 20.toKelvin(),
-                            oddIterationMaterial = baseMaterial,
-                            oddIterationTemperature = 20.0.toKelvin()
-                        )
-                    )
-                }
-            }
-        }
-        // hole
-        val xCenter = 15.0 * scale - 1
-        val yCenter = 10.0 * scale - 1
-        val holeRadius = 5.0 * scale
-        voxels = voxels.filterNot {
-            sqrt((it.key.x - xCenter).pow(2) + (it.key.y - yCenter).pow(2)) < holeRadius
-        }.toMutableList()
+        var voxels = mutableListOf<Voxel>(
+            Voxel(
+                VoxelKey(1, 0, 1),
+                evenIterationMaterial = baseMaterial,
+                evenIterationTemperature = 20.toKelvin(),
+                oddIterationMaterial = baseMaterial,
+                oddIterationTemperature = 20.0.toKelvin()
+            )
+        )
+        voxels.add(
+            Voxel(
+                VoxelKey(1, 1, 1),
+                evenIterationMaterial = baseMaterial,
+                evenIterationTemperature = 100.toKelvin(),
+                oddIterationMaterial = baseMaterial,
+                oddIterationTemperature = 100.toKelvin()
+            )
+        )
+//        voxels.add(
+//            Voxel(
+//                VoxelKey(1, 2, 1),
+//                evenIterationMaterial = baseMaterial,
+//                evenIterationTemperature = 100.toKelvin(),
+//                oddIterationMaterial = baseMaterial,
+//                oddIterationTemperature = 100.toKelvin()
+//            )
+//        )
+        virtualThermometerService.create(voxels[0].key)
+        virtualThermometerService.create(voxels[1].key)
+//        virtualThermometerService.create(voxels[2].key)
 
         // set boundary conditions
-        voxels.filter { it.key.x == 0 }
-            .forEach {
-                it.evenIterationTemperature = 300.toKelvin()
-                it.oddIterationTemperature = 300.toKelvin()
-                it.isBoundaryCondition = true
-            }
-        voxels.filter { it.key.x == 30 * scale - 1 }
-            .forEach { it.isBoundaryCondition = true }
+//        voxels.filter { it.key.x == 0 }
+//            .forEach {
+//                it.evenIterationTemperature = 300.toKelvin()
+//                it.oddIterationTemperature = 300.toKelvin()
+//                it.isBoundaryCondition = true
+//            }
+//        voxels.filter { it.key.x == 30 * scale - 1 }
+//            .forEach { it.isBoundaryCondition = true }
 
         val sizeX = voxels.maxOf { it.key.x } + 1
         val sizeY = voxels.maxOf { it.key.y } + 1
@@ -125,7 +126,10 @@ class ConductionExecutionTest(
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculateGivenVoxel(v, i) }
+//                voxels.parallelStream().forEach { v ->
+                voxels.forEach { v ->
+                    calculationService.calculate(v.key, i)
+                }
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
             }
 
@@ -147,8 +151,11 @@ class ConductionExecutionTest(
                 sizeX,
                 sizeY,
                 sizeZ,
-                FileOutputStream("block_with_hole_scale.vox")
+                FileOutputStream("2blocks.vox")
             )
+            log.info(virtualThermometerService.getMeasurements(voxels[0].key))
+            log.info(virtualThermometerService.getMeasurements(voxels[1].key))
+//            log.info(virtualThermometerService.getMeasurements(voxels[2].key))
         }
     }
 
@@ -157,5 +164,3 @@ class ConductionExecutionTest(
         val log: Logger = LoggerFactory.getLogger(this::class.java)
     }
 }
-
-

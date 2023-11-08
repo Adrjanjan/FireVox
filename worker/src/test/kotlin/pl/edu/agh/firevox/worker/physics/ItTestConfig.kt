@@ -28,6 +28,7 @@ class ItTestConfig {
         postgresContainer.setCommand(
             "postgres",
             "-c", "fsync=off",
+            "-c", "shared_preload_libraries=pg_stat_statements",
 //            "-c", "log_statement=all",
 //            "-c", "work_mem=32MB"
         )
