@@ -271,7 +271,7 @@ data class Palette(
         val basePalette = Palette (
             PaletteType.BASE_PALETTE,
             mutableSetOf(
-//                Colour(1, 0, 0, 0, 0), //AIR
+//                Colour(VoxelMaterial.AIR.colorId, 0, 0, 0, 0), //AIR
                 Colour(VoxelMaterial.SMOKE.colorId, 102, 102, 102),
                 // Bronze
                 Colour(VoxelMaterial.WOOD.colorId, 153, 34, 0),
@@ -293,11 +293,8 @@ data class Palette(
 //                Colour(VoxelMaterial.METAL_HEATED.colorId, 0, 0, 153),
 //                Colour(VoxelMaterial.METAL_HOT.colorId, 0, 0, 204),
 //                Colour(VoxelMaterial.METAL_VERY_HOT.colorId, 0, 0, 255),
-                // Yellow
-                Colour(VoxelMaterial.GLASS.colorId, 102, 102, 0),
-//                Colour(VoxelMaterial.GLASS_HEATED.colorId, 153, 153, 0),
-//                Colour(VoxelMaterial.GLASS_HOT.colorId, 204, 204, 0),
-//                Colour(VoxelMaterial.GLASS_VERY_HOT.colorId, 255, 255, 0),
+                // Cyan
+                Colour(VoxelMaterial.GLASS.colorId, 0, 230, 255),
                 // Gray
                 Colour(VoxelMaterial.CONCRETE.colorId, 34, 34, 34),
                 // Red
@@ -305,8 +302,12 @@ data class Palette(
                 // White
                 Colour(VoxelMaterial.WATER.colorId, 255, 255, 255),
             ).also { set ->
-                for (i in set.maxOf { it.index }..256)
-                set.add(Colour(i, 0, 0, 0, 0))
+                val indexes = set.map { it.index }
+                (1..253)
+                    .filter { it !in indexes }
+                    .forEach { set.add(Colour(it, 0, 0, 0, 0)) }
+
+                set.sortedBy { it.index }
             }
         )
 
