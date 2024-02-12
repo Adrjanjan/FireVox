@@ -168,7 +168,7 @@ class MaterialsConfig(
                 convectionHeatTransferCoefficient = 0.0,
                 specificHeatCapacity = 2390.0,
                 ignitionTemperature = 250.toKelvin(),
-                timeToIgnition = 1.0, // TODO
+                timeToIgnition = 0.5 , //1.0, // TODO
                 autoignitionTemperature = 2000.toKelvin(),
                 burningTime = 1.4, // TODO
                 effectiveHeatOfCombustion = 1500.0,

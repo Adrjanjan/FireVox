@@ -7,7 +7,9 @@ import org.springframework.context.annotation.Bean
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.model.PointsToNormals
 import pl.edu.agh.firevox.shared.model.CustomVoxelRepository
+import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
+import pl.edu.agh.firevox.shared.model.radiation.RadiationPlane
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.PaletteType
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
@@ -51,7 +53,19 @@ class RadiationPreprocessingStarter(
                 matrix[t.x][t.y][t.z] = u
             }
 
-            planeFinder.findPlanes(matrix, pointsToNormals.points)
+            val fakeRadiationPlane = RadiationPlane(
+                id = 1,
+                a = VoxelKey(0, 0, 0),
+                b = VoxelKey(0, 0, 0),
+                c = VoxelKey(0, 0, 0),
+                d = VoxelKey(0, 0, 0),
+                normalVector = VoxelKey(-1, 0, 0),
+                voxels = mutableSetOf(),
+                voxelsCount = 0,
+                area = 0.0,
+            ).let(radiationPlaneRepository::save)
+
+            planeFinder.findPlanes(matrix, pointsToNormals.points, fakeRadiationPlane)
                 .also {
                     countersRepository.set(
                         CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,

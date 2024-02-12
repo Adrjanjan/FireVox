@@ -6,6 +6,7 @@ import io.mockk.InternalPlatformDsl.toArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.springframework.core.io.ClassPathResource
+import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.shared.model.vox.chunks.constructRotationFromBits
@@ -16,37 +17,37 @@ class VoxFormatParserTest : ShouldSpec({
 
 
     should("read and write the same model") {
-//        // given
-//        val input = withContext(Dispatchers.IO) {
-//            getFile("vox/rotatebug.vox")
-//        }
-//        // when
-//        val model = VoxFormatParser.read(input)
-//        // then
-//        val outputStream = FileOutputStream("rotatebug_out.vox")
-//        VoxFormatParser.write(
-//            model.voxels,
-//            Palette.temperaturePalette,
-//            model.sizeX,
-//            model.sizeY,
-//            model.sizeZ,
-//            outputStream
-//        )
-//        1 == 1
-
-//         given
-        val input2 = withContext(Dispatchers.IO) {
-            getFile("vox/rotatebug.vox")
-        }
         // given
-        val input3 = withContext(Dispatchers.IO) {
-            getFile("vox/rotatebug_out.vox")
+        val input = withContext(Dispatchers.IO) {
+            getFile("vox/radiation_test.vox")
         }
         // when
-        val model2 = VoxFormatParser.read(input2)
-        val model3 = VoxFormatParser.read(input3)
+        val model = VoxFormatParser.read(input)
+        // then
+        val outputStream = FileOutputStream("radiation_test_out.vox")
+        VoxFormatParser.write(
+            model.voxels.map { it.key to 19 }.associate { it.first to it.second }.toMutableMap().also { it[VoxelKey(10, 10, 10)] = 0 },
+            Palette.basePalette,
+            model.sizeX,
+            model.sizeY,
+            model.sizeZ,
+            outputStream
+        )
+        1 == 1
 
-        model2.voxels.equals(model3.voxels)
+//         given
+//        val input2 = withContext(Dispatchers.IO) {
+//            getFile("vox/rotatebug.vox")
+//        }
+//        // given
+//        val input3 = withContext(Dispatchers.IO) {
+//            getFile("vox/rotatebug_out.vox")
+//        }
+//        // when
+//        val model2 = VoxFormatParser.read(input2)
+//        val model3 = VoxFormatParser.read(input3)
+//
+//        model2.voxels.equals(model3.voxels)
 
     }
 

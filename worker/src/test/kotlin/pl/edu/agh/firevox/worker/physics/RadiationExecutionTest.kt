@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
+import pl.edu.agh.firevox.shared.model.radiation.RadiationPlane
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.simulation.Simulation
@@ -129,8 +130,18 @@ class RadiationExecutionTest(
         voxels.forEach {
             matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
         }
+        val fakeRadiationPlane = RadiationPlane(
+            a = VoxelKey(0, 0, 0),
+            b = VoxelKey(0, 0, 0),
+            c = VoxelKey(0, 0, 0),
+            d = VoxelKey(0, 0, 0),
+            normalVector = VoxelKey(-1, 0, 0),
+            voxels = mutableSetOf(),
+            voxelsCount = 0,
+            area = 0.0,
+        ).let(radiationPlaneRepository::save)
 
-        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
+        var planes = planeFinder.findPlanes(matrix, pointsToNormals, fakeRadiationPlane)
             .also {
                 countersRepository.set(
                     CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,

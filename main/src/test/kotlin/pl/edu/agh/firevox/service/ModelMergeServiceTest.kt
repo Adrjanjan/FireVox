@@ -46,7 +46,7 @@ class ModelMergeServiceTest : ShouldSpec({
 
     should("load single model") {
         // given
-        val modelDescriptionDto = ModelDescriptionDto("out.vox", treeOnly)
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", treeOnly, 1)
 
         // when
         val resultModel = mms.createModel(modelDescriptionDto)
@@ -66,7 +66,7 @@ class ModelMergeServiceTest : ShouldSpec({
 
     should("merge single model and not change it") {
         // given
-        val modelDescriptionDto = ModelDescriptionDto("out.vox", room)
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", room, 1)
 
         // when
         val resultModel = mms.createModel(modelDescriptionDto)
@@ -95,7 +95,7 @@ class ModelMergeServiceTest : ShouldSpec({
 
     should("merge two models without modifications") {
         // given
-        val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTree)
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTree, 1)
 
         // when
         val resultModel = mms.createModel(modelDescriptionDto)
@@ -115,7 +115,7 @@ class ModelMergeServiceTest : ShouldSpec({
 
     should("merge two models with offset") {
         // given
-        val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTreeOffset)
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTreeOffset, 1)
 
         // when
         val resultModel = mms.createModel(modelDescriptionDto)
@@ -140,7 +140,7 @@ class ModelMergeServiceTest : ShouldSpec({
 
     should("merge two models with rotation") {
         // given
-        val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTreeRotation)
+        val modelDescriptionDto = ModelDescriptionDto("out.vox", roadTreeRotation, 1)
 
         // when
         val resultModel = mms.createModel(modelDescriptionDto)

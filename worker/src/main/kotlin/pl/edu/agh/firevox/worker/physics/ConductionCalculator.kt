@@ -28,7 +28,7 @@ class ConductionCalculator(
 
         return lambda * voxelLength * timeStep * voxels.filter { includeInConduction(it, voxel) } .also { vs ->
             voxelsToSend.addAll(vs.filterNot { it.wasProcessedThisIteration }.map { it.key })
-        }.sumOf { (it.material.thermalConductivityCoefficient * it.temperature - voxel.material.thermalConductivityCoefficient * voxel.temperature) }
+        }.sumOf { (it.material.thermalConductivityCoefficient + voxel.material.thermalConductivityCoefficient)/2 * (it.temperature - voxel.temperature) }
     }
 
     private fun includeInConduction(it: VoxelState, voxel: VoxelState) = it.key != voxel.key

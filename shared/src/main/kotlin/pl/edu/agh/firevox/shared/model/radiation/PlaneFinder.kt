@@ -23,7 +23,9 @@ class PlaneFinder @Autowired constructor(
 
     @Transactional
     fun findPlanes(
-        voxels: Array<Array<IntArray>>, pointsToNormals: List<Pair<VoxelKey, VoxelKey>>
+        voxels: Array<Array<IntArray>>,
+        pointsToNormals: List<Pair<VoxelKey, VoxelKey>>,
+        fakeRadiationPlane: RadiationPlane
     ): List<RadiationPlane> {
         log.info("Preprocessing radiation planes")
         val planes = pointsToNormals.parallelStream().flatMap {
@@ -32,7 +34,7 @@ class PlaneFinder @Autowired constructor(
             divideIntoPlanes(fullPlane, it.second, squareSize = 10).stream()
         }.collect(Collectors.toList()).toMutableList()
 
-        val findRelationships = findRelationships(planes, voxels)
+        val findRelationships = findRelationships(planes, voxels, fakeRadiationPlane)
         log.info("Found ${planes.size} radiation planes")
         return findRelationships
     }
@@ -193,7 +195,7 @@ class PlaneFinder @Autowired constructor(
         return results
     }
 
-    fun findRelationships(planes: List<RadiationPlane>, voxels: Array<Array<IntArray>>): List<RadiationPlane> {
+    fun findRelationships(planes: List<RadiationPlane>, voxels: Array<Array<IntArray>>, fakeRadiationPlane: RadiationPlane): List<RadiationPlane> {
         for (i in planes.indices) {
             for (j in (i + 1) until planes.size) {
                 val first = planes[i]
@@ -228,6 +230,15 @@ class PlaneFinder @Autowired constructor(
                     }
                 }
             }
+            // add FAKE plane to account the radiation in the space
+            planes[i].childPlanes.add(
+                PlanesConnection(
+                    parent = planes[i],
+                    child = fakeRadiationPlane,
+                    viewFactor = 1 - planes[i].childPlanes.sumOf { it.viewFactor },
+                    parentVoxelsCount = planes[i].voxelsCount, childVoxelsCount = 1 // cant be 0
+                )
+            )
         }
         return planes
     }
@@ -358,7 +369,7 @@ class PlaneFinder @Autowired constructor(
 
             else -> return 0.0
         }
-        val A1 = 1/unitlessArea(x[0], x[1], y[0], y[1])
+        val A1 = 1 / unitlessArea(x[0], x[1], y[0], y[1])
         return A1 * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->
@@ -378,7 +389,7 @@ class PlaneFinder @Autowired constructor(
     private fun uniqueCoordinate(a: VoxelKey, b: VoxelKey, c: VoxelKey, d: VoxelKey, f: (VoxelKey) -> Int) =
         listOf(f(a), f(b), f(c), f(d)).distinct()
             .let { if (it.size == 1) listOf(it[0], it[0]) else it }
-            .let { if(it[0] > it[1]) listOf(it[1].toDouble(), it[0] + 1.0) else listOf(it[0].toDouble(), it[1] + 1.0) }
+            .let { if (it[0] > it[1]) listOf(it[1].toDouble(), it[0] + 1.0) else listOf(it[0].toDouble(), it[1] + 1.0) }
 
     private fun parallelIteratorFunction(x: Double, y: Double, n: Double, e: Double, z: Double): Double {
         val u = x - e
@@ -444,7 +455,7 @@ class PlaneFinder @Autowired constructor(
             }
         }
 
-        val A1 = 1/unitlessArea(x[0], x[1], y[0], y[1])
+        val A1 = 1 / unitlessArea(x[0], x[1], y[0], y[1])
         return A1 * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->

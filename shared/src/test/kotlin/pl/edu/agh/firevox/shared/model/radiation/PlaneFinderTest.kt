@@ -61,7 +61,16 @@ class PlaneFinderTest : ShouldSpec({
                 }
             }
         }
-
+        val fakeRadiationPlane = RadiationPlane(
+            a = VoxelKey(0, 0, 0),
+            b = VoxelKey(0, 0, 0),
+            c = VoxelKey(0, 0, 0),
+            d = VoxelKey(0, 0, 0),
+            normalVector = VoxelKey(-1, 0, 0),
+            voxels = mutableSetOf(),
+            voxelsCount = 0,
+            area = 0.0,
+        )
 
         // when
         val planes = planeFinder.findPlanes(
@@ -71,7 +80,7 @@ class PlaneFinderTest : ShouldSpec({
                 VoxelKey(5, 0, 0) to VoxelKey(0, 0, 1),   // 3
                 VoxelKey(5, 0, 6) to VoxelKey(0, 0, -1),  // 4
                 VoxelKey(6, 6, 2) to VoxelKey(0, -1, 0),  // 5
-            )
+            ), fakeRadiationPlane
         )
 
         // then

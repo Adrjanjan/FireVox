@@ -32,7 +32,7 @@ class CustomVoxelRepository(
 
     private fun verifyInbound(k: VoxelKey, modelSize: SimulationSizeView) =
         if (k.x < 0 || k.y < 0 || k.z < 0) false
-        else !(k.x > modelSize.sizeX || k.y > modelSize.sizeY || k.z > modelSize.sizeZ)
+        else (k.x < modelSize.sizeX && k.y < modelSize.sizeY && k.z < modelSize.sizeZ)
 
     fun findByIdOrNull(key: VoxelKey) = voxelRepository.findByIdOrNull(key)
 

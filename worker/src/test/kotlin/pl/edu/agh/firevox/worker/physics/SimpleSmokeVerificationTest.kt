@@ -46,63 +46,54 @@ class SimpleSmokeVerificationTest(
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
         countersRepository.save(Counter(CounterId.NEXT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
 
+        val wood = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.WOOD)
+        val concrete = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.CONCRETE)
+        val air = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
 
-        val baseMaterial = PhysicalMaterial(
-            VoxelMaterial.METAL,
-            density = 2700.0,
-            baseTemperature = 20.toKelvin(),
-            thermalConductivityCoefficient = 235.0,
-            convectionHeatTransferCoefficient = 0.0,
-            specificHeatCapacity = 897.0,
-            ignitionTemperature = null,
-            burningTime = null,
-            timeToIgnition = null,
-            autoignitionTemperature = null,
-            effectiveHeatOfCombustion = null,
-            smokeEmissionPerSecond = null,
-            deformationTemperature = 1000.0.toKelvin(),
-        ).also(physicalMaterialRepository::save)
+        val voxels = (0..9).flatMap { x ->
+            (0..9).map { y ->
+                Voxel(
+                    VoxelKey(x, y, 0),
+                    evenIterationMaterial = concrete,
+                    evenIterationTemperature = 20.toKelvin(),
+                    oddIterationMaterial = concrete,
+                    oddIterationTemperature = 20.toKelvin()
+                )
+            }
+        }.toMutableList()
 
-        var voxels = mutableListOf<Voxel>(
-            Voxel(
-                VoxelKey(1, 0, 1),
-                evenIterationMaterial = baseMaterial,
-                evenIterationTemperature = 20.toKelvin(),
-                oddIterationMaterial = baseMaterial,
-                oddIterationTemperature = 20.0.toKelvin()
-            )
+        voxels.addAll(
+            (0..9).flatMap { x ->
+                (0..9).map { y ->
+                    Voxel(
+                        VoxelKey(x, y, 1),
+                        evenIterationMaterial = wood,
+                        evenIterationTemperature = 700.toKelvin(),
+                        oddIterationMaterial = wood,
+                        oddIterationTemperature = 700.toKelvin()
+                    )
+                }
+            }
         )
-        voxels.add(
-            Voxel(
-                VoxelKey(1, 1, 1),
-                evenIterationMaterial = baseMaterial,
-                evenIterationTemperature = 100.toKelvin(),
-                oddIterationMaterial = baseMaterial,
-                oddIterationTemperature = 100.toKelvin()
-            )
+
+        voxels.addAll(
+            (0..9).flatMap { x ->
+                (0..9).flatMap { y ->
+                    (2..9).map { z ->
+                        Voxel(
+                            VoxelKey(x, y, z),
+                            evenIterationMaterial = air,
+                            evenIterationTemperature = 20.toKelvin(),
+                            oddIterationMaterial = air,
+                            oddIterationTemperature = 20.toKelvin()
+                        )
+                    }
+                }
+            }
         )
-//        voxels.add(
-//            Voxel(
-//                VoxelKey(1, 2, 1),
-//                evenIterationMaterial = baseMaterial,
-//                evenIterationTemperature = 100.toKelvin(),
-//                oddIterationMaterial = baseMaterial,
-//                oddIterationTemperature = 100.toKelvin()
-//            )
-//        )
+
         virtualThermometerService.create(voxels[0].key)
         virtualThermometerService.create(voxels[1].key)
-//        virtualThermometerService.create(voxels[2].key)
-
-        // set boundary conditions
-//        voxels.filter { it.key.x == 0 }
-//            .forEach {
-//                it.evenIterationTemperature = 300.toKelvin()
-//                it.oddIterationTemperature = 300.toKelvin()
-//                it.isBoundaryCondition = true
-//            }
-//        voxels.filter { it.key.x == 30 * scale - 1 }
-//            .forEach { it.isBoundaryCondition = true }
 
         val sizeX = voxels.maxOf { it.key.x } + 1
         val sizeY = voxels.maxOf { it.key.y } + 1
@@ -120,42 +111,66 @@ class SimpleSmokeVerificationTest(
         voxelRepository.saveAll(voxels)
         voxelRepository.flush()
 
+        VoxFormatParser.write(
+            voxels.associate {
+                it.key to VoxFormatParser.toPaletteLinear(
+                    value = it.evenIterationTemperature,
+                    min = 20.toKelvin(),
+                    max = 700.toKelvin()
+                )
+            },
+            Palette.temperaturePalette,
+            sizeX,
+            sizeY,
+            sizeZ,
+            FileOutputStream("temp_smoke_start.vox")
+        )
+
+        VoxFormatParser.write(
+            voxels.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
+            Palette.basePalette,
+            sizeX,
+            sizeY,
+            sizeZ,
+            FileOutputStream("mat_smoke_start.vox")
+        )
+
         should("execute test") {
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
-            for (i in 0..iterationNumber) {
-                log.info("Iteration: $i")
-//                voxels.parallelStream().forEach { v ->
-                voxels.forEach { v ->
-                    calculationService.calculate(v.key, i)
-                }
+            for (i in 0..1) {
+                voxels//.parallelStream()
+                    .forEach { v -> calculationService.calculateGivenVoxel(v, i) }
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
+
+                val min = voxels.minOf { it.evenIterationTemperature }
+                val max = voxels.maxOf { it.evenIterationTemperature }
+                VoxFormatParser.write(
+                    voxels.associate {
+                        it.key to VoxFormatParser.toPaletteLinear(
+                            value = it.evenIterationTemperature,
+                            min = min,
+                            max = max
+                        )
+                    },
+                    Palette.temperaturePalette,
+                    sizeX,
+                    sizeY,
+                    sizeZ,
+                    FileOutputStream("temp_smoke_result_${i}.vox")
+                )
+
+                VoxFormatParser.write(
+                    voxels.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
+                    Palette.basePalette,
+                    sizeX,
+                    sizeY,
+                    sizeZ,
+                    FileOutputStream("mat_smoke_result_${i}.vox")
+                )
+                log.info("Iteration end: $i")
             }
-
-            val result = voxelRepository.findAll()
-//            result.forEach { log.info(it.toString()) }
-            val min = result.minOf { it.evenIterationTemperature }
-            val max = result.maxOf { it.evenIterationTemperature }
-            log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
-
-            VoxFormatParser.write(
-                result.associate {
-                    it.key to VoxFormatParser.toPaletteLinear(
-                        value = it.evenIterationTemperature,
-                        min = min,
-                        max = max
-                    )
-                },
-                Palette.temperaturePalette,
-                sizeX,
-                sizeY,
-                sizeZ,
-                FileOutputStream("2blocks.vox")
-            )
-            log.info(virtualThermometerService.getMeasurements(voxels[0].key))
-            log.info(virtualThermometerService.getMeasurements(voxels[1].key))
-//            log.info(virtualThermometerService.getMeasurements(voxels[2].key))
         }
     }
 

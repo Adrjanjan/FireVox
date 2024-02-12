@@ -212,8 +212,8 @@ class SceneTreeTest : ShouldSpec({
             VoxelKey(1, 1, 2) to WOOD,
             VoxelKey(2, 1, 2) to WOOD,
 
-            VoxelKey(2, 0, 0) to WOOD_HEATED, // dots +1x
-            VoxelKey(2, 2, 0) to WOOD_HEATED
+            VoxelKey(2, 0, 0) to WOOD_BURNT, // dots +1x
+            VoxelKey(2, 2, 0) to WOOD_BURNT
         )
     }
 

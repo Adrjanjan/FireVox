@@ -31,15 +31,15 @@ class ConvectionCalculator(
         val currentMaterial = voxel.material
         val alpha = 1 / (currentMaterial.density * lPow5 * currentMaterial.specificHeatCapacity) //  1/mass(density * length.pow(3)) * area(length.pow(2)) * shc
         val currentAsTd = upper
-            ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient * voxel.temperature - it.material.convectionHeatTransferCoefficient * it.temperature) * timeStep }
+            ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient + it.material.convectionHeatTransferCoefficient)/2 * (it.temperature - voxel.temperature) * timeStep }
             ?.also { if(it > delta) voxelsToSend.add(upper.key) }
             ?: 0.0
         val currentAsTu = lower
-            ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient * voxel.temperature - it.material.convectionHeatTransferCoefficient * it.temperature) * timeStep }
+            ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient + it.material.convectionHeatTransferCoefficient)/2 * (it.temperature - voxel.temperature) * timeStep }
             ?.also { if(it > delta) voxelsToSend.add(lower.key) }
             ?: 0.0
-        //
-        return voxel.temperature + currentAsTd + currentAsTu
+
+        return currentAsTd + currentAsTu
     }
 
 }

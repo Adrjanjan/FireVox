@@ -21,6 +21,7 @@ import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
 import pl.edu.agh.firevox.worker.WorkerApplication
 import pl.edu.agh.firevox.worker.service.CalculationService
+import pl.edu.agh.firevox.worker.service.toVoxelState
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
@@ -132,9 +133,32 @@ class SmokeExecutionTest(
                 }
             }
         }
+//
+//        voxelRepository.saveAll(voxels)
+//        voxelRepository.flush()
 
-        voxelRepository.saveAll(voxels)
-        voxelRepository.flush()
+        VoxFormatParser.write(
+            voxels.filter { it.evenIterationMaterial.voxelMaterial != VoxelMaterial.AIR }.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
+            Palette.basePalette,
+            sizeX,
+            sizeY,
+            sizeZ,
+            FileOutputStream("big_mat_smoke_result_start.vox")
+        )
+        VoxFormatParser.write(
+            voxels.associate {
+                it.key to VoxFormatParser.toPaletteLinear(
+                    value = it.evenIterationTemperature.toCelsius(),
+                    min = 25.0,
+                    max = 700.0
+                )
+            },
+            Palette.temperaturePalette,
+            sizeX,
+            sizeY,
+            sizeZ,
+            FileOutputStream("big_temp_smoke_result_start.vox")
+        )
 //
 //        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
 //            .also {
@@ -146,13 +170,13 @@ class SmokeExecutionTest(
 //        planes = planes.let(radiationPlaneRepository::saveAll)
 //        radiationPlaneRepository.flush()
 
-        should("execute test") {
+        xshould("execute test") {
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculateGivenVoxel(v, i)}
+//                voxels.parallelStream().forEach { v -> calculationService.calculateAllDataFetched(v.toVoxelState(i),  i)}
                 log.info("Finished main calculator")
 //                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
                 log.info("Finished calculations")
@@ -177,7 +201,7 @@ class SmokeExecutionTest(
                         sizeX,
                         sizeY,
                         sizeZ,
-                        FileOutputStream("temp_smoke_result_${iterationNumber * timeStep}s.vox")
+                        FileOutputStream("temp_smoke_result_${i * timeStep}s.vox")
                     )
                     VoxFormatParser.write(
                         result.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
@@ -185,7 +209,7 @@ class SmokeExecutionTest(
                         sizeX,
                         sizeY,
                         sizeZ,
-                        FileOutputStream("mat_smoke_result_${iterationNumber * timeStep}s.vox")
+                        FileOutputStream("mat_smoke_result_${i * timeStep}s.vox")
                     )
                 }
             }

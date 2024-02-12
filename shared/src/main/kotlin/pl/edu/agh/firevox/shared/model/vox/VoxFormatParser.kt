@@ -247,9 +247,9 @@ object VoxFormatParser {
                                 xRange = xStartIndex until xEndIndex,
                                 yRange = yStartIndex until yEndIndex,
                                 zRange = zStartIndex until zEndIndex,
-                            )
+                            ) && value != 0
                         ) {
-                            model[VoxelKey(key.x % tileSize, key.y % tileSize, key.z % tileSize)] = value
+                            model[VoxelKey(key.x % tileSize, key.y % tileSize, key.z % tileSize)] = value + 1
                         }
                         if (model.size >= tileSize * tileSize * tileSize) break // single model cant be bigger than tileSize ^3
                     }
