@@ -286,6 +286,10 @@ data class VoxelState(
     override fun toString(): String {
         return "VoxelState(key=$key, temperature=${temperature.toCelsius()}, material=${material.voxelMaterial.name}, smoke=$smokeConcentration, burningCounter=${burningCounter}, ignitingCounter=$ignitingCounter)"
     }
+
+    fun isAbove(other: VoxelState) = this.key.isAbove(other.key)
+
+    fun isBelow(other: VoxelState) = this.key.isBelow(other.key)
 }
 
 class InvalidSimulationState(s: String) : Throwable(s)
