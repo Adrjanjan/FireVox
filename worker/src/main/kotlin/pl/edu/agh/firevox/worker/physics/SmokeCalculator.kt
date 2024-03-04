@@ -31,11 +31,6 @@ class SmokeCalculator {
                 acc + transferFactor(
                     currentVoxel, neighbour, neighbour.smokeConcentration < 1.0
                 ) * smokeTransfer(currentVoxel.smokeConcentration, neighbour.smokeConcentration)
-//            - transferFactor(
-//                neighbour,
-//                currentVoxel,
-//                neighbour.smokeConcentration < 1.0
-//            ) * smokeTransfer(neighbour.smokeConcentration, currentVoxel.smokeConcentration)
             }
 
     private fun generatedSmoke(n: VoxelState, timeStep: Double): Double {

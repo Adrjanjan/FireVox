@@ -100,7 +100,7 @@ class SmokeCalculatorTest : ShouldSpec({
             )
 
             val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.5 - 0.5/6
+            result shouldBe 0.5 - 0.5 / 6
         }
 
         context("for only upper not fully empty neighbour available") {
@@ -126,19 +126,148 @@ class SmokeCalculatorTest : ShouldSpec({
             )
 
             val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.5 - 0.1/6
+            result shouldBe 0.5 - 0.1 / 6
         }
 
-        context("for only side neighbour available") {
-            
+        context("for only side neighbours available") {
+            val voxels = mutableListOf(
+                VoxelState(
+                    VoxelKey(0, 0, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.70,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(0, -1, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(0, 1, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(1, 0, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(-1, 0, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                )
+            )
+
+            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
+            result shouldBe 0.7 - (4 * 0.5 * (0.5 / 6))
         }
 
         context("for only below neighbour available") {
+            val voxels = mutableListOf(
+                VoxelState(
+                    VoxelKey(0, 0, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(0, 0, -1),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.00,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                )
+            )
 
+            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
+            result shouldBe 0.5 - 0.25 * 0.5 / 6
         }
 
-        context("above for 2x2 plane below neighbour available") {
+        context("for multiple cells smoke mass is conserved") {
+            val voxels = mutableListOf(
+                VoxelState(
+                    VoxelKey(0, 0, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.70,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(0, -1, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(0, 1, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(1, 0, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(-1, 0, 0),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(0, 0, 1),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.00,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                )
+            )
 
+            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
+            result shouldBe 0.7 - (4 * 0.5 * (0.5 / 6) + 1 * 0.7 / 6)
         }
     }
 
