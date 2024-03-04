@@ -40,7 +40,7 @@ class SmokeCalculatorTest : ShouldSpec({
         deformationTemperature = null
     )
 
-    val wood = PhysicalMaterial(
+    val woodBurning = PhysicalMaterial(
         voxelMaterial = VoxelMaterial.WOOD_BURNING,
         density = 400.0,
         baseTemperature = 20.0.toKelvin(),
@@ -56,6 +56,7 @@ class SmokeCalculatorTest : ShouldSpec({
         deformationTemperature = null,
         emissivity = 0.9
     )
+
     val calculator = SmokeCalculator()
 
     context("calculate smoke transfer correctly") {
@@ -64,7 +65,7 @@ class SmokeCalculatorTest : ShouldSpec({
             val voxels = mutableListOf(
                 VoxelState(
                     VoxelKey(0, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -81,7 +82,7 @@ class SmokeCalculatorTest : ShouldSpec({
             val voxels = mutableListOf(
                 VoxelState(
                     VoxelKey(0, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -107,7 +108,7 @@ class SmokeCalculatorTest : ShouldSpec({
             val voxels = mutableListOf(
                 VoxelState(
                     VoxelKey(0, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -116,7 +117,7 @@ class SmokeCalculatorTest : ShouldSpec({
                 ),
                 VoxelState(
                     VoxelKey(0, 0, 1),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.90,
@@ -133,7 +134,7 @@ class SmokeCalculatorTest : ShouldSpec({
             val voxels = mutableListOf(
                 VoxelState(
                     VoxelKey(0, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.70,
@@ -142,7 +143,7 @@ class SmokeCalculatorTest : ShouldSpec({
                 ),
                 VoxelState(
                     VoxelKey(0, -1, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -151,7 +152,7 @@ class SmokeCalculatorTest : ShouldSpec({
                 ),
                 VoxelState(
                     VoxelKey(0, 1, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -160,7 +161,7 @@ class SmokeCalculatorTest : ShouldSpec({
                 ),
                 VoxelState(
                     VoxelKey(1, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -169,7 +170,7 @@ class SmokeCalculatorTest : ShouldSpec({
                 ),
                 VoxelState(
                     VoxelKey(-1, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -186,7 +187,7 @@ class SmokeCalculatorTest : ShouldSpec({
             val voxels = mutableListOf(
                 VoxelState(
                     VoxelKey(0, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -212,7 +213,7 @@ class SmokeCalculatorTest : ShouldSpec({
             val voxels = mutableListOf(
                 VoxelState(
                     VoxelKey(0, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.70,
@@ -221,7 +222,7 @@ class SmokeCalculatorTest : ShouldSpec({
                 ),
                 VoxelState(
                     VoxelKey(0, -1, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -230,7 +231,7 @@ class SmokeCalculatorTest : ShouldSpec({
                 ),
                 VoxelState(
                     VoxelKey(0, 1, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -239,7 +240,7 @@ class SmokeCalculatorTest : ShouldSpec({
                 ),
                 VoxelState(
                     VoxelKey(1, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -248,7 +249,7 @@ class SmokeCalculatorTest : ShouldSpec({
                 ),
                 VoxelState(
                     VoxelKey(-1, 0, 0),
-                    material = air,
+                    material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.50,
@@ -276,7 +277,16 @@ class SmokeCalculatorTest : ShouldSpec({
             val voxels = mutableListOf(
                 VoxelState(
                     VoxelKey(0, 0, 0),
-                    material = wood,
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.0,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(0, 0, -1),
+                    material = woodBurning,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
                     smokeConcentration = 0.0,
@@ -286,7 +296,7 @@ class SmokeCalculatorTest : ShouldSpec({
             )
 
             val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe wood.smokeEmissionPerSecond!! * timeStep
+            result shouldBe woodBurning.smokeEmissionPerSecond!! * timeStep
         }
     }
 })
