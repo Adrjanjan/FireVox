@@ -3,7 +3,7 @@ package pl.edu.agh.firevox.worker.physics
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.VoxelKey
-import pl.edu.agh.firevox.worker.service.VoxelState
+import pl.edu.agh.firevox.shared.model.VoxelState
 import kotlin.math.pow
 
 @Service
@@ -26,8 +26,8 @@ class ConvectionCalculator(
     fun calculate(
         voxel: VoxelState, voxels: List<VoxelState>, timeStep: Double, voxelsToSend: MutableSet<VoxelKey>
     ): Double {
-        val lower = voxels.firstOrNull { it.key.isBelow(voxel.key) && it.material.isFluid() }
-        val upper = voxels.firstOrNull { it.key.isAbove(voxel.key) && it.material.isFluid() }
+        val lower = voxels.firstOrNull { it.isBelow(voxel) && it.material.isFluid() }
+        val upper = voxels.firstOrNull { it.isAbove(voxel) && it.material.isFluid() }
         val currentMaterial = voxel.material
         val alpha = 1 / (currentMaterial.density * lPow5 * currentMaterial.specificHeatCapacity) //  1/mass(density * length.pow(3)) * area(length.pow(2)) * shc
         val currentAsTd = upper

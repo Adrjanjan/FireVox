@@ -3,7 +3,6 @@ package pl.edu.agh.firevox.worker.physics
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import pl.edu.agh.firevox.shared.model.*
-import pl.edu.agh.firevox.worker.service.VoxelState
 
 class SmokeCalculatorTest : ShouldSpec({
     val timeStep = 0.1

@@ -5,34 +5,35 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.findByIdOrNull
+import org.springframework.data.repository.query.Param
 import org.springframework.stereotype.Repository
 import pl.edu.agh.firevox.shared.model.simulation.PaletteType
 import pl.edu.agh.firevox.shared.model.simulation.SimulationSizeView
+import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
+import pl.edu.agh.firevox.shared.verifyInbound
 
 @Repository
 class CustomVoxelRepository(
-    val voxelRepository: VoxelRepository
+    private val voxelRepository: VoxelRepository,
+    private val simulationRepository: SimulationsRepository,
 ) {
     fun findNeighbors(
         key: VoxelKey,
-        type: NeighbourhoodType,
-        modelSize: SimulationSizeView
+        type: NeighbourhoodType
     ): Pair<List<Voxel>, Set<VoxelKey>> {
         val result = type.keyMapping
             .map { key.copy(x = key.x + it.x, y = key.y + it.y, z = key.z + it.z) }
-            .filter { verifyInbound(it, modelSize) }
+            .filter { verifyInbound(it, simulationRepository.fetchSize()) }
             .associateWith { findByIdOrNull(it) }
-        return result.values.filterNotNull().toList() to result.filter { it.value == null }.keys
+        val notNullFound = result.values.filterNotNull().toList()
+        val keysToFill = result.filter { it.value == null }.keys
+        return notNullFound to keysToFill
     }
 
     fun save(voxel: Voxel) = voxelRepository.save(voxel)
 
     fun saveAll(voxels: Collection<Voxel>) = voxelRepository.saveAll(voxels)
-
-    private fun verifyInbound(k: VoxelKey, modelSize: SimulationSizeView) =
-        if (k.x < 0 || k.y < 0 || k.z < 0) false
-        else (k.x < modelSize.sizeX && k.y < modelSize.sizeY && k.z < modelSize.sizeZ)
 
     fun findByIdOrNull(key: VoxelKey) = voxelRepository.findByIdOrNull(key)
 
@@ -99,6 +100,18 @@ interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
     )
     fun findStartingVoxels(firstIterationMaterials: Set<VoxelMaterial>): List<VoxelKey>
 
+
+    @Query(
+        value = "SELECT v FROM Voxel v " +
+                "WHERE v.key.x >= :startX AND v.key.x <= :endX " +
+                "AND v.key.y >= :startY AND v.key.y <= :endY " +
+                "AND v.key.z >= :startZ AND v.key.z <= :endZ"
+    )
+    fun findElementsByIndices(
+        @Param("startX") startX: Int, @Param("endX") endX: Int,
+        @Param("startY") startY: Int, @Param("endY") endY: Int,
+        @Param("startZ") startZ: Int, @Param("endZ") endZ: Int
+    ): List<Voxel>
 }
 
 enum class NeighbourhoodType(val keyMapping: List<Triple<Int, Int, Int>>) {

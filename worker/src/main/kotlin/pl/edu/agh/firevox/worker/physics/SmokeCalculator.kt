@@ -2,7 +2,7 @@ package pl.edu.agh.firevox.worker.physics
 
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.VoxelKey
-import pl.edu.agh.firevox.worker.service.VoxelState
+import pl.edu.agh.firevox.shared.model.VoxelState
 import kotlin.math.min
 import kotlin.math.sign
 
@@ -22,7 +22,7 @@ class SmokeCalculator {
     )
 
     private fun smokeGenerated(currentVoxel: VoxelState, neighbours: List<VoxelState>, timeStep: Double): Double =
-        neighbours.firstOrNull { it.key.isBelow(currentVoxel.key) && it.material.isBurning() }
+        neighbours.firstOrNull { it.isBelow(currentVoxel) && it.material.isBurning() }
             ?.let { generatedSmoke(it, timeStep) } ?: 0.0
 
     private fun smokeTransferred(currentVoxel: VoxelState, neighbours: List<VoxelState>): Double =

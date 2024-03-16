@@ -8,8 +8,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import pl.edu.agh.firevox.shared.model.*
-import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
-import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.simulation.Simulation
 import pl.edu.agh.firevox.shared.model.simulation.SimulationsRepository
@@ -18,10 +16,8 @@ import pl.edu.agh.firevox.shared.model.simulation.counters.Counter
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
-import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
 import pl.edu.agh.firevox.worker.WorkerApplication
 import pl.edu.agh.firevox.worker.service.CalculationService
-import pl.edu.agh.firevox.worker.service.toVoxelState
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
@@ -35,15 +31,12 @@ import kotlin.math.roundToInt
 )
 class SmokeExecutionTest(
     val calculationService: CalculationService,
-    val radiationCalculator: RadiationCalculator,
     val voxelRepository: VoxelRepository,
     val physicalMaterialRepository: PhysicalMaterialRepository,
     val simulationsRepository: SimulationsRepository,
     val countersRepository: CountersRepository,
-    val radiationPlaneRepository: RadiationPlaneRepository,
     @Value("\${firevox.timestep}") val timeStep: Double,
-    val planeFinder: PlaneFinder,
-    val synchroniserImpl: SynchroniserImpl,
+    val chunkRepository: ChunkRepository,
 ) : ShouldSpec({
 
     context("calculate radiation test") {
@@ -62,13 +55,13 @@ class SmokeExecutionTest(
             getFile("radiation_test.vox")
         }
         // when
-        val model = VoxFormatParser.read(input)
+        val parsed = VoxFormatParser.read(input)
 
         val wood = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.WOOD)
         val concrete = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.CONCRETE)
         val air = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
 
-        val voxels = model.voxels.map { (k, _) ->
+        val voxels = parsed.voxels.map { (k, _) ->
             Voxel(
                 VoxelKey(k.x, k.y, k.z),
                 evenIterationMaterial = if (isWood(k)) wood else concrete,
@@ -83,30 +76,16 @@ class SmokeExecutionTest(
         val sizeY = voxels.maxOf { it.key.y } + 1
         val sizeZ = voxels.maxOf { it.key.z } + 1
 
-        simulationsRepository.save(
-            Simulation(
-                name = "Smoke Test",
-                parentModel = SingleModel(name = "Parent model"),
-                sizeX = sizeX,
-                sizeY = sizeY,
-                sizeZ = sizeZ,
-            )
-        )
+        val model = Simulation(
+            name = "Smoke Test",
+            parentModel = SingleModel(name = "Parent model"),
+            sizeX = sizeX,
+            sizeY = sizeY,
+            sizeZ = sizeZ,
+        ).also(simulationsRepository::save)
 
-        // then create planes
-//        val pointsToNormals = listOf(
-//            VoxelKey(0, 0, 1) to VoxelKey(1, 0, 0),
-//            VoxelKey(1, 99, 1) to VoxelKey(0, -1, 0),
-//            VoxelKey(99, 1, 1) to VoxelKey(-1, 0, 0),
-//            VoxelKey(1, 1, 99) to VoxelKey(0, 0, -1),
-//
-//            VoxelKey(52, 1, 0) to VoxelKey(0, 0, 1),
-//            VoxelKey(32, 1, 0) to VoxelKey(0, 0, 1),
-//
-//            VoxelKey(49, 10, 1) to VoxelKey(-1, 0, 0),
-//            VoxelKey(51, 10, 1) to VoxelKey(1, 0, 0),
-//        )
-//
+        log.info("Model read from file")
+
         val matrix = Array(sizeX) { x ->
             Array(sizeY) { y ->
                 IntArray(sizeZ) { z -> 0 }
@@ -133,9 +112,10 @@ class SmokeExecutionTest(
                 }
             }
         }
-//
-//        voxelRepository.saveAll(voxels)
-//        voxelRepository.flush()
+
+        voxelRepository.saveAll(voxels)
+        voxelRepository.flush()
+        log.info("Model saved to DB")
 
         VoxFormatParser.write(
             voxels.filter { it.evenIterationMaterial.voxelMaterial != VoxelMaterial.AIR }.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
@@ -159,34 +139,20 @@ class SmokeExecutionTest(
             sizeZ,
             FileOutputStream("big_temp_smoke_result_start.vox")
         )
-//
-//        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
-//            .also {
-//                countersRepository.set(
-//                    CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
-//                    it.size.toLong()
-//                )
-//            }
-//        planes = planes.let(radiationPlaneRepository::saveAll)
-//        radiationPlaneRepository.flush()
+        log.info("Start models saved to file")
 
-        xshould("execute test") {
+        should("execute test") {
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
+            val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX, sizeY, sizeZ))
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-//                voxels.parallelStream().forEach { v -> calculationService.calculateAllDataFetched(v.toVoxelState(i),  i)}
+                calculationService.calculateForChunk(chunk, i)
                 log.info("Finished main calculator")
-//                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
-                log.info("Finished calculations")
-//                synchroniserImpl.synchroniseRadiationResults(i.toLong())
-//                log.info("Finished synchronisation")
-                countersRepository.increment(CounterId.CURRENT_ITERATION)
-                log.info("Finished increment")
 
                 if (i % 100 == 0) {
-                    val result = voxelRepository.findAll()
+                    val result = chunk.flatten()
                     val min = result.minOf { it.evenIterationTemperature }
                     val max = result.maxOf { it.evenIterationTemperature }
                     VoxFormatParser.write(
@@ -211,9 +177,10 @@ class SmokeExecutionTest(
                         sizeZ,
                         FileOutputStream("mat_smoke_result_${i * timeStep}s.vox")
                     )
+                    log.info("Saved file for iteration $i")
                 }
             }
-            val result = voxelRepository.findAll()
+            val result = chunk.flatten()
             val min = result.minOf { it.evenIterationTemperature }
             val max = result.maxOf { it.evenIterationTemperature }
             log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")

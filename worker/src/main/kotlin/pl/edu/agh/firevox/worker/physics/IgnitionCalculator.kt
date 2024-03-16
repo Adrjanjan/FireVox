@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.PhysicalMaterial
 import pl.edu.agh.firevox.shared.model.PhysicalMaterialRepository
 import pl.edu.agh.firevox.shared.model.VoxelMaterial
-import pl.edu.agh.firevox.worker.service.VoxelState
+import pl.edu.agh.firevox.shared.model.VoxelState
 
 @Service
 class IgnitionCalculator(

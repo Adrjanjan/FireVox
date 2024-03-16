@@ -83,12 +83,9 @@ class CalculationService(
             return true to setOf()
         }
 
-        val modelSize = simulationRepository.fetchSize()
         val neighbours = fillMissingVoxelsInsideModel(
-            voxelRepository.findNeighbors(
-                voxel.key, NeighbourhoodType.N_E_W_S_U_L_, modelSize
-            )
-        ).map { it.toVoxelState(iteration) }
+            voxelRepository.findNeighbors(voxel.key, NeighbourhoodType.N_E_W_S_U_L_)
+        ).also(voxelRepository::saveAll).map { it.toVoxelState(iteration) }
 
         return calculateAllDataFetched(voxelState, neighbours, iteration, voxel).let {
             voxelRepository.save(it.first)
@@ -96,7 +93,21 @@ class CalculationService(
         }
     }
 
-    private fun calculateAllDataFetched(
+    @Transactional
+    fun calculateForChunk(vs: VoxelsChunk, iteration: Int) {
+        vs.flatten().parallelStream().forEach {
+            val neighbours = vs.neighbours(it.key, NeighbourhoodType.N_E_W_S_U_L_).first
+                .map { n -> n.toVoxelState(iteration) }
+            calculateAllDataFetched(
+                it.toVoxelState(iteration),
+                neighbours,
+                iteration,
+                it
+            )
+        }
+    }
+
+    fun calculateAllDataFetched(
         voxelState: VoxelState,
         neighbours: List<VoxelState>,
         iteration: Int,
@@ -145,7 +156,7 @@ class CalculationService(
 
         // 2 smoke -> flame && flame start
         voxelState.material.transfersSmoke() // is air/smoke but voxel below started burning
-                && neighbours.firstOrNull { it.key.isBelow(voxelState.key) }?.material?.isBurning() == true
+                && neighbours.firstOrNull { it.isBelow(voxelState) }?.material?.isBurning() == true
                 || voxelState.material.voxelMaterial == VoxelMaterial.SMOKE && voxelState.temperature > smokeIntoFireThreshold
         -> physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.FLAME)
 
@@ -198,7 +209,7 @@ class CalculationService(
     }
 
     private fun fillMissingVoxelsInsideModel(
-        neighbours: Pair<List<Voxel>, Set<VoxelKey>>,
+        neighbours: Pair<List<Voxel>, Set<VoxelKey>>
     ): List<Voxel> {
         val air: PhysicalMaterial = materialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
         val result = neighbours.first.toMutableList()
@@ -211,7 +222,7 @@ class CalculationService(
                 oddIterationTemperature = air.baseTemperature,
             )
         })
-        return result.also(voxelRepository::saveAll)
+        return result
     }
 
     private fun handleVirtualThermometer(key: VoxelKey, voxel: VoxelState) {
@@ -274,42 +285,4 @@ class CalculationService(
 
 }
 
-data class VoxelState(
-    val key: VoxelKey,
-    var material: PhysicalMaterial,
-    var temperature: Double,
-    val wasProcessedThisIteration: Boolean,
-    val smokeConcentration: Double,
-    var ignitingCounter: Int = 0,
-    var burningCounter: Int = 0,
-) {
-    override fun toString(): String {
-        return "VoxelState(key=$key, temperature=${temperature.toCelsius()}, material=${material.voxelMaterial.name}, smoke=$smokeConcentration, burningCounter=${burningCounter}, ignitingCounter=$ignitingCounter)"
-    }
-
-    fun isAbove(other: VoxelState) = this.key.isAbove(other.key)
-
-    fun isBelow(other: VoxelState) = this.key.isBelow(other.key)
-}
-
 class InvalidSimulationState(s: String) : Throwable(s)
-
-fun Voxel.toVoxelState(iteration: Int) = if (iteration % 2 == 0)
-    VoxelState(
-        this.key,
-        this.evenIterationMaterial,
-        this.evenIterationTemperature,
-        this.lastProcessedIteration >= iteration,
-        this.evenSmokeConcentration,
-        this.ignitingCounter,
-        this.burningCounter,
-    ) else
-    VoxelState(
-        this.key,
-        this.oddIterationMaterial,
-        this.oddIterationTemperature,
-        this.lastProcessedIteration >= iteration,
-        this.oddSmokeConcentration,
-        this.ignitingCounter,
-        this.burningCounter,
-    )

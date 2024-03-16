@@ -44,4 +44,43 @@ data class Voxel(
     override fun toString(): String {
         return "Voxel(key=$key, evenIterationMaterial=$evenIterationMaterial, evenIterationTemperature=${evenIterationTemperature.toCelsius()}, oddIterationMaterial=$oddIterationMaterial, oddIterationTemperature=${oddIterationTemperature.toCelsius()}, isBoundaryCondition=$isBoundaryCondition)"
     }
+
+    fun toVoxelState(iteration: Int) = if (iteration % 2 == 0)
+        VoxelState(
+            this.key,
+            this.evenIterationMaterial,
+            this.evenIterationTemperature,
+            this.lastProcessedIteration >= iteration,
+            this.evenSmokeConcentration,
+            this.ignitingCounter,
+            this.burningCounter,
+        ) else
+        VoxelState(
+            this.key,
+            this.oddIterationMaterial,
+            this.oddIterationTemperature,
+            this.lastProcessedIteration >= iteration,
+            this.oddSmokeConcentration,
+            this.ignitingCounter,
+            this.burningCounter,
+        )
+}
+
+
+data class VoxelState(
+    val key: VoxelKey,
+    var material: PhysicalMaterial,
+    var temperature: Double,
+    val wasProcessedThisIteration: Boolean,
+    val smokeConcentration: Double,
+    var ignitingCounter: Int = 0,
+    var burningCounter: Int = 0,
+) {
+    override fun toString(): String {
+        return "VoxelState(key=$key, temperature=${temperature.toCelsius()}, material=${material.voxelMaterial.name}, smoke=$smokeConcentration, burningCounter=${burningCounter}, ignitingCounter=$ignitingCounter)"
+    }
+
+    fun isAbove(other: VoxelState) = this.key.isAbove(other.key)
+
+    fun isBelow(other: VoxelState) = this.key.isBelow(other.key)
 }
