@@ -34,7 +34,7 @@ class ChunkRepository(
             sKey.x, sKey.y, sKey.z, eKey.x, eKey.y, eKey.z,
         ).forEach { voxel ->
             // assumes startingVoxel always exists
-            it.voxels[sKey.x - voxel.key.x][sKey.y - voxel.key.y][sKey.z - voxel.key.z] = voxel
+            it.voxels[voxel.key.x - sKey.x][voxel.key.y - sKey.y][voxel.key.z - sKey.z] = voxel
         }
 
     }

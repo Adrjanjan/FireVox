@@ -59,7 +59,6 @@ class SmokeExecutionTest(
 
         val wood = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.WOOD)
         val concrete = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.CONCRETE)
-        val air = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
 
         val voxels = parsed.voxels.map { (k, _) ->
             Voxel(
@@ -76,7 +75,7 @@ class SmokeExecutionTest(
         val sizeY = voxels.maxOf { it.key.y } + 1
         val sizeZ = voxels.maxOf { it.key.z } + 1
 
-        val model = Simulation(
+        Simulation(
             name = "Smoke Test",
             parentModel = SingleModel(name = "Parent model"),
             sizeX = sizeX,
@@ -86,36 +85,9 @@ class SmokeExecutionTest(
 
         log.info("Model read from file")
 
-        val matrix = Array(sizeX) { x ->
-            Array(sizeY) { y ->
-                IntArray(sizeZ) { z -> 0 }
-            }
-        }
-
-        voxels.forEach {
-            matrix[it.key.x][it.key.y][it.key.z] = it.evenIterationMaterial.voxelMaterial.colorId
-        }
-
-        matrix.forEachIndexed { x, array ->
-            array.forEachIndexed { y, ints ->
-                ints.forEachIndexed { z, i ->
-                    if(i == 0) {
-                        Voxel(
-                            VoxelKey(x, y, z),
-                            evenIterationMaterial = air,
-                            evenIterationTemperature = 25.toKelvin(),
-                            oddIterationMaterial = air,
-                            oddIterationTemperature = 25.toKelvin(),
-                            isBoundaryCondition = false
-                        ).also(voxels::add)
-                    }
-                }
-            }
-        }
-
         voxelRepository.saveAll(voxels)
         voxelRepository.flush()
-        log.info("Model saved to DB")
+        log.info("Model saved to DB ${voxelRepository.count()}")
 
         VoxFormatParser.write(
             voxels.filter { it.evenIterationMaterial.voxelMaterial != VoxelMaterial.AIR }.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
@@ -193,4 +165,4 @@ class SmokeExecutionTest(
     }
 }
 
-private fun isWood(k: VoxelKey) = k.x in 52..98 && k.z == 0 && k.y in 25..75
+private fun isWood(k: VoxelKey) = k.x in 52..98 && k.z == 0 && k.y in 0..98

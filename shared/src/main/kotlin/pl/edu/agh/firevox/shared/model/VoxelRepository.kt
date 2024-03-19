@@ -77,11 +77,11 @@ interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
 
     @Modifying
     @Query("update Voxel v set v.evenIterationTemperature = v.evenIterationTemperature + :tempIncrease where v.key in :keys")
-    fun incrementEvenTemperature(keys: MutableSet<VoxelKey>, tempIncrease : Double)
+    fun incrementEvenTemperature(keys: MutableSet<VoxelKey>, tempIncrease: Double)
 
     @Modifying
     @Query("update Voxel v set v.oddIterationTemperature = v.oddIterationTemperature + :tempIncrease where v.key in :keys")
-    fun incrementOddTemperature(keys: MutableSet<VoxelKey>, tempIncrease : Double)
+    fun incrementOddTemperature(keys: MutableSet<VoxelKey>, tempIncrease: Double)
 
 
     @Query(
@@ -108,9 +108,12 @@ interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
                 "AND v.key.z >= :startZ AND v.key.z <= :endZ"
     )
     fun findElementsByIndices(
-        @Param("startX") startX: Int, @Param("endX") endX: Int,
-        @Param("startY") startY: Int, @Param("endY") endY: Int,
-        @Param("startZ") startZ: Int, @Param("endZ") endZ: Int
+        @Param("startX") startX: Int,
+        @Param("startY") startY: Int,
+        @Param("startZ") startZ: Int,
+        @Param("endX") endX: Int,
+        @Param("endY") endY: Int,
+        @Param("endZ") endZ: Int
     ): List<Voxel>
 }
 
