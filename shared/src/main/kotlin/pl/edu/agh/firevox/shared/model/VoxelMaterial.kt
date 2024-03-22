@@ -12,13 +12,13 @@ enum class VoxelMaterial(
     PLASTIC_BURNING(6),
     PLASTIC_BURNT(7),
     TEXTILE(8),
-    TEXTILE_BURNING(8),
+    TEXTILE_BURNING(9),
     TEXTILE_BURNT(10),
     METAL(11),
-    GLASS(18),
-    CONCRETE(19),
-    FLAME(20),
-    WATER(21);
+    GLASS(12),
+    CONCRETE(13),
+    FLAME(14),
+    WATER(15);
 
     companion object {
         fun fromId(value: Int): VoxelMaterial = VoxelMaterial.entries.firstOrNull { it.colorId == value }

@@ -271,7 +271,7 @@ data class Palette(
         val basePalette = Palette (
             PaletteType.BASE_PALETTE,
             mutableSetOf(
-//                Colour(VoxelMaterial.AIR.colorId, 0, 0, 0, 0), //AIR
+                Colour(VoxelMaterial.AIR.colorId, 0, 0, 0, 0),
                 Colour(VoxelMaterial.SMOKE.colorId, 102, 102, 102),
                 // Bronze
                 Colour(VoxelMaterial.WOOD.colorId, 153, 34, 0),
