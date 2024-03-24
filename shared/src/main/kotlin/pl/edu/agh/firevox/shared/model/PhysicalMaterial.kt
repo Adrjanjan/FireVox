@@ -80,6 +80,7 @@ class PhysicalMaterial(
     fun transfersSmoke() = this.voxelMaterial in listOf(
         VoxelMaterial.AIR,
         VoxelMaterial.SMOKE,
+        VoxelMaterial.FLAME,
     )
 
     fun canContainOxygen() = this.voxelMaterial in listOf(

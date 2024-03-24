@@ -15,18 +15,18 @@ class SmokeCalculator {
         timeStep: Double,
         iteration: Int,
         voxelsToSend: MutableSet<VoxelKey>,
-    ): Double = currentVoxel.smokeConcentration + smokeTransferred(currentVoxel, neighbours) + smokeGenerated(
-        currentVoxel,
-        neighbours,
-        timeStep
-    )
+    ): Double {
+        val smokeTransferred = smokeTransferred(currentVoxel, neighbours)
+        val smokeGenerated = smokeGenerated(currentVoxel, neighbours, timeStep)
+        return currentVoxel.smokeConcentration + smokeTransferred + smokeGenerated
+    }
 
     private fun smokeGenerated(currentVoxel: VoxelState, neighbours: List<VoxelState>, timeStep: Double): Double =
         neighbours.firstOrNull { it.isBelow(currentVoxel) && it.material.isBurning() }
             ?.let { generatedSmoke(it, timeStep) } ?: 0.0
 
     private fun smokeTransferred(currentVoxel: VoxelState, neighbours: List<VoxelState>): Double =
-        neighbours.filter { !(it.material.isSolid() || it.material.isLiquid() || it == currentVoxel) }
+        neighbours.filter { it.material.transfersSmoke() && it != currentVoxel }
             .fold(0.0) { acc, neighbour ->
                 acc + transferFactor(
                     currentVoxel, neighbour, neighbour.smokeConcentration < 1.0
@@ -37,7 +37,9 @@ class SmokeCalculator {
         return n.material.smokeEmissionPerSecond!! * timeStep
     }
 
-    fun smokeTransfer(from: Double, to: Double) = min(from / 6, (1.0 - to) / 6)
+    fun smokeTransfer(a: Double, b: Double) = if (a > b) {
+        min(a / 6, (1.0 - b) / 6)
+    } else min(b / 6, (1.0 - a) / 6)
 
     /**
      * Coefficient + the direction of transfer

@@ -57,17 +57,19 @@ class SmokeExecutionTest(
         // when
         val parsed = VoxFormatParser.read(input)
 
-        val wood = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.WOOD)
+        val smoke = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.SMOKE)
         val concrete = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.CONCRETE)
 
         val voxels = parsed.voxels.map { (k, _) ->
             Voxel(
                 VoxelKey(k.x, k.y, k.z),
-                evenIterationMaterial = if (isWood(k)) wood else concrete,
-                evenIterationTemperature = if (isWood(k)) 700.toKelvin() else 25.toKelvin(),
-                oddIterationMaterial = if (isWood(k)) wood else concrete,
-                oddIterationTemperature = if (isWood(k)) 700.toKelvin() else 25.toKelvin(),
-                isBoundaryCondition = false //isBoundary(k)
+                evenIterationMaterial = if (isSmoke(k)) smoke else concrete,
+                evenIterationTemperature = if (isSmoke(k)) 700.toKelvin() else 25.toKelvin(),
+                oddIterationMaterial = if (isSmoke(k)) smoke else concrete,
+                oddIterationTemperature = if (isSmoke(k)) 700.toKelvin() else 25.toKelvin(),
+                isBoundaryCondition = false, //isBoundary(k)
+                evenSmokeConcentration = if (isSmoke(k)) 1.0 else 0.0,
+                oddSmokeConcentration = if (isSmoke(k)) 1.0 else 0.0,
             )
         }.toMutableList()
 
@@ -101,8 +103,8 @@ class SmokeExecutionTest(
             voxels.associate {
                 it.key to VoxFormatParser.toPaletteLinear(
                     value = it.evenIterationTemperature.toCelsius(),
-                    min = 25.0,
-                    max = 700.0
+                    min = 20.0,
+                    max = 710.0
                 )
             },
             Palette.temperaturePalette,
@@ -165,4 +167,4 @@ class SmokeExecutionTest(
     }
 }
 
-private fun isWood(k: VoxelKey) = k.x in 52..98 && k.z == 0 && k.y in 0..98
+private fun isSmoke(k: VoxelKey) = k.x in 52..98 && k.z == 0 && k.y in 0..98
