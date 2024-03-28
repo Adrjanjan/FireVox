@@ -144,7 +144,7 @@ class SmokeExecutionTest(
                         FileOutputStream("temp_smoke_result_${i * timeStep}s.vox")
                     )
                     VoxFormatParser.write(
-                        result.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
+                        result.associate { it.key to it.evenIterationMaterial.voxelMaterial.colorId },
                         Palette.basePalette,
                         sizeX,
                         sizeY,

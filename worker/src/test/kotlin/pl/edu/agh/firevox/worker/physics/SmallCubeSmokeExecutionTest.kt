@@ -78,12 +78,12 @@ class SmallCubeSmokeExecutionTest(
 //            }
 //        }
 //        val scale = 1
-        (0 .. 2).forEach { x ->
-            (0 .. 2).forEach { y ->
-                (0 .. 2).forEach { z ->
+        (0..2).forEach { x ->
+            (0..2).forEach { y ->
+                (0..2).forEach { z ->
                     val (temp, material, smokeConcentration) = when {
-                        x == 1 && y == 1 && z == 1  -> Triple(20.toKelvin(), concrete, 0.0)
-                        x == 1 && y == 1 && z == 0  -> Triple(20.toKelvin(), smoke, 1.0)
+                        x == 1 && y == 1 && z == 1 -> Triple(20.toKelvin(), concrete, 0.0)
+                        x == 1 && y == 1 && z == 0 -> Triple(20.toKelvin(), smoke, 1.0)
                         else -> Triple(20.toKelvin(), air, 0.0)
                     }
                     voxels.add(
@@ -148,20 +148,20 @@ class SmallCubeSmokeExecutionTest(
             val iterationNumber = 15 //(simulationTimeInSeconds / timeStep).roundToInt()
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
-            val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX-1, sizeY-1, sizeZ-1))
+            val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
                 calculationService.calculateForChunk(chunk, i)
                 log.info("Finished main calculator")
 
-                if (true ){ //i % 100 == 0) {
+                if (true) { //i % 100 == 0) {
                     val result = chunk.flatten()
                     val min = result.minOf { it.evenIterationTemperature }
                     val max = result.maxOf { it.evenIterationTemperature }
                     VoxFormatParser.write(
                         result.associate {
                             it.key to VoxFormatParser.toPaletteLinear(
-                                value = it.evenIterationTemperature,
+                                value = if (i % 2 == 0) it.evenIterationTemperature else it.oddIterationTemperature,
                                 min = min,
                                 max = max
                             )
@@ -174,7 +174,7 @@ class SmallCubeSmokeExecutionTest(
                     )
 
                     VoxFormatParser.write(
-                        result.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
+                        result.associate { it.key to ((if (i % 2 == 0) it.evenIterationMaterial else it.oddIterationMaterial).voxelMaterial.colorId) },
                         Palette.basePalette,
                         sizeX,
                         sizeY,
