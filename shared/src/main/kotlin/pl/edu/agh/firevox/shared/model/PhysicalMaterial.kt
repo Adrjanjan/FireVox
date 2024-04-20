@@ -15,29 +15,29 @@ class PhysicalMaterial(
     @Column(nullable = false)
     val voxelMaterial: VoxelMaterial,
 
-    val density: Double, // unit kg/m^3
-    val baseTemperature: Double, // unit K
+    var density: Double, // unit kg/m^3
+    var baseTemperature: Double, // unit K
 
-    val thermalConductivityCoefficient: Double, // unit W/(mK)
-    val convectionHeatTransferCoefficient: Double, // W/(m^2K)
-    val specificHeatCapacity: Double, // unit J/(kg*K)
+    var thermalConductivityCoefficient: Double, // unit W/(mK)
+    var convectionHeatTransferCoefficient: Double, // W/(m^2K)
+    var specificHeatCapacity: Double, // unit J/(kg*K)
 
-    val ignitionTemperature: Double?, // unit K
-    val timeToIgnition: Double?, // unit s
-    val autoignitionTemperature: Double?, // unit K
+    var ignitionTemperature: Double?, // unit K
+    var timeToIgnition: Double?, // unit s
+    var autoignitionTemperature: Double?, // unit K
 
-    val burningTime: Double?, // unit s
-    val effectiveHeatOfCombustion: Double?, // unit J/s
+    var burningTime: Double?, // unit s
+    var effectiveHeatOfCombustion: Double?, // unit J/s
 
-    val smokeEmissionPerSecond: Double?, // no unit
-    val deformationTemperature: Double?, // unit K
+    var smokeEmissionPerSecond: Double?, // no unit
+    var deformationTemperature: Double?, // unit K
 
-    val burnsCompletely: Boolean = false,
-    val emissivity: Double = 0.0,
+    var burnsCompletely: Boolean = false,
+    var emissivity: Double = 0.0,
 ) {
 
     @Id
-    val id: Int = voxelMaterial.colorId
+    val id: Int = voxelMaterial.colorId + 1000
 
     fun isSolid() = this.voxelMaterial in listOf(
         VoxelMaterial.METAL,

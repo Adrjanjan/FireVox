@@ -28,10 +28,11 @@ class PlaneFinder @Autowired constructor(
         fakeRadiationPlane: RadiationPlane
     ): List<RadiationPlane> {
         log.info("Preprocessing radiation planes")
+        var wallId = 0
         val planes = pointsToNormals.parallelStream().flatMap {
             log.info("Processing plane $it")
             val fullPlane = fullPlane(voxels, it)
-            divideIntoPlanes(fullPlane, it.second, squareSize = 10).stream()
+            divideIntoPlanes(wallId++, fullPlane, it.second, squareSize = 10).stream()
         }.collect(Collectors.toList()).toMutableList()
 
         val findRelationships = findRelationships(planes, voxels, fakeRadiationPlane)
@@ -100,7 +101,7 @@ class PlaneFinder @Autowired constructor(
 
     @Transactional
     fun divideIntoPlanes(
-        fullPlane: List<VoxelKey>, normalVector: VoxelKey, squareSize: Int
+        wallId: Int, fullPlane: List<VoxelKey>, normalVector: VoxelKey, squareSize: Int
     ): List<RadiationPlane> {
         val minX = fullPlane.minOf { it.x }
         val minY = fullPlane.minOf { it.y }
@@ -178,6 +179,7 @@ class PlaneFinder @Autowired constructor(
 
                     results.add(
                         RadiationPlane(
+                            wallId,
                             a = a,
                             b = b,
                             c = c,
@@ -235,7 +237,7 @@ class PlaneFinder @Autowired constructor(
                 PlanesConnection(
                     parent = planes[i],
                     child = fakeRadiationPlane,
-                    viewFactor = 1 - planes[i].childPlanes.sumOf { it.viewFactor },
+                    viewFactor = planes[i].lostRadiationPercentage,
                     parentVoxelsCount = planes[i].voxelsCount, childVoxelsCount = 1 // cant be 0
                 )
             )

@@ -1,12 +1,12 @@
 package pl.edu.agh.firevox.worker.physics
 
+import com.google.common.math.IntMath.pow
 import io.kotest.core.spec.style.ShouldSpec
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.jdbc.core.JdbcTemplate
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlane
@@ -22,6 +22,8 @@ import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
 import pl.edu.agh.firevox.worker.WorkerApplication
 import pl.edu.agh.firevox.worker.service.CalculationService
+import pl.edu.agh.firevox.worker.service.VirtualThermometerService
+import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
@@ -33,7 +35,7 @@ import kotlin.math.roundToInt
     ],
     classes = [WorkerApplication::class, ItTestConfig::class]
 )
-class RadiationExecutionTest(
+class RadiationValidationTest(
     val calculationService: CalculationService,
     val radiationCalculator: RadiationCalculator,
     val voxelRepository: VoxelRepository,
@@ -44,7 +46,15 @@ class RadiationExecutionTest(
     @Value("\${firevox.timestep}") val timeStep: Double,
     val planeFinder: PlaneFinder,
     val synchroniserImpl: SynchroniserImpl,
+    val virtualThermometerService: VirtualThermometerService,
+    val jdbcTemplate: JdbcTemplate,
 ) : ShouldSpec({
+
+    File("../main/src/main/resources/db.migration/V0.1_RadiationMaterialisedViews.sql")
+        .readLines()
+        .joinToString(separator = "\n") { it }
+        .let(jdbcTemplate::update)
+
 
     context("calculate radiation test") {
         val simulationTimeInSeconds = 100 // * 60
@@ -57,20 +67,53 @@ class RadiationExecutionTest(
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
         countersRepository.save(Counter(CounterId.NEXT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT, 0))
 
-        // given
-        val input = withContext(Dispatchers.IO) {
-            getFile("radiation_test.vox")
-        }
-        // when
-        val model = VoxFormatParser.read(input)
+        // https://www.researchgate.net/publication/235711653_New_Experimental_Data_for_the_Validation_of_Radiative_Heat_Transfer
+        // L: square
+        //  side = 197 mm
+        //  thickness: 5 mm
+        //  HTC2 heat transfer coefficient
+        // D: circle
+        //  diameter = 182 mm
+        //  r = 91 mm
+        //  HTC1 heat transfer coefficient
 
-        val baseMaterial = PhysicalMaterial(
-            VoxelMaterial.CONCRETE,
-            density = 2392.0,
-            baseTemperature = 25.toKelvin(),
-            thermalConductivityCoefficient = 2.071,
+        // C: distance
+        //  0.2 * 182 mm ~= 37 | Te = 740 | Tr1 =  | Ambient = 295.8
+        //  0.5 * 182 mm = 91  | Te = 720 | Tr1 =  | Ambient = 291.3
+        //  1.0 * 182 mm = 182 | Te = 710 | Tr1 =  | Ambient = 291.2
+        //  2.0 * 182 mm = 364 | Te = 710 | Tr1 =  | Ambient = 293.3
+        //  4.0 * 182 mm = 728 | Te = 709 | Tr1 =  | Ambient = 290.7
+
+        // 1mm^3 = 1 voxel
+
+        // 197 x 197 x (C + 5mm thickness)
+        val (c, Te, Tr, Ta) = arrayOf(37.0, 740.0, 290.0, 290.0)
+        val C = c.toInt()
+
+        val squareMaterial = PhysicalMaterial(
+            VoxelMaterial.METAL,
+            density = 8030.0,
+            baseTemperature = Tr,
+            thermalConductivityCoefficient = 16.27,
             convectionHeatTransferCoefficient = 0.0,
-            specificHeatCapacity = 936.3,
+            specificHeatCapacity = 503.0,
+            ignitionTemperature = null,
+            burningTime = null,
+            timeToIgnition = null,
+            autoignitionTemperature = null,
+            effectiveHeatOfCombustion = null,
+            smokeEmissionPerSecond = null,
+            deformationTemperature = null,
+            emissivity = 0.85,
+        ).also(physicalMaterialRepository::save)
+
+        val circleMaterial = PhysicalMaterial(
+            VoxelMaterial.GLASS,
+            density = 8030.0,
+            baseTemperature = Te,
+            thermalConductivityCoefficient = 16.27,
+            convectionHeatTransferCoefficient = 0.0,
+            specificHeatCapacity = 503.0,
             ignitionTemperature = null,
             burningTime = null,
             timeToIgnition = null,
@@ -80,16 +123,32 @@ class RadiationExecutionTest(
             deformationTemperature = null,
         ).also(physicalMaterialRepository::save)
 
-        val voxels = model.voxels.map { (k, _) ->
-            Voxel(
-                VoxelKey(k.x, k.y, k.z),
-                evenIterationMaterial = baseMaterial,
-                evenIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
-                oddIterationMaterial = baseMaterial,
-                oddIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
-                isBoundaryCondition = false //isBoundary(k)
-            )
-        }
+        val airMaterial = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR).also {
+            it.baseTemperature = Ta
+        }.also(physicalMaterialRepository::save)
+
+//        val L = 197
+//        val D = 181
+        val divisor = 1
+        val L = 197 / divisor
+        val D = 181 / divisor
+        val voxels = (0 until L).flatMap { x ->
+            (0 until C + 6).flatMap { y ->
+                (0 until L).map { z ->
+                    val key = VoxelKey(x, y, z)
+                    when {
+                        isCircle(key, D / 2) -> circle(key, circleMaterial, Te)
+                        isSquare(key, C) -> square(key, squareMaterial, Tr)
+                        else -> air(key, airMaterial, Ta)
+                    }
+                }
+            }
+        }.toMutableList()
+
+        val emitterThermometer = VoxelKey(0, 98 / divisor, 98 / divisor)
+        val receiverThermometer = VoxelKey(C - 4, 98 / divisor, 98 / divisor)
+        virtualThermometerService.create(emitterThermometer)
+        virtualThermometerService.create(receiverThermometer)
 
         val sizeX = voxels.maxOf { it.key.x } + 1
         val sizeY = voxels.maxOf { it.key.y } + 1
@@ -104,21 +163,11 @@ class RadiationExecutionTest(
                 sizeZ = sizeZ,
             )
         )
-        voxelRepository.saveAll(voxels)
-        voxelRepository.flush()
 
         // then create planes
         val pointsToNormals = listOf(
-            VoxelKey(0, 0, 1) to VoxelKey(1, 0, 0),
-            VoxelKey(1, 99, 1) to VoxelKey(0, -1, 0),
-            VoxelKey(99, 1, 1) to VoxelKey(-1, 0, 0),
-            VoxelKey(1, 1, 99) to VoxelKey(0, 0, -1),
-
-            VoxelKey(52, 1, 0) to VoxelKey(0, 0, 1),
-            VoxelKey(32, 1, 0) to VoxelKey(0, 0, 1),
-
-            VoxelKey(49, 10, 1) to VoxelKey(-1, 0, 0),
-            VoxelKey(51, 10, 1) to VoxelKey(1, 0, 0),
+            emitterThermometer to VoxelKey(1, 0, 0),
+            receiverThermometer to VoxelKey(-1, 0, 0),
         )
 
         val matrix = Array(sizeX) { _ ->
@@ -128,8 +177,9 @@ class RadiationExecutionTest(
         }
 
         voxels.forEach {
-            matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
+            matrix[it.key.x][it.key.y][it.key.z] = it.evenIterationMaterial.voxelMaterial.colorId
         }
+
         val fakeRadiationPlane = RadiationPlane(
             99999,
             a = VoxelKey(0, 0, 0),
@@ -150,17 +200,25 @@ class RadiationExecutionTest(
                 )
             }
         planes = planes.let(radiationPlaneRepository::saveAll)
+        log.info("${planes.size}")
         radiationPlaneRepository.flush()
+
+        log.info("Persisting all voxels")
+        voxelRepository.saveAll(voxels)
+        voxelRepository.flush()
+        log.info("Finished persisting all voxels")
 
         should("execute test") {
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
+            synchroniserImpl.synchroniseRadiationResults(0)
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
+//                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
                 log.info("Finished conduction")
-                planes.parallelStream().forEach { k -> radiationCalculator.calculateWithVoxelsFilled(k, i) }
+                radiationCalculator.calculateFetchingFromDb(0, i)
+                radiationCalculator.calculateFetchingFromDb(1, i)
                 log.info("Finished calculations")
                 synchroniserImpl.synchroniseRadiationResults(i.toLong())
                 log.info("Finished synchronisation")
@@ -185,8 +243,11 @@ class RadiationExecutionTest(
                 sizeX,
                 sizeY,
                 sizeZ,
-                FileOutputStream("radiation_result.vox")
+                FileOutputStream("radiation_paper.vox")
             )
+
+            log.info(virtualThermometerService.getMeasurements(receiverThermometer))
+            log.info(virtualThermometerService.getMeasurements(emitterThermometer))
         }
     }
 
@@ -196,4 +257,35 @@ class RadiationExecutionTest(
     }
 }
 
-private fun isBoundary(k: VoxelKey) = k.x in 52..98 && k.z == 0
+private fun circle(key: VoxelKey, circleMaterial: PhysicalMaterial, baseTemp: Double) = Voxel(
+    key,
+    evenIterationMaterial = circleMaterial,
+    evenIterationTemperature = baseTemp,
+    oddIterationMaterial = circleMaterial,
+    oddIterationTemperature = baseTemp,
+    isBoundaryCondition = true,
+)
+
+private fun square(key: VoxelKey, squareMaterial: PhysicalMaterial, baseTemp: Double) = Voxel(
+    key,
+    evenIterationMaterial = squareMaterial,
+    evenIterationTemperature = baseTemp,
+    oddIterationMaterial = squareMaterial,
+    oddIterationTemperature = baseTemp,
+    isBoundaryCondition = true,
+)
+
+private fun air(key: VoxelKey, airMaterial: PhysicalMaterial, baseTemp: Double) = Voxel(
+    key,
+    evenIterationMaterial = airMaterial,
+    evenIterationTemperature = baseTemp,
+    oddIterationMaterial = airMaterial,
+    oddIterationTemperature = baseTemp,
+    isBoundaryCondition = true,
+)
+
+private fun isCircle(k: VoxelKey, middle: Int): Boolean {
+    return k.x == 0 && (pow(k.y - middle, 2) + pow(k.z - middle, 2)) < 91
+}
+
+private fun isSquare(k: VoxelKey, C: Int): Boolean = k.x > C - 5

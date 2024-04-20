@@ -30,6 +30,7 @@ class PlaneFinderTest : ShouldSpec({
         smokeEmissionPerSecond = null,
         deformationTemperature = 700.toKelvin()
     )
+    var wallId = 0
 
     should("findPlanes") {
         // given 7x7x7 matrix with walls at
@@ -62,6 +63,7 @@ class PlaneFinderTest : ShouldSpec({
             }
         }
         val fakeRadiationPlane = RadiationPlane(
+            9999,
             a = VoxelKey(0, 0, 0),
             b = VoxelKey(0, 0, 0),
             c = VoxelKey(0, 0, 0),
@@ -234,6 +236,7 @@ class PlaneFinderTest : ShouldSpec({
         every { physicalMaterialRepository.findAll() } returns listOf(air)
 
         val planes = planeFinder.divideIntoPlanes(
+            wallId++,
             fullPlane,
             normalVector,
             squareSize
@@ -399,6 +402,7 @@ class PlaneFinderTest : ShouldSpec({
         }
 
         val firstPlane = RadiationPlane(
+            wallId++,
             a = VoxelKey(0, 0, 0),
             b = VoxelKey(0, 1, 0),
             c = VoxelKey(1, 0, 0),
@@ -411,6 +415,7 @@ class PlaneFinderTest : ShouldSpec({
         )
 
         val secondPlane = RadiationPlane(
+            wallId++,
             a = VoxelKey(0, 0, 1),
             b = VoxelKey(0, 1, 1),
             c = VoxelKey(1, 0, 1),
@@ -443,6 +448,7 @@ class PlaneFinderTest : ShouldSpec({
         }
 
         val firstPlane = RadiationPlane(
+            wallId++,
             a = VoxelKey(0, 0, 0),
             b = VoxelKey(0, 1, 0),
             c = VoxelKey(1, 0, 0),
@@ -455,6 +461,7 @@ class PlaneFinderTest : ShouldSpec({
         )
 
         val secondPlane = RadiationPlane(
+            wallId++,
             a = VoxelKey(0, 0, 0),
             b = VoxelKey(0, 0, 1),
             c = VoxelKey(0, 1, 0),

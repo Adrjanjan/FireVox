@@ -1,6 +1,7 @@
 package pl.edu.agh.firevox.shared.model.radiation
 
 import jakarta.persistence.*
+import org.hibernate.annotations.Immutable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Query
 import org.springframework.stereotype.Repository
@@ -9,8 +10,9 @@ import kotlin.jvm.Transient
 
 
 @Entity
+@Table(name = "radiation_planes")
 class RadiationPlane(
-    // after it was calculated we do not need the points and normal vector
+    val wallId: Int,
     @Transient
     val a: VoxelKey,
     @Transient
@@ -24,6 +26,7 @@ class RadiationPlane(
     val normalVector: VoxelKey,
 
     @Id
+    @Column(name = "plane_id")
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Int? = null,
 
@@ -33,7 +36,7 @@ class RadiationPlane(
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(
         name = "plane_voxels",
-        joinColumns = [JoinColumn(name = "plane_id", referencedColumnName = "id")],
+        joinColumns = [JoinColumn(name = "plane_id", referencedColumnName = "plane_id")],
         indexes = [Index(name = "plane_voxels_id", columnList = "plane_id")]
     )
     @AttributeOverrides(
@@ -50,6 +53,7 @@ class RadiationPlane(
     @Transient
     val fullPlane: List<VoxelKey> = listOf(),
 ) {
+
     @Transient
     val middle = VoxelKey((a.x + b.x + c.x + d.x) / 4, (a.y + b.y + c.y + d.y) / 4, (a.z + b.z + c.z + d.z) / 4)
 
@@ -58,6 +62,17 @@ class RadiationPlane(
     override fun toString(): String {
         return "RadiationPlane(id=$id, middle=$middle)"
     }
+
+    @OneToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "plane_id")
+    private lateinit var evenIterationAverage: EvenIterationAverages
+
+    @OneToOne(fetch = FetchType.EAGER, optional = false)
+    @JoinColumn(name = "plane_id")
+    private lateinit var oddIterationAverage: OddIterationAverages
+
+    fun getTempAverage(iteration: Int): Double =
+        if (iteration % 2 == 0) evenIterationAverage.average else oddIterationAverage.average
 
 }
 
@@ -69,9 +84,11 @@ class PlanesConnection(
     val id: Int? = null,
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_plane_id")
     val parent: RadiationPlane,
 
     @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "child_plane_id")
     val child: RadiationPlane,
 
     val viewFactor: Double,
@@ -88,20 +105,42 @@ class PlanesConnection(
     }
 }
 
+@Entity
+@Immutable
+@Table(name = "even_radiation_averages")
+class EvenIterationAverages(
+    @Id
+    @Column(name = "plane_id")
+    val planeId: Int,
+    val average: Double
+)
+//{
+//    @MapsId
+//    @OneToOne
+//    @JoinColumn(name = "plane_id")
+//    lateinit var radiationPlane: RadiationPlane
+//}
+
+@Entity
+@Immutable
+@Table(name = "odd_radiation_averages")
+class OddIterationAverages(
+    @Id
+    @Column(name = "plane_id")
+    val planeId: Int,
+    val average: Double
+)
+//{
+//    @MapsId
+//    @OneToOne
+//    @JoinColumn(name = "plane_id")
+//    lateinit var radiationPlane: RadiationPlane
+//}
+
 @Repository
 interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int> {
 
-
-    @Query(
-        """
-            select case when MOD(:iteration, 2) = 0 
-                then avg(v.evenIterationTemperature) 
-                else avg(v.oddIterationTemperature) end 
-            from Voxel v 
-            where v.key IN (select p.voxels from RadiationPlane p where p.id = :id)
-        """
-    )
-    fun planeAverageTemperature(id: Int, iteration: Int): Double
+    fun findByWallId(wallId: Int): List<RadiationPlane>
 
     @Query(
         """

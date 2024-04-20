@@ -27,7 +27,7 @@ class RadiationPlanesProcessor(
     fun radiation(): Consumer<RadiationPlaneDto> {
         return Consumer<RadiationPlaneDto> { k ->
             log.info("Processing radiation plane ${k.radiationPlaneId} for iteration ${k.iteration}")
-            if(!radiationCalculator.calculate(k.radiationPlaneId, k.iteration)) {
+            if(!radiationCalculator.calculateFetchingFromDb(k.radiationPlaneId, k.iteration)) {
                 radiationPlanesProcessingMessageSender.send(k)
             } else {
                 if(k.iteration.toLong() == countersRepository.findByIdOrNull(CounterId.MAX_ITERATIONS)?.count!!){

@@ -19,6 +19,7 @@ import java.sql.ResultSet
 class SynchroniserImpl    (
     private val countersRepository: CountersRepository,
     private val synchronisePlanes: SynchronisePlanes,
+    private val radiationPlaneRepository: RadiationPlaneRepository,
     private val jdbcTemplate: JdbcTemplate
 ) {
 
@@ -65,6 +66,11 @@ class SynchroniserImpl    (
 
     fun synchroniseRadiationResults(iteration: Long) {
         val planesConnections = getPlanesConnections()
+        if(iteration % 2 == 0L) {
+            jdbcTemplate.update("refresh materialized view even_radiation_averages;")
+        } else {
+            jdbcTemplate.update("refresh materialized view odd_radiation_averages;")
+        }
 
         planesConnections.parallelStream().forEach { connection ->
             synchronisePlanes.synchroniseRadiation(iteration, connection)
@@ -73,7 +79,7 @@ class SynchroniserImpl    (
     }
 
     fun getPlanesConnections(): List<PlaneConnectionDto> {
-        val sql = "SELECT pc.id, pc.q_net, pc.child_id, pc.parent_id, pc.parent_voxels_count, pc.child_voxels_count " +
+        val sql = "SELECT pc.id, pc.q_net, pc.child_plane_id, pc.parent_plane_id, pc.parent_voxels_count, pc.child_voxels_count " +
                 "FROM planes_connections pc " +
                 "WHERE pc.q_net > 0.0"
         return jdbcTemplate.query(sql, planeConnectionDtoRowMapper)

@@ -129,6 +129,7 @@ class RadiationSimpleExecutionTest(
             matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
         }
         val fakeRadiationPlane = RadiationPlane(
+            9999,
             a = VoxelKey(0, 0, 0),
             b = VoxelKey(0, 0, 0),
             c = VoxelKey(0, 0, 0),
@@ -157,7 +158,7 @@ class RadiationSimpleExecutionTest(
                 log.info("Iteration: $i")
                 voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
                 log.info("Finished conduction")
-                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
+                planes.parallelStream().forEach { k -> radiationCalculator.calculateWithVoxelsFilled(k, i) }
                 log.info("Finished radiation")
                 synchroniserImpl.synchroniseRadiationResults(i.toLong())
                 log.info("Finished synchronisation")
@@ -300,6 +301,7 @@ class RadiationSimpleExecutionTest(
             matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
         }
         val fakeRadiationPlane = RadiationPlane(
+            99999,
             a = VoxelKey(0, 0, 0),
             b = VoxelKey(0, 0, 0),
             c = VoxelKey(0, 0, 0),
@@ -328,7 +330,7 @@ class RadiationSimpleExecutionTest(
                 log.info("Iteration: $i")
                 voxels.parallelStream().forEach { v -> calculationService.calculateGivenVoxel(v, i) }
                 log.info("Finished conduction")
-                planes.parallelStream().forEach { k -> radiationCalculator.calculate(k, i) }
+                planes.parallelStream().forEach { k -> radiationCalculator.calculateWithVoxelsFilled(k, i) }
                 log.info("Finished radiation")
                 synchroniserImpl.synchroniseRadiationResults(i.toLong())
                 log.info("Finished synchronisation")
