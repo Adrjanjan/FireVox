@@ -128,19 +128,8 @@ class RadiationSimpleExecutionTest(
         voxels.forEach {
             matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
         }
-        val fakeRadiationPlane = RadiationPlane(
-            9999,
-            a = VoxelKey(0, 0, 0),
-            b = VoxelKey(0, 0, 0),
-            c = VoxelKey(0, 0, 0),
-            d = VoxelKey(0, 0, 0),
-            normalVector = VoxelKey(-1, 0, 0),
-            voxels = mutableSetOf(),
-            voxelsCount = 0,
-            area = 0.0,
-        ).let(radiationPlaneRepository::save)
 
-        var planes = planeFinder.findPlanes(matrix, pointsToNormals, fakeRadiationPlane)
+        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
             .also {
                 countersRepository.set(
                     CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
@@ -300,19 +289,8 @@ class RadiationSimpleExecutionTest(
         voxels.forEach {
             matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
         }
-        val fakeRadiationPlane = RadiationPlane(
-            99999,
-            a = VoxelKey(0, 0, 0),
-            b = VoxelKey(0, 0, 0),
-            c = VoxelKey(0, 0, 0),
-            d = VoxelKey(0, 0, 0),
-            normalVector = VoxelKey(-1, 0, 0),
-            voxels = mutableSetOf(),
-            voxelsCount = 0,
-            area = 0.0,
-        ).let(radiationPlaneRepository::save)
 
-        var planes = planeFinder.findPlanes(matrix, pointsToNormals, fakeRadiationPlane)
+        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
             .also {
                 countersRepository.set(
                     CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,

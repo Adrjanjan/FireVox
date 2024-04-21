@@ -89,15 +89,12 @@ class PlanesConnection(
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "child_plane_id")
-    val child: RadiationPlane,
+    val child: RadiationPlane?,
 
     val viewFactor: Double,
 
-    val parentVoxelsCount: Int,
-
-    val childVoxelsCount: Int,
-
-    ) {
+    val isAmbient: Boolean = false,
+) {
     var qNet: Double = 0.0
 
     override fun toString(): String {
@@ -113,13 +110,9 @@ class EvenIterationAverages(
     @Column(name = "plane_id")
     val planeId: Int,
     val average: Double
-)
-//{
-//    @MapsId
-//    @OneToOne
-//    @JoinColumn(name = "plane_id")
-//    lateinit var radiationPlane: RadiationPlane
-//}
+) {
+    override fun toString() = "Even(planeId: $planeId, average: $average)"
+}
 
 @Entity
 @Immutable
@@ -129,13 +122,9 @@ class OddIterationAverages(
     @Column(name = "plane_id")
     val planeId: Int,
     val average: Double
-)
-//{
-//    @MapsId
-//    @OneToOne
-//    @JoinColumn(name = "plane_id")
-//    lateinit var radiationPlane: RadiationPlane
-//}
+){
+    override fun toString() = "Odd(planeId: $planeId, average: $average)"
+}
 
 @Repository
 interface RadiationPlaneRepository : JpaRepository<RadiationPlane, Int> {

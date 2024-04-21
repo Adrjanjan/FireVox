@@ -67,9 +67,9 @@ class SynchroniserImpl    (
     fun synchroniseRadiationResults(iteration: Long) {
         val planesConnections = getPlanesConnections()
         if(iteration % 2 == 0L) {
-            jdbcTemplate.update("refresh materialized view even_radiation_averages;")
-        } else {
             jdbcTemplate.update("refresh materialized view odd_radiation_averages;")
+        } else {
+            jdbcTemplate.update("refresh materialized view even_radiation_averages;")
         }
 
         planesConnections.parallelStream().forEach { connection ->

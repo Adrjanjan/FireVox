@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import pl.edu.agh.firevox.shared.model.radiation.PlanesConnection
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlane
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
@@ -18,6 +19,7 @@ class RadiationCalculator(
     private val countersRepository: CountersRepository,
     private val jdbcTemplate: JdbcTemplate,
     @Value("\${firevox.voxel.size}") private val voxelLength: Double = 0.01,
+    @Value("\${firevox.voxel.ambient}") private val ambientTemp: Double = 293.15, // 20 Celsius
 ) {
     private val stefanBoltzmann = 5.67e-8 // W/(m^2 * K^4)
 
@@ -35,7 +37,7 @@ class RadiationCalculator(
         val avgTemperature = radiationPlane.getTempAverage(iteration)
         radiationPlane.childPlanes.forEach {
 //            val planeAverageTemperature = avgForPlane(it.child.id!!, iteration)
-            val planeAverageTemperature = it.child.getTempAverage(iteration)
+            val planeAverageTemperature = it.child!!.getTempAverage(iteration)
             if (avgTemperature > planeAverageTemperature) {
                 val qNet = it.viewFactor *
                         stefanBoltzmann *
@@ -89,22 +91,45 @@ class RadiationCalculator(
         if (!countersRepository.canExecuteForIteration(iteration.toLong())) return false
         log.info("Calculating for wall $wallId and iteration $iteration")
         val planes = radiationPlaneRepository.findByWallId(wallId)
-        planes.stream().parallel()
-            .forEach { parent ->
-                val parentAvgTemp = parent.getTempAverage(iteration)
-                parent.childPlanes.forEach { child ->
-                    val childAvgTemp = child.child.getTempAverage(iteration)
-                    if (parentAvgTemp > childAvgTemp) {
-                        val qNet = child.viewFactor *
-                                stefanBoltzmann *
-                                child.child.area *
-                                (parentAvgTemp.pow(4) - childAvgTemp.pow(4))
-                        child.qNet = qNet // if(qNet > delta) qNet else 0.0
-                    }
+        planes.stream().parallel().forEach { parent ->
+            val parentAvgTemp = parent.getTempAverage(iteration)
+            parent.childPlanes.forEach { toChild ->
+                if (toChild.isAmbient) {
+                    radiationForAmbience(toChild, parent, parentAvgTemp)
+                } else {
+                    radiationForExistingChild(toChild, iteration, parentAvgTemp, parent)
                 }
             }
+        }
         countersRepository.add(CounterId.PROCESSED_RADIATION_PLANES_COUNT, planes.count())
         return true
+    }
+
+    private fun radiationForAmbience(
+        toChild: PlanesConnection,
+        parent: RadiationPlane,
+        parentAvgTemp: Double
+    ) {
+        toChild.qNet = parent.lostRadiationPercentage *
+                stefanBoltzmann *
+                parent.area *
+                (parentAvgTemp.pow(4) - ambientTemp.pow(4))
+    }
+
+    private fun radiationForExistingChild(
+        toChild: PlanesConnection,
+        iteration: Int,
+        parentAvgTemp: Double,
+        parent: RadiationPlane
+    ) {
+        val childAvgTemp = toChild.child!!.getTempAverage(iteration)
+        if (parentAvgTemp > childAvgTemp) {
+            val qNet = toChild.viewFactor *
+                    stefanBoltzmann *
+                    parent.area *
+                    (parentAvgTemp.pow(4) - childAvgTemp.pow(4))
+            toChild.qNet = qNet // if(qNet > delta) qNet else 0.0
+        }
     }
 }
 //even_radiation_avarages

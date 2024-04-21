@@ -23,9 +23,7 @@ class PlaneFinder @Autowired constructor(
 
     @Transactional
     fun findPlanes(
-        voxels: Array<Array<IntArray>>,
-        pointsToNormals: List<Pair<VoxelKey, VoxelKey>>,
-        fakeRadiationPlane: RadiationPlane
+        voxels: Array<Array<IntArray>>, pointsToNormals: List<Pair<VoxelKey, VoxelKey>>
     ): List<RadiationPlane> {
         log.info("Preprocessing radiation planes")
         var wallId = 0
@@ -35,7 +33,7 @@ class PlaneFinder @Autowired constructor(
             divideIntoPlanes(wallId++, fullPlane, it.second, squareSize = 10).stream()
         }.collect(Collectors.toList()).toMutableList()
 
-        val findRelationships = findRelationships(planes, voxels, fakeRadiationPlane)
+        val findRelationships = findRelationships(planes, voxels)
         log.info("Found ${planes.size} radiation planes")
         return findRelationships
     }
@@ -58,26 +56,20 @@ class PlaneFinder @Autowired constructor(
                 )
 
                 VoxelKey(0, 1, 0), VoxelKey(0, -1, 0) -> listOf(
-                    VoxelKey(x + 1, y, z),
-                    VoxelKey(x - 1, y, z),
-                    VoxelKey(x, y, z + 1),
-                    VoxelKey(x, y, z - 1)
+                    VoxelKey(x + 1, y, z), VoxelKey(x - 1, y, z), VoxelKey(x, y, z + 1), VoxelKey(x, y, z - 1)
                 )
 
                 VoxelKey(1, 0, 0), VoxelKey(-1, 0, 0) -> listOf(
-                    VoxelKey(x, y + 1, z),
-                    VoxelKey(x, y - 1, z),
-                    VoxelKey(x, y, z + 1),
-                    VoxelKey(x, y, z - 1)
+                    VoxelKey(x, y + 1, z), VoxelKey(x, y - 1, z), VoxelKey(x, y, z + 1), VoxelKey(x, y, z - 1)
                 )
 
                 else -> listOf()
             }
 
             for (key in neighbors) {
-                if (isValidFaceElement(key, voxels, normalVector)
-                    && voxels[key] == voxels[startingPoint]
-                    && key !in visited
+                if (isValidFaceElement(
+                        key, voxels, normalVector
+                    ) && voxels[key] == voxels[startingPoint] && key !in visited
                 ) {
                     stack.add(key)
                 }
@@ -87,17 +79,12 @@ class PlaneFinder @Autowired constructor(
         return visited.toList()
     }
 
-    fun isValidFaceElement(key: VoxelKey, matrix: Array<Array<IntArray>>, normalVector: VoxelKey): Boolean {
-        return matrix.contains(key)
-                && matrix[key] != 0
-                && matrix.contains(normalVector + key) && matrix[normalVector + key] == 0
-    }
+    fun isValidFaceElement(key: VoxelKey, matrix: Array<Array<IntArray>>, normalVector: VoxelKey) =
+        matrix.contains(key) && matrix[key] != 0 && matrix.contains(normalVector + key) && matrix[normalVector + key] == 0
 
     private fun Array<Array<IntArray>>.contains(
         key: VoxelKey,
-    ) = (key.x in this.indices
-            && key.y in this[0].indices
-            && key.z in this[0][0].indices)
+    ) = key.x in this.indices && key.y in this[0].indices && key.z in this[0][0].indices
 
     @Transactional
     fun divideIntoPlanes(
@@ -197,7 +184,7 @@ class PlaneFinder @Autowired constructor(
         return results
     }
 
-    fun findRelationships(planes: List<RadiationPlane>, voxels: Array<Array<IntArray>>, fakeRadiationPlane: RadiationPlane): List<RadiationPlane> {
+    fun findRelationships(planes: List<RadiationPlane>, voxels: Array<Array<IntArray>>): List<RadiationPlane> {
         for (i in planes.indices) {
             for (j in (i + 1) until planes.size) {
                 val first = planes[i]
@@ -205,44 +192,39 @@ class PlaneFinder @Autowired constructor(
 
                 if (canSeeEachOther(first, second)) {
                     if (!obstructedView(first, second, voxels)) {
-                        val firstViewFactor = if (first.normalVector.dotProduct(second.normalVector) == 0) {
-                            perpendicularViewFactor(first, second)
-                        } else {
-                            parallelViewFactor(first, second)
-                        }
-
-                        val secondViewFactor = if (second.normalVector.dotProduct(first.normalVector) == 0) {
-                            perpendicularViewFactor(second, first)
-                        } else {
-                            parallelViewFactor(second, first)
-                        }
+                        val (firstViewFactor, secondViewFactor) = calculateViewFactors(first, second)
 
                         first.childPlanes.add(
-                            PlanesConnection(
-                                parent = first, child = second, viewFactor = firstViewFactor,
-                                parentVoxelsCount = first.voxelsCount, childVoxelsCount = second.voxelsCount
-                            )
+                            PlanesConnection(parent = first, child = second, viewFactor = firstViewFactor)
                         )
                         second.childPlanes.add(
-                            PlanesConnection(
-                                parent = second, child = first, viewFactor = secondViewFactor,
-                                parentVoxelsCount = second.voxelsCount, childVoxelsCount = first.voxelsCount
-                            )
+                            PlanesConnection(parent = second, child = first, viewFactor = secondViewFactor)
                         )
                     }
                 }
             }
-            // add FAKE plane to account the radiation in the space
-            planes[i].childPlanes.add(
-                PlanesConnection(
-                    parent = planes[i],
-                    child = fakeRadiationPlane,
-                    viewFactor = planes[i].lostRadiationPercentage,
-                    parentVoxelsCount = planes[i].voxelsCount, childVoxelsCount = 1 // cant be 0
-                )
-            )
+            addAmbienceConnection(planes[i])
         }
         return planes
+    }
+
+    private fun addAmbienceConnection(plane: RadiationPlane) {
+        plane.childPlanes.add(
+            PlanesConnection(
+                parent = plane,
+                child = null,
+                viewFactor = plane.lostRadiationPercentage,
+                isAmbient = true,
+            )
+        )
+    }
+
+    private fun calculateViewFactors(
+        first: RadiationPlane, second: RadiationPlane
+    ) = if (first.normalVector.dotProduct(second.normalVector) == 0) {
+        perpendicularViewFactor(first, second) to perpendicularViewFactor(second, first)
+    } else {
+        parallelViewFactor(first, second) to parallelViewFactor(second, first)
     }
 
     private fun area(normalVector: VoxelKey, a: VoxelKey, b: VoxelKey, c: VoxelKey, d: VoxelKey): Double {
@@ -389,8 +371,7 @@ class PlaneFinder @Autowired constructor(
         uniqueCoordinate(first.a, first.b, first.c, first.d, f)
 
     private fun uniqueCoordinate(a: VoxelKey, b: VoxelKey, c: VoxelKey, d: VoxelKey, f: (VoxelKey) -> Int) =
-        listOf(f(a), f(b), f(c), f(d)).distinct()
-            .let { if (it.size == 1) listOf(it[0], it[0]) else it }
+        listOf(f(a), f(b), f(c), f(d)).distinct().let { if (it.size == 1) listOf(it[0], it[0]) else it }
             .let { if (it[0] > it[1]) listOf(it[1].toDouble(), it[0] + 1.0) else listOf(it[0].toDouble(), it[1] + 1.0) }
 
     private fun parallelIteratorFunction(x: Double, y: Double, n: Double, e: Double, z: Double): Double {

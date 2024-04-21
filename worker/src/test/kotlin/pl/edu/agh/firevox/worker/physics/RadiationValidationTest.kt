@@ -180,19 +180,8 @@ class RadiationValidationTest(
             matrix[it.key.x][it.key.y][it.key.z] = it.evenIterationMaterial.voxelMaterial.colorId
         }
 
-        val fakeRadiationPlane = RadiationPlane(
-            99999,
-            a = VoxelKey(0, 0, 0),
-            b = VoxelKey(0, 0, 0),
-            c = VoxelKey(0, 0, 0),
-            d = VoxelKey(0, 0, 0),
-            normalVector = VoxelKey(-1, 0, 0),
-            voxels = mutableSetOf(),
-            voxelsCount = 0,
-            area = 0.0,
-        ).let(radiationPlaneRepository::save)
 
-        var planes = planeFinder.findPlanes(matrix, pointsToNormals, fakeRadiationPlane)
+        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
             .also {
                 countersRepository.set(
                     CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
@@ -213,14 +202,15 @@ class RadiationValidationTest(
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             synchroniserImpl.synchroniseRadiationResults(0)
+            synchroniserImpl.synchroniseRadiationResults(1)
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
 //                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
-                log.info("Finished conduction")
+//                log.info("Finished radiation")
                 radiationCalculator.calculateFetchingFromDb(0, i)
                 radiationCalculator.calculateFetchingFromDb(1, i)
-                log.info("Finished calculations")
-                synchroniserImpl.synchroniseRadiationResults(i.toLong())
+                log.info("Finished radiation")
+                synchroniserImpl.synchroniseRadiationResults(i.toLong() + 1)
                 log.info("Finished synchronisation")
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
                 log.info("Finished increment")
