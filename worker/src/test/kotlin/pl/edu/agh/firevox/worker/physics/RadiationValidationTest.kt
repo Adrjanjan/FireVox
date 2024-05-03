@@ -288,4 +288,4 @@ private fun isCircle(k: VoxelKey, middle: Int, radius: Int): Boolean {
     return k.x == 0 && (pow(k.y - middle, 2) + pow(k.z - middle, 2)) < radius * radius
 }
 
-private fun isSquare(k: VoxelKey, C: Int): Boolean = k.x > C - 6
+private fun isSquare(k: VoxelKey, C: Int): Boolean = k.x >= C

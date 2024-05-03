@@ -57,7 +57,12 @@ class RadiationPlane(
     @Transient
     val middle = VoxelKey((a.x + b.x + c.x + d.x) / 4, (a.y + b.y + c.y + d.y) / 4, (a.z + b.z + c.z + d.z) / 4)
 
-    val lostRadiationPercentage: Double = 1 - this.childPlanes.sumOf { it.viewFactor }.also { assert(it > 0) }
+    var lostRadiationPercentage: Double = 0.0
+
+    final fun calculateLostRadiationPercentage(): Double = 1 - this.childPlanes.sumOf { it.viewFactor }
+    final fun resetLostRadiationPercentage() {
+        lostRadiationPercentage = calculateLostRadiationPercentage()
+    }
 
     override fun toString(): String {
         return "RadiationPlane(id=$id, middle=$middle)"

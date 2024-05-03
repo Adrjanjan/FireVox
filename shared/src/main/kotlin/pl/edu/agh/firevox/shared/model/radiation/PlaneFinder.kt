@@ -226,12 +226,13 @@ class PlaneFinder @Autowired constructor(
             PlanesConnection(
                 parent = plane,
                 child = null,
-                viewFactor = plane.lostRadiationPercentage,
+                viewFactor = plane.calculateLostRadiationPercentage(),
                 parentVoxelsCount = plane.voxelsCount,
                 childVoxelsCount = 0,
                 isAmbient = true,
             )
         )
+        plane.resetLostRadiationPercentage()
     }
 
     private fun calculateViewFactors(
