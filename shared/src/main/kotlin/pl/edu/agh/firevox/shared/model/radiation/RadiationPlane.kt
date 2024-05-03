@@ -92,6 +92,8 @@ class PlanesConnection(
     val child: RadiationPlane?,
 
     val viewFactor: Double,
+    val parentVoxelsCount: Int, // used in calculating area
+    val childVoxelsCount: Int,
 
     val isAmbient: Boolean = false,
 ) {

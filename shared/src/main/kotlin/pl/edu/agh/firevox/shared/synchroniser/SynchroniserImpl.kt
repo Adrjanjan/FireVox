@@ -16,7 +16,7 @@ import java.sql.ResultSet
  * Moved to shared so can be used in tests in worker
  */
 @Service
-class SynchroniserImpl    (
+class SynchroniserImpl(
     private val countersRepository: CountersRepository,
     private val synchronisePlanes: SynchronisePlanes,
     private val radiationPlaneRepository: RadiationPlaneRepository,
@@ -64,37 +64,49 @@ class SynchroniserImpl    (
         return iteration
     }
 
+    fun simulationStartSynchronise() {
+        jdbcTemplate.update("refresh materialized view odd_radiation_averages;")
+        jdbcTemplate.update("refresh materialized view even_radiation_averages;")
+    }
+
     fun synchroniseRadiationResults(iteration: Long) {
-        val planesConnections = getPlanesConnections()
-        if(iteration % 2 == 0L) {
+        if (iteration % 2 == 0L) {
             jdbcTemplate.update("refresh materialized view odd_radiation_averages;")
         } else {
             jdbcTemplate.update("refresh materialized view even_radiation_averages;")
         }
 
-        planesConnections.parallelStream().forEach { connection ->
+        getPlanesConnections().parallelStream().forEach { connection ->
             synchronisePlanes.synchroniseRadiation(iteration, connection)
         }
         jdbcTemplate.update("update planes_connections set q_net = 0.0")
     }
 
     fun getPlanesConnections(): List<PlaneConnectionDto> {
-        val sql = "SELECT pc.id, pc.q_net, pc.child_plane_id, pc.parent_plane_id, pc.parent_voxels_count, pc.child_voxels_count " +
-                "FROM planes_connections pc " +
-                "WHERE pc.q_net > 0.0"
+        val sql = """
+            SELECT pc.id, pc.$qNet, pc.$childPlaneId, pc.$parentPlaneId, pc.$parentVoxelCount, pc.$childVoxelCount
+                FROM planes_connections pc
+                WHERE pc.q_net > 0.0
+        """.trimIndent()
         return jdbcTemplate.query(sql, planeConnectionDtoRowMapper)
     }
 
-    private val planeConnectionDtoRowMapper = RowMapper<PlaneConnectionDto>{ rs: ResultSet, _: Int ->
+    private val planeConnectionDtoRowMapper = RowMapper<PlaneConnectionDto> { rs: ResultSet, _: Int ->
         PlaneConnectionDto(
-            rs.getInt("parent_id"),
-            rs.getInt("child_id"),
-            rs.getDouble("q_net"),
-            rs.getInt("parent_voxels_count"),
-            rs.getInt("child_voxels_count"),
+            parentId = rs.getInt(parentPlaneId),
+            childId = rs.getInt(childPlaneId),
+            qNet = rs.getDouble(qNet),
+            parentVoxelsCount = rs.getInt(parentVoxelCount),
+            childVoxelsCount = rs.getInt(childVoxelCount),
         )
     }
 
+    val qNet: String = "q_net"
+    val parentPlaneId: String = "parent_plane_id"
+    val childPlaneId: String = "child_plane_id"
+
+    val parentVoxelCount: String = "parent_voxels_count"
+    val childVoxelCount: String = "child_voxels_count"
 }
 
 data class PlaneConnectionDto(

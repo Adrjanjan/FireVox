@@ -226,13 +226,7 @@ class CalculationService(
     }
 
     private fun handleVirtualThermometer(key: VoxelKey, voxel: VoxelState) {
-        jdbcTemplate.update("""
-            update virtual_thermometer set measurements = concat(measurements, '${", " + voxel.temperature.toCelsius()}')
-            where x = ${voxel.key.x} and y = ${voxel.key.y} and z = ${voxel.key.z}
-        """.trimIndent())
-//        if (virtualThermometerService.check(key)) {
-//            virtualThermometerService.update(key, voxel.temperature)
-//        }
+        virtualThermometerService.update(key, voxel.temperature)
     }
 
     private fun setNextProperties(

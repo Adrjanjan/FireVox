@@ -23,11 +23,11 @@ class VirtualThermometerController(
     @GetMapping
     fun getThermometerMeasurements(@RequestBody key: VoxelKey): ResponseEntity<ByteArray> {
         log.info("Exporting thermometer measurements for key $key")
-        val it = virtualThermometerRepository.findByVoxelKey(key) ?: return ResponseEntity.noContent().build()
+        val it = virtualThermometerRepository.findMeasurements(key)
         val headers = HttpHeaders()
         headers.contentType = MediaType.TEXT_PLAIN
         headers.setContentDispositionFormData("attachment", "$key.csv".replace("/", "_"))
-        return ResponseEntity(it.measurements.toByteArray(), headers, HttpStatus.OK)
+        return ResponseEntity(it.joinToString().toByteArray(), headers, HttpStatus.OK)
     }
 
 }

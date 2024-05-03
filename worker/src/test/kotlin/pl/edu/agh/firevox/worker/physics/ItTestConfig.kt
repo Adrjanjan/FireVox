@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.context.annotation.Primary
 import org.springframework.context.annotation.PropertySource
+import org.testcontainers.containers.BindMode
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.containers.output.Slf4jLogConsumer
 
@@ -25,6 +26,7 @@ class ItTestConfig {
             .withDatabaseName("firevox")
             .withUsername("firevox")
             .withPassword("firevox")
+            .withFileSystemBind("/home/adrian/IdeaProjects/FireVox/worker/test_docker_out", "/home", BindMode.READ_WRITE)
         postgresContainer.setCommand(
             "postgres",
             "-c", "fsync=off",

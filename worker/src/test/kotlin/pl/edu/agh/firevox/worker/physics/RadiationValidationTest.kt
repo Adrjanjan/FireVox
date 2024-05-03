@@ -7,9 +7,9 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.JdbcTemplate
+import org.testcontainers.containers.PostgreSQLContainer
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
-import pl.edu.agh.firevox.shared.model.radiation.RadiationPlane
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.simulation.Simulation
@@ -25,6 +25,7 @@ import pl.edu.agh.firevox.worker.service.CalculationService
 import pl.edu.agh.firevox.worker.service.VirtualThermometerService
 import java.io.File
 import java.io.FileOutputStream
+import java.util.*
 import kotlin.math.roundToInt
 
 @SpringBootTest(
@@ -48,13 +49,13 @@ class RadiationValidationTest(
     val synchroniserImpl: SynchroniserImpl,
     val virtualThermometerService: VirtualThermometerService,
     val jdbcTemplate: JdbcTemplate,
+    val postgreSQLContainer: PostgreSQLContainer<*>
 ) : ShouldSpec({
 
     File("../main/src/main/resources/db.migration/V0.1_RadiationMaterialisedViews.sql")
         .readLines()
         .joinToString(separator = "\n") { it }
         .let(jdbcTemplate::update)
-
 
     context("calculate radiation test") {
         val simulationTimeInSeconds = 100 // * 60
@@ -132,12 +133,12 @@ class RadiationValidationTest(
         val divisor = 1
         val L = 197 / divisor
         val D = 181 / divisor
-        val voxels = (0 until L).flatMap { x ->
-            (0 until C + 6).flatMap { y ->
+        val voxels = (0 until C + 6).flatMap { x ->
+            (0 until L).flatMap { y ->
                 (0 until L).map { z ->
                     val key = VoxelKey(x, y, z)
                     when {
-                        isCircle(key, D / 2) -> circle(key, circleMaterial, Te)
+                        isCircle(key, L/2, D / 2) -> circle(key, circleMaterial, Te)
                         isSquare(key, C) -> square(key, squareMaterial, Tr)
                         else -> air(key, airMaterial, Ta)
                     }
@@ -206,7 +207,7 @@ class RadiationValidationTest(
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
 //                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
-//                log.info("Finished radiation")
+                log.info("Started radiation")
                 radiationCalculator.calculateFetchingFromDb(0, i)
                 radiationCalculator.calculateFetchingFromDb(1, i)
                 log.info("Finished radiation")
@@ -235,9 +236,18 @@ class RadiationValidationTest(
                 sizeZ,
                 FileOutputStream("radiation_paper.vox")
             )
-
-            log.info(virtualThermometerService.getMeasurements(receiverThermometer))
-            log.info(virtualThermometerService.getMeasurements(emitterThermometer))
+            VoxFormatParser.write(
+                result.associate {
+                    it.key to it.evenIterationMaterial.voxelMaterial.colorId
+                },
+                Palette.basePalette,
+                sizeX,
+                sizeY,
+                sizeZ,
+                FileOutputStream("radiation_material_paper.vox")
+            )
+            FileOutputStream("receiver.csv").write(virtualThermometerService.getMeasurements(receiverThermometer).toByteArray())
+            FileOutputStream("emitter.csv").write(virtualThermometerService.getMeasurements(emitterThermometer).toByteArray())
         }
     }
 
@@ -274,8 +284,8 @@ private fun air(key: VoxelKey, airMaterial: PhysicalMaterial, baseTemp: Double) 
     isBoundaryCondition = true,
 )
 
-private fun isCircle(k: VoxelKey, middle: Int): Boolean {
-    return k.x == 0 && (pow(k.y - middle, 2) + pow(k.z - middle, 2)) < 91
+private fun isCircle(k: VoxelKey, middle: Int, radius: Int): Boolean {
+    return k.x == 0 && (pow(k.y - middle, 2) + pow(k.z - middle, 2)) < radius * radius
 }
 
-private fun isSquare(k: VoxelKey, C: Int): Boolean = k.x > C - 5
+private fun isSquare(k: VoxelKey, C: Int): Boolean = k.x > C - 6

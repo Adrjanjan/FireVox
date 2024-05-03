@@ -14,6 +14,7 @@ import kotlin.math.*
 @Service
 class PlaneFinder @Autowired constructor(
     @Value("\${firevox.voxel.size}") val voxelLength: Double = 0.01,
+    @Value("\${firevox.plane.size}") val planeLength: Int = 10,
     private val physicalMaterialRepository: PhysicalMaterialRepository,
 ) {
 
@@ -30,7 +31,7 @@ class PlaneFinder @Autowired constructor(
         val planes = pointsToNormals.parallelStream().flatMap {
             log.info("Processing plane $it")
             val fullPlane = fullPlane(voxels, it)
-            divideIntoPlanes(wallId++, fullPlane, it.second, squareSize = 10).stream()
+            divideIntoPlanes(wallId++, fullPlane, it.second, planeLength).stream()
         }.collect(Collectors.toList()).toMutableList()
 
         val findRelationships = findRelationships(planes, voxels)
@@ -195,10 +196,22 @@ class PlaneFinder @Autowired constructor(
                         val (firstViewFactor, secondViewFactor) = calculateViewFactors(first, second)
 
                         first.childPlanes.add(
-                            PlanesConnection(parent = first, child = second, viewFactor = firstViewFactor)
+                            PlanesConnection(
+                                parent = first,
+                                child = second,
+                                parentVoxelsCount = first.voxelsCount,
+                                childVoxelsCount = second.voxelsCount,
+                                viewFactor = firstViewFactor
+                            )
                         )
                         second.childPlanes.add(
-                            PlanesConnection(parent = second, child = first, viewFactor = secondViewFactor)
+                            PlanesConnection(
+                                parent = second,
+                                child = first,
+                                parentVoxelsCount = first.voxelsCount,
+                                childVoxelsCount = second.voxelsCount,
+                                viewFactor = secondViewFactor
+                            )
                         )
                     }
                 }
@@ -214,6 +227,8 @@ class PlaneFinder @Autowired constructor(
                 parent = plane,
                 child = null,
                 viewFactor = plane.lostRadiationPercentage,
+                parentVoxelsCount = plane.voxelsCount,
+                childVoxelsCount = 0,
                 isAmbient = true,
             )
         )

@@ -13,7 +13,7 @@ class PlaneFinderTest : ShouldSpec({
     // given
     val voxelRepository = mockk<VoxelRepository>()
     val physicalMaterialRepository = mockk<PhysicalMaterialRepository>()
-    val planeFinder = PlaneFinder(0.01, physicalMaterialRepository)
+    val planeFinder = PlaneFinder(0.01, 10, physicalMaterialRepository)
 
     val material = PhysicalMaterial(
         VoxelMaterial.METAL,

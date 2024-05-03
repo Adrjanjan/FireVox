@@ -8,14 +8,17 @@ import pl.edu.agh.firevox.shared.model.VoxelKey
 
 interface VirtualThermometerRepository : JpaRepository<VirtualThermometer, Int> {
 
-    @Transactional
-    @Modifying
-    @Query("UPDATE VirtualThermometer t SET t.measurements = CONCAT(t.measurements, CONCAT(', ', :v)) WHERE t.voxelKey = :key")
-    fun updateValue(key: VoxelKey, v: Double)
+    @Query("""
+        select max(v.iteration) from VirtualThermometer v where v.voxelKey = ?1
+    """)
+    fun findLastIteration(key: VoxelKey): Int?
 
-    fun findByVoxelKey(key: VoxelKey): VirtualThermometer?
-
-    fun existsByVoxelKey(voxelKey: VoxelKey): Boolean
+    @Query(
+        """
+        select v.measurement from VirtualThermometer v where v.voxelKey = ?1
+    """
+    )
+    fun findMeasurements(key: VoxelKey): List<Double>
 
     @Transactional
     @Modifying

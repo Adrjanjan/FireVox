@@ -50,6 +50,8 @@ firevox:
   maxSize: ${FIREVOX_MAX_DIMENSION:20000}
   timestep: 0.1
   smokeIntoFireThreshold: 200.0
+  plane:
+    size: ${PLANE_SIZE:10} # integer; in voxels
   voxel:
     size: ${VOXEL_SIZE:0.01} # in meters
-    ambient: ${AMBIENT_TEMP:293.15} # in meters
+    ambient: ${AMBIENT_TEMP:293.15} # in kelvin
