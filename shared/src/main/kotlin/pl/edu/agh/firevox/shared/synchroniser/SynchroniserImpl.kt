@@ -31,7 +31,7 @@ class SynchroniserImpl(
     fun resetCounters(iteration: Long): Long {
         verifyIterationFinish(iteration)
 
-        synchroniseRadiationResults(iteration)
+        synchroniseRadiationResults(iteration.toInt())
 
         countersRepository.reset(CounterId.PROCESSED_RADIATION_PLANES_COUNT)
         countersRepository.set(
@@ -69,15 +69,14 @@ class SynchroniserImpl(
         jdbcTemplate.update("refresh materialized view even_radiation_averages;")
     }
 
-    fun synchroniseRadiationResults(iteration: Long) {
-        if (iteration % 2 == 0L) {
+    fun synchroniseRadiationResults(iteration: Int) {
+        getPlanesConnections().parallelStream().forEach { connection ->
+            synchronisePlanes.synchroniseRadiation(iteration, connection)
+        }
+        if (iteration % 2 == 0) {
             jdbcTemplate.update("refresh materialized view odd_radiation_averages;")
         } else {
             jdbcTemplate.update("refresh materialized view even_radiation_averages;")
-        }
-
-        getPlanesConnections().parallelStream().forEach { connection ->
-            synchronisePlanes.synchroniseRadiation(iteration, connection)
         }
         jdbcTemplate.update("update planes_connections set q_net = 0.0")
     }

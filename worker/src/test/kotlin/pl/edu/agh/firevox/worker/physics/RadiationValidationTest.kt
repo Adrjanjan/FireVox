@@ -32,6 +32,8 @@ import kotlin.math.roundToInt
     properties = [
         "firevox.timestep=0.1",
         "firevox.voxel.size=0.01",
+        "firevox.plane.size=10",
+        "firevox.voxel.ambient=293.15",
         "firevox.smokeIntoFireThreshold=150",
     ],
     classes = [WorkerApplication::class, ItTestConfig::class]
@@ -49,7 +51,7 @@ class RadiationValidationTest(
     val synchroniserImpl: SynchroniserImpl,
     val virtualThermometerService: VirtualThermometerService,
     val jdbcTemplate: JdbcTemplate,
-    val postgreSQLContainer: PostgreSQLContainer<*>
+    val chunkRepository: ChunkRepository,
 ) : ShouldSpec({
 
     File("../main/src/main/resources/db.migration/V0.1_RadiationMaterialisedViews.sql")
@@ -109,7 +111,7 @@ class RadiationValidationTest(
         ).also(physicalMaterialRepository::save)
 
         val circleMaterial = PhysicalMaterial(
-            VoxelMaterial.GLASS,
+            VoxelMaterial.METAL,
             density = 8030.0,
             baseTemperature = Te,
             thermalConductivityCoefficient = 16.27,
@@ -147,7 +149,7 @@ class RadiationValidationTest(
         }.toMutableList()
 
         val emitterThermometer = VoxelKey(0, 98 / divisor, 98 / divisor)
-        val receiverThermometer = VoxelKey(C - 4, 98 / divisor, 98 / divisor)
+        val receiverThermometer = VoxelKey(C, 98 / divisor, 98 / divisor)
         virtualThermometerService.create(emitterThermometer)
         virtualThermometerService.create(receiverThermometer)
 
@@ -206,18 +208,22 @@ class RadiationValidationTest(
             synchroniserImpl.synchroniseRadiationResults(1)
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-//                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
+                virtualThermometerService.updateDirectly(emitterThermometer, i)
+                virtualThermometerService.updateDirectly(receiverThermometer, i)
+                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
+                calculationService.calculateForChunk(chunk, i)
+                chunkRepository.saveAll(chunk)
                 log.info("Started radiation")
                 radiationCalculator.calculateFetchingFromDb(0, i)
                 radiationCalculator.calculateFetchingFromDb(1, i)
                 log.info("Finished radiation")
-                synchroniserImpl.synchroniseRadiationResults(i.toLong() + 1)
+                synchroniserImpl.synchroniseRadiationResults(i)
                 log.info("Finished synchronisation")
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
                 log.info("Finished increment")
             }
 
-            val result = voxelRepository.findAll()
+            val result = voxelRepository.findAll().filter { it.evenIterationMaterial.voxelMaterial != VoxelMaterial.AIR }
             val min = result.minOf { it.evenIterationTemperature }
             val max = result.maxOf { it.evenIterationTemperature }
             log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
@@ -272,7 +278,7 @@ private fun square(key: VoxelKey, squareMaterial: PhysicalMaterial, baseTemp: Do
     evenIterationTemperature = baseTemp,
     oddIterationMaterial = squareMaterial,
     oddIterationTemperature = baseTemp,
-    isBoundaryCondition = true,
+    isBoundaryCondition = false,
 )
 
 private fun air(key: VoxelKey, airMaterial: PhysicalMaterial, baseTemp: Double) = Voxel(

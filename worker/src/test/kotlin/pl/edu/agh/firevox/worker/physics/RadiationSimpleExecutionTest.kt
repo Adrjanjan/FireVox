@@ -149,7 +149,7 @@ class RadiationSimpleExecutionTest(
                 log.info("Finished conduction")
                 planes.parallelStream().forEach { k -> radiationCalculator.calculateWithVoxelsFilled(k, i) }
                 log.info("Finished radiation")
-                synchroniserImpl.synchroniseRadiationResults(i.toLong())
+                synchroniserImpl.synchroniseRadiationResults(i)
                 log.info("Finished synchronisation")
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
                 log.info("Finished increment")
@@ -310,7 +310,7 @@ class RadiationSimpleExecutionTest(
                 log.info("Finished conduction")
                 planes.parallelStream().forEach { k -> radiationCalculator.calculateWithVoxelsFilled(k, i) }
                 log.info("Finished radiation")
-                synchroniserImpl.synchroniseRadiationResults(i.toLong())
+                synchroniserImpl.synchroniseRadiationResults(i)
                 log.info("Finished synchronisation")
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
                 log.info("Finished increment")

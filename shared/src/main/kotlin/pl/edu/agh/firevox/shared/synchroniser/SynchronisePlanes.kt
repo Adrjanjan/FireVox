@@ -19,11 +19,11 @@ class SynchronisePlanes(
     }
 
     fun synchroniseRadiation(
-        iteration: Long,
+        iteration: Int,
         planeConnection: PlaneConnectionDto
     ) {
 //        log.info("Synchronisation from plane ${planeConnection.parentId} to ${planeConnection.childId}")
-        if (iteration % 2 == 0L) { // even finished increment even
+        if (iteration % 2 == 0) { // even finished increment even
             updateOddTemperature(planeConnection.qNet, planeConnection.childId, planeConnection.childVoxelsCount)
             updateOddTemperature(-planeConnection.qNet, planeConnection.parentId, planeConnection.parentVoxelsCount)
         } else { // odd finished increment odd
