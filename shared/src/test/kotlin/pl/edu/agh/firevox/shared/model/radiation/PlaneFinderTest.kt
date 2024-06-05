@@ -399,7 +399,7 @@ class PlaneFinderTest : ShouldSpec({
             normalVector = VoxelKey(0, 0, 1),
             voxels = voxels.map(Voxel::key).toMutableSet(),
             voxelsCount = voxels.size,
-            area = 1.0,
+            area = 0.04,
             fullPlane = fullPlane,
         )
 
@@ -464,6 +464,96 @@ class PlaneFinderTest : ShouldSpec({
 
         // when
         val result = planeFinder.perpendicularViewFactor(firstPlane, secondPlane)
+
+        // then
+        result shouldBeGreaterThan 0.20004
+        result shouldBeLessThan 0.20005
+    }
+
+    should("perpendicularViewFactor2") {
+        val fullPlane = listOf(
+            VoxelKey(0, 0, 0),
+            VoxelKey(0, 10, 0),
+            VoxelKey(0, 0, 1),
+            VoxelKey(0, 10, 11),
+        )
+        val voxels = fullPlane.map {
+            Voxel(it, material, 0.0, oddIterationMaterial = material, oddIterationTemperature = 0.0)
+        }
+
+        val firstPlane = RadiationPlane(
+            wallId++,
+            a = VoxelKey(0, 0, 1),
+            b = VoxelKey(0, 0, 10),
+            c = VoxelKey(0, 9, 1),
+            d = VoxelKey(0, 9, 10),
+            normalVector = VoxelKey(1, 0, 0),
+            voxels = voxels.map(Voxel::key).toMutableSet(),
+            voxelsCount = voxels.size,
+            area = 0.01,
+            fullPlane = fullPlane,
+        )
+
+        val secondPlane = RadiationPlane(
+            wallId++,
+            a = VoxelKey(1, 99, 1),
+            b = VoxelKey(1, 99, 10),
+            c = VoxelKey(10, 99, 1),
+            d = VoxelKey(10, 99, 10),
+            normalVector = VoxelKey(0, -1, 0),
+            voxels = voxels.map(Voxel::key).toMutableSet(),
+            voxelsCount = voxels.size,
+            area = 0.01,
+            fullPlane = fullPlane,
+        )
+
+        // when
+        val result = planeFinder.perpendicularViewFactor(firstPlane, secondPlane)
+
+        // then
+        result shouldBeGreaterThan 0.162822719236895
+        result shouldBeLessThan 0.162822719236897
+    }
+
+    should("perpendicularViewFactor3") {
+        val fullPlane = listOf(
+            VoxelKey(0, 0, 1),
+            VoxelKey(0, 0, 10),
+            VoxelKey(0, 9, 1),
+            VoxelKey(0, 9, 10),
+        )
+        val voxels = fullPlane.map {
+            Voxel(it, material, 0.0, oddIterationMaterial = material, oddIterationTemperature = 0.0)
+        }
+
+        val firstPlane = RadiationPlane(
+            wallId++,
+            a = VoxelKey(0, 0, 1),
+            b = VoxelKey(0, 0, 10),
+            c = VoxelKey(0, 9, 1),
+            d = VoxelKey(0, 9, 10),
+            normalVector = VoxelKey(1, 0, 0),
+            voxels = voxels.map(Voxel::key).toMutableSet(),
+            voxelsCount = voxels.size,
+            area = 0.01,
+            fullPlane = fullPlane,
+        )
+
+        val secondPlane = RadiationPlane(
+            wallId++,
+            a = VoxelKey(99, 0, 1),
+            b = VoxelKey(99, 0, 98),
+            c = VoxelKey(99, 98, 1),
+            d = VoxelKey(99, 98, 98),
+            normalVector = VoxelKey(-1, 0, 0),
+            voxels = voxels.map(Voxel::key).toMutableSet(),
+            voxelsCount = voxels.size,
+            area = 0.97,
+            fullPlane = fullPlane,
+        )
+
+        // when
+        val result = planeFinder.parallelViewFactor(firstPlane, secondPlane)
 
         // then
         result shouldBeGreaterThan 0.20004

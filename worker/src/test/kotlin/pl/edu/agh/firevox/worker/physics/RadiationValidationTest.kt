@@ -32,7 +32,7 @@ import kotlin.math.roundToInt
     properties = [
         "firevox.timestep=0.1",
         "firevox.voxel.size=0.01",
-        "firevox.plane.size=10",
+        "firevox.plane.size=200",
         "firevox.voxel.ambient=293.15",
         "firevox.smokeIntoFireThreshold=150",
     ],
@@ -60,7 +60,7 @@ class RadiationValidationTest(
         .let(jdbcTemplate::update)
 
     context("calculate radiation test") {
-        val simulationTimeInSeconds = 100 // * 60
+        val simulationTimeInSeconds = 9000
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
         countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
         countersRepository.save(Counter(CounterId.PROCESSED_VOXEL_COUNT, 0))
@@ -90,7 +90,8 @@ class RadiationValidationTest(
         // 1mm^3 = 1 voxel
 
         // 197 x 197 x (C + 5mm thickness)
-        val (c, Te, Tr, Ta) = arrayOf(37.0, 740.0, 290.0, 290.0)
+//        val (c, Te, Tr, Ta) = arrayOf(37.0, 740.0, 290.0, 290.0) //cd = 0,2
+        val (c, Te, Tr, Ta) = arrayOf(182.0, 710.0, 290.0, 290.0) //cd = 1
         val C = c.toInt()
 
         val squareMaterial = PhysicalMaterial(
@@ -195,8 +196,8 @@ class RadiationValidationTest(
         log.info("${planes.size}")
         radiationPlaneRepository.flush()
 
-        log.info("Persisting all voxels")
-        voxelRepository.saveAll(voxels)
+        log.info("Persisting all voxels ${voxels.size}s")
+        voxelRepository.saveAll(voxels.filterNot { it.evenIterationMaterial.voxelMaterial == airMaterial.voxelMaterial })
         voxelRepository.flush()
         log.info("Finished persisting all voxels")
 
@@ -210,9 +211,10 @@ class RadiationValidationTest(
                 log.info("Iteration: $i")
                 virtualThermometerService.updateDirectly(emitterThermometer, i)
                 virtualThermometerService.updateDirectly(receiverThermometer, i)
-                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
-                calculationService.calculateForChunk(chunk, i)
-                chunkRepository.saveAll(chunk)
+//                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
+//                calculationService.calculateForChunk(chunk, i)
+//                chunkRepository.saveAll(chunk)
+                jdbcTemplate.update("update voxels set odd_iteration_temperature = even_iteration_temperature, even_iteration_temperature = odd_iteration_temperature where true;")
                 log.info("Started radiation")
                 radiationCalculator.calculateFetchingFromDb(0, i)
                 radiationCalculator.calculateFetchingFromDb(1, i)

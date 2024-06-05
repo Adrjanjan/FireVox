@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.PhysicalMaterialRepository
 import pl.edu.agh.firevox.shared.model.VoxelKey
+import java.lang.Math.pow
 import java.util.stream.Collectors
 import kotlin.math.*
 
@@ -208,13 +209,16 @@ class PlaneFinder @Autowired constructor(
                             PlanesConnection(
                                 parent = second,
                                 child = first,
-                                parentVoxelsCount = first.voxelsCount,
-                                childVoxelsCount = second.voxelsCount,
+                                parentVoxelsCount = second.voxelsCount,
+                                childVoxelsCount = first.voxelsCount,
                                 viewFactor = secondViewFactor
                             )
                         )
                     }
                 }
+            }
+            if (planes[i].childPlanes.sumOf { it.viewFactor } > 1) {
+                throw RuntimeException("View factors for plane (${planes[i].a}, ${planes[i].b}, ${planes[i].c}, ${planes[i].d}) was greater than 1")
             }
             addAmbienceConnection(planes[i])
         }
@@ -369,14 +373,14 @@ class PlaneFinder @Autowired constructor(
 
             else -> return 0.0
         }
-        val A1 = 1 / unitlessArea(x[0], x[1], y[0], y[1])
+        val A1 = 1 / (2 * PI * unitlessArea(x[0], x[1], y[0], y[1]))
         return A1 * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->
                     (1..2).sumOf { l ->
                         (-1.0).pow(i + j + k + l.toDouble()) * parallelIteratorFunction(
                             x[i - 1], y[j - 1], n[k - 1], e[l - 1], z
-                        ) / (2 * PI)
+                        )
                     }
                 }
             }
@@ -399,10 +403,10 @@ class PlaneFinder @Autowired constructor(
     }
 
     fun perpendicularViewFactor(first: RadiationPlane, second: RadiationPlane): Double {
-        val x = mutableListOf<Double>()
+        var x = mutableListOf<Double>()
         val y = mutableListOf<Double>()
         val n = mutableListOf<Double>()
-        val e = mutableListOf<Double>()
+        var e = mutableListOf<Double>()
 
         when {
             // first is horizontal with sides in XY, second is vertical with sides in YZ
@@ -411,6 +415,9 @@ class PlaneFinder @Autowired constructor(
                 y.addAll(uniqueCoordinate(first) { it.y })
                 e.addAll(uniqueCoordinate(second) { it.z })
                 n.addAll(uniqueCoordinate(second) { it.y })
+
+                x = x.map { abs(it - second.a.x) }.sorted().toMutableList()
+                e = e.map { abs(it - first.a.z) }.sorted().toMutableList()
             }
             // first is horizontal with sides in XZ, second is vertical with sides in XY
             first.normalVector.y != 0 && second.normalVector.z != 0 -> {
@@ -418,6 +425,9 @@ class PlaneFinder @Autowired constructor(
                 y.addAll(uniqueCoordinate(first) { it.x })
                 e.addAll(uniqueCoordinate(second) { it.y })
                 n.addAll(uniqueCoordinate(second) { it.x })
+
+                x = x.map { it - first.a.y }.sorted().toMutableList()
+                e = e.map { it - second.a.z }.sorted().toMutableList()
             }
             // first is horizontal with sides in YZ, second is vertical with sides in XZ
             first.normalVector.x != 0 && second.normalVector.y != 0 -> {
@@ -425,24 +435,33 @@ class PlaneFinder @Autowired constructor(
                 y.addAll(uniqueCoordinate(first) { it.z })
                 e.addAll(uniqueCoordinate(second) { it.x })
                 n.addAll(uniqueCoordinate(second) { it.z })
+
+                x = x.map { abs(it - second.a.y) }.sorted().toMutableList() // - min(x[0], x[1], second.a.y)
+                e = e.map { abs(it - first.a.x) }.sorted().toMutableList()
             }
             // and symmetry for cases above
 
             // second is horizontal with sides in XY
             // first is vertical with sides in YZ
             first.normalVector.x != 0 && second.normalVector.z != 0 -> {
-                x.addAll(uniqueCoordinate(first) { it.y })
-                y.addAll(uniqueCoordinate(first) { it.z })
+                x.addAll(uniqueCoordinate(first) { it.z })
+                y.addAll(uniqueCoordinate(first) { it.y })
                 e.addAll(uniqueCoordinate(second) { it.x })
                 n.addAll(uniqueCoordinate(second) { it.y })
+
+                x = x.map { abs(it - second.a.z) }.sorted().toMutableList()
+                e = e.map { abs(it - first.a.x) }.sorted().toMutableList()
             }
             // second is horizontal with sides in XZ
             // first is vertical with sides in XY
             first.normalVector.z != 0 && second.normalVector.y != 0 -> {
-                x.addAll(uniqueCoordinate(first) { it.x })
-                y.addAll(uniqueCoordinate(first) { it.y })
-                e.addAll(uniqueCoordinate(second) { it.x })
-                n.addAll(uniqueCoordinate(second) { it.z })
+                x.addAll(uniqueCoordinate(first) { it.y })
+                y.addAll(uniqueCoordinate(first) { it.x })
+                e.addAll(uniqueCoordinate(second) { it.z })
+                n.addAll(uniqueCoordinate(second) { it.x })
+
+                x = x.map { abs(it - second.a.y) }.sorted().toMutableList()
+                e = e.map { abs(it - first.a.z) }.sorted().toMutableList()
             }
             // second is horizontal with sides in YZ
             // first is vertical with sides in XZ
@@ -451,17 +470,30 @@ class PlaneFinder @Autowired constructor(
                 y.addAll(uniqueCoordinate(first) { it.z })
                 e.addAll(uniqueCoordinate(second) { it.y })
                 n.addAll(uniqueCoordinate(second) { it.z })
+
+                x = x.map { abs(it - second.a.x) }.sorted().toMutableList()
+                e = e.map { abs(it - first.a.y) }.sorted().toMutableList()
             }
         }
 
-        val A1 = 1 / unitlessArea(x[0], x[1], y[0], y[1])
+        if (x[0] == 0.0 && (e[0] == 0.0 || e[1] == 0.0) || x[1] == 0.0 && (e[0] == 0.0 || e[1] == 0.0)) {
+            return perpendicularSecond(
+                p = x[1] - x[0],
+                q = (y[1] - y[0]) / 2,
+                r = (n[1] - n[0]) / 2,
+                s = e[1] - e[0],
+            )
+        }
+
+
+        val A1 = 1 / (2 * PI * unitlessArea(x[0], x[1], y[0], y[1]))
         return A1 * (1..2).sumOf { i ->
             (1..2).sumOf { j ->
                 (1..2).sumOf { k ->
                     (1..2).sumOf { l ->
                         (-1.0).pow(i + j + k + l.toDouble()) * perpendicularIteratorFunction(
                             x[i - 1], y[j - 1], n[k - 1], e[l - 1]
-                        ) / (2 * PI)
+                        )
                     }
                 }
             }
@@ -473,6 +505,55 @@ class PlaneFinder @Autowired constructor(
         if (C == 0.0) C = 10e-6 // to avoid dividing by zero
         val D = (y - n) / C
         return (y - n) * C * atan(D) - 0.25 * C * C * (1 - D * D) * ln(C * C * (1 + D * D))
+    }
+
+    private fun perpendicularSecond(p: Double, q: Double, r: Double, s: Double): Double {
+        val a = q - r
+        if (a == 0.0) return perpendicularSharedSide(p, q, s)
+        val b = q + r
+        val c = hypot(p, s)
+        val A = a / c
+        assert(A != 0.0)
+        val A2 = A * A
+        val B = b / c
+        val B2 = B * B
+        val P = p / c
+        val P2 = P * P
+        val S = s / c
+        val S2 = S * S
+
+        val denom = PI * P * (A + B)
+        val pt1 = atan(A) - P * atan(A / P) - S * atan(A / S)
+        val pt2 = atan(B) - P * atan(B / P) - S * atan(B / S)
+
+        val pt3_1 = ln((1 + A2) / (1 + B2))
+        val pt3_2 = A2 * ln(((P2 + A2) * (S2 + A2)) / (A2 + A2 * A2))
+        val pt3_3 = B2 * ln((B2 + B2 * B2) / ((P2 + B2) * (S2 + B2)))
+        val pt3_4 = P2 * ln((P2 + B2) / (P2 + A2))
+        val pt3_5 = S2 * ln((S2 + B2) / (S2 + A2))
+
+        val pt3 = pt3_1 + pt3_2 + pt3_3 + pt3_4 + pt3_5
+
+        return (A * pt1 - B * pt2 - pt3 / 4) / denom
+    }
+
+    private fun perpendicularSharedSide(X: Double, Y: Double, Z: Double): Double {
+        val H = Z / Y
+        val W = X / Y
+        val H2 = H * H
+        val W2 = W * W
+        val C2 = H2 + W2
+        val C = sqrt(C2)
+
+        val denom = PI * W
+        val pt1 = W * atan(1 / W) - C * atan(1 / C) + H * atan(1 / H)
+
+        val pt2_1 = (1 + W2) * (1 + H2) / (1 + C2)
+        val pt2_2 = pow((W2 * (1 + C2) / (1 + W2) * C2), W2)
+        val pt2_3 = pow((H2 * (1 + C2) / (1 + H2) * C2), H2)
+
+        val pt2 = 0.25 * ln(pt2_1 * pt2_2 * pt2_3)
+        return (pt1 + pt2) / denom
     }
 
 }

@@ -1,7 +1,11 @@
 spring:
   datasource:
-    driver-class-name: org.h2.Driver
+#    driver-class-name: org.h2.Driver
     url: jdbc:h2:mem:firevox;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;INIT=CREATE SCHEMA IF NOT EXISTS firevox; #    TRACE_LEVEL_SYSTEM_OUT=3;
+    driver-class-name: org.postgresql.Driver
+#    url: jdbc:postgresql://${FIREVOX_DB_IP:localhost}:${FIREVOX_DB_PORT:5432}/firevox?ApplicationName=${spring.application.name} #    TRACE_LEVEL_SYSTEM_OUT=3;
+#    username: ${FIREVOX_DB_USERNAME:firevox}
+#    password: ${FIREVOX_DB_PASSWORD:firevox}
     hikari:
       connection-init-sql:
   jpa:

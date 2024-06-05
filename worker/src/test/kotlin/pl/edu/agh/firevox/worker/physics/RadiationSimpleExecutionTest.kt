@@ -7,9 +7,10 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.transaction.annotation.Transactional
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
-import pl.edu.agh.firevox.shared.model.radiation.RadiationPlane
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.simulation.Simulation
@@ -23,14 +24,18 @@ import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
 import pl.edu.agh.firevox.worker.WorkerApplication
 import pl.edu.agh.firevox.worker.service.CalculationService
 import pl.edu.agh.firevox.worker.service.VirtualThermometerService
+import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStreamWriter
 import kotlin.math.roundToInt
 
+@Transactional
 @SpringBootTest(
     properties = [
         "firevox.timestep=0.1",
         "firevox.voxel.size=0.01",
+        "firevox.plane.size=10",
+        "firevox.voxel.ambient=293.15",
         "firevox.smokeIntoFireThreshold=150"
     ],
     classes = [WorkerApplication::class, ItTestConfig::class]
@@ -47,9 +52,17 @@ class RadiationSimpleExecutionTest(
     val planeFinder: PlaneFinder,
     val synchroniserImpl: SynchroniserImpl,
     val virtualThermometerService: VirtualThermometerService,
+    val jdbcTemplate: JdbcTemplate,
+    val chunkRepository: ChunkRepository,
 ) : ShouldSpec({
 
+    File("../main/src/main/resources/db.migration/V0.1_RadiationMaterialisedViews.sql")
+        .readLines()
+        .joinToString(separator = "\n") { it }
+        .let(jdbcTemplate::update)
+
     context("simple calculate parallel radiation test") {
+
         val simulationTimeInSeconds = 350 // * 60
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
         countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
@@ -128,15 +141,17 @@ class RadiationSimpleExecutionTest(
         voxels.forEach {
             matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
         }
+        voxelRepository.saveAll(voxels)
 
-        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
+        val planes = planeFinder.findPlanes(matrix, pointsToNormals)
             .also {
                 countersRepository.set(
                     CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
                     it.size.toLong()
                 )
             }
-        planes = planes.let(radiationPlaneRepository::saveAll)
+        planes.let(radiationPlaneRepository::saveAll)
+        synchroniserImpl.simulationStartSynchronise()
         radiationPlaneRepository.flush()
 
         should("execute test") {
@@ -145,9 +160,14 @@ class RadiationSimpleExecutionTest(
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
+                virtualThermometerService.updateDirectly(firstThermometerKey, i)
+                virtualThermometerService.updateDirectly(secondThermometerKey, i)
+                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
+                calculationService.calculateForChunk(chunk, i)
+                chunkRepository.saveAll(chunk)
                 log.info("Finished conduction")
-                planes.parallelStream().forEach { k -> radiationCalculator.calculateWithVoxelsFilled(k, i) }
+                radiationCalculator.calculateFetchingFromDb(0, i)
+                radiationCalculator.calculateFetchingFromDb(1, i)
                 log.info("Finished radiation")
                 synchroniserImpl.synchroniseRadiationResults(i)
                 log.info("Finished synchronisation")
@@ -289,16 +309,20 @@ class RadiationSimpleExecutionTest(
         voxels.forEach {
             matrix[it.key.x][it.key.y][it.key.z] = VoxelMaterial.CONCRETE.colorId
         }
+        voxelRepository.saveAll(voxels)
 
-        var planes = planeFinder.findPlanes(matrix, pointsToNormals)
+        val planes = planeFinder.findPlanes(matrix, pointsToNormals)
             .also {
                 countersRepository.set(
                     CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
                     it.size.toLong()
                 )
             }
-        planes = planes.let(radiationPlaneRepository::saveAll)
+
+        planes.let(radiationPlaneRepository::saveAll)
+
         radiationPlaneRepository.flush()
+        synchroniserImpl.simulationStartSynchronise()
 
         should("execute test") {
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
@@ -306,9 +330,14 @@ class RadiationSimpleExecutionTest(
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculateGivenVoxel(v, i) }
+                virtualThermometerService.updateDirectly(firstThermometerKey, i)
+                virtualThermometerService.updateDirectly(secondThermometerKey, i)
+                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
+                calculationService.calculateForChunk(chunk, i)
+                chunkRepository.saveAll(chunk)
                 log.info("Finished conduction")
-                planes.parallelStream().forEach { k -> radiationCalculator.calculateWithVoxelsFilled(k, i) }
+                radiationCalculator.calculateFetchingFromDb(0, i)
+                radiationCalculator.calculateFetchingFromDb(1, i)
                 log.info("Finished radiation")
                 synchroniserImpl.synchroniseRadiationResults(i)
                 log.info("Finished synchronisation")

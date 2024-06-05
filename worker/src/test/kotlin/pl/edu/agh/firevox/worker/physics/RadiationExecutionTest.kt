@@ -7,9 +7,9 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.jdbc.core.JdbcTemplate
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
-import pl.edu.agh.firevox.shared.model.radiation.RadiationPlane
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
 import pl.edu.agh.firevox.shared.model.simulation.Palette
 import pl.edu.agh.firevox.shared.model.simulation.Simulation
@@ -22,6 +22,8 @@ import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
 import pl.edu.agh.firevox.worker.WorkerApplication
 import pl.edu.agh.firevox.worker.service.CalculationService
+import pl.edu.agh.firevox.worker.service.VirtualThermometerService
+import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.roundToInt
 
@@ -29,6 +31,8 @@ import kotlin.math.roundToInt
     properties = [
         "firevox.timestep=0.1",
         "firevox.voxel.size=0.01",
+        "firevox.plane.size=10",
+        "firevox.voxel.ambient=293.15",
         "firevox.smokeIntoFireThreshold=150",
     ],
     classes = [WorkerApplication::class, ItTestConfig::class]
@@ -44,7 +48,15 @@ class RadiationExecutionTest(
     @Value("\${firevox.timestep}") val timeStep: Double,
     val planeFinder: PlaneFinder,
     val synchroniserImpl: SynchroniserImpl,
+    val virtualThermometerService: VirtualThermometerService,
+    val chunkRepository: ChunkRepository,
+    val jdbcTemplate: JdbcTemplate,
 ) : ShouldSpec({
+
+    File("../main/src/main/resources/db.migration/V0.1_RadiationMaterialisedViews.sql")
+        .readLines()
+        .joinToString(separator = "\n") { it }
+        .let(jdbcTemplate::update)
 
     context("calculate radiation test") {
         val simulationTimeInSeconds = 100 // * 60
@@ -145,12 +157,22 @@ class RadiationExecutionTest(
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
+            synchroniserImpl.simulationStartSynchronise()
+
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculate(v.key, i) }
-                log.info("Finished conduction")
-                planes.parallelStream().forEach { k -> radiationCalculator.calculateWithVoxelsFilled(k, i) }
-                log.info("Finished calculations")
+
+                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
+                log.info("Chunk fetched")
+                calculationService.calculateForChunk(chunk, i)
+                log.info("Chunk calculated")
+                voxelRepository.saveAll(chunk.flatten().filter { it.evenIterationMaterial.voxelMaterial != VoxelMaterial.AIR })
+//                jdbcTemplate.update("update voxels set odd_iteration_temperature = even_iteration_temperature, even_iteration_temperature = odd_iteration_temperature where true;")
+                log.info("Started radiation")
+                for(wallId in 0..8) {
+                    radiationCalculator.calculateFetchingFromDb(wallId, i)
+                }
+                log.info("Finished radiation")
                 synchroniserImpl.synchroniseRadiationResults(i)
                 log.info("Finished synchronisation")
                 countersRepository.increment(CounterId.CURRENT_ITERATION)

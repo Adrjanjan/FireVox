@@ -249,31 +249,11 @@ class CalculationService(
             voxel.oddIterationTemperature = resultTemp
             voxel.oddIterationMaterial = newMaterial ?: voxel.oddIterationMaterial
             voxel.oddSmokeConcentration = smokeUpdate
-//            jdbcTemplate.update("""
-//                update voxels v set
-//                odd_iteration_temperature = $resultTemp,
-//                odd_iteration_material_id = ${newMaterial?.id ?: voxel.oddIterationMaterial.id},
-//                odd_smoke_concentration = $smokeUpdate,
-//                last_processed_iteration = $iteration
-//                ${ignitingCounter?.let{", igniting_counter = $it"} ?: ""}
-//                ${burningCounter?.let{", burning_counter = $it"} ?: ""}
-//                where v.x = ${voxel.key.x} and v.y = ${voxel.key.y} and v.z = ${voxel.key.z};
-//            """.trimIndent())
         } else {
             val resultTemp = voxel.oddIterationTemperature + heatResults.sum()
             voxel.evenIterationTemperature = resultTemp
             voxel.evenIterationMaterial = newMaterial ?: voxel.evenIterationMaterial
             voxel.evenSmokeConcentration = smokeUpdate
-//            jdbcTemplate.update("""
-//                update voxels v set
-//                even_iteration_temperature = $resultTemp,
-//                even_iteration_material_id = ${newMaterial?.id ?: voxel.oddIterationMaterial.id},
-//                even_smoke_concentration = $smokeUpdate,
-//                last_processed_iteration = $iteration
-//                ${ignitingCounter?.let{", igniting_counter = $it"} ?: ""}
-//                ${burningCounter?.let{", burning_counter = $it"} ?: ""}
-//                where v.x = ${voxel.key.x} and v.y = ${voxel.key.y} and v.z = ${voxel.key.z};
-//            """.trimIndent())
         }
     }
 

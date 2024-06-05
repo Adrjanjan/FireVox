@@ -43,7 +43,7 @@ class VirtualThermometerService(
     }
 
     @Transactional
-    fun getMeasurements(key: VoxelKey) =  virtualThermometerRepository.findMeasurements(key).joinToString()
+    fun getMeasurements(key: VoxelKey) =  virtualThermometerRepository.findMeasurements(key).joinToString(separator = "\n")
 
     fun updateDirectly(emitterThermometer: VoxelKey, i: Int) {
         jdbcTemplate.update("""
