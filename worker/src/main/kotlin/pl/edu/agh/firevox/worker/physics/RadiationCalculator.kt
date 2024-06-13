@@ -71,10 +71,11 @@ class RadiationCalculator(
         parent: RadiationPlane,
         parentAvgTemp: Double
     ) {
-        toChild.qNet = parent.lostRadiationPercentage *
+        val qNet = parent.lostRadiationPercentage *
                 stefanBoltzmann *
                 parent.area *
                 (ambientTemp.pow(4) - parentAvgTemp.pow(4))
+        toChild.qNet = qNet
     }
 
     private fun radiationForExistingChild(
@@ -88,8 +89,8 @@ class RadiationCalculator(
             val qNet = toChild.viewFactor *
                     stefanBoltzmann *
                     parent.area *
-                    (parentAvgTemp.pow(4) - childAvgTemp.pow(4))
-            toChild.qNet = qNet // if(qNet > delta) qNet else 0.0
+                    (childAvgTemp.pow(4) - parentAvgTemp.pow(4))
+            toChild.qNet = qNet
         }
     }
 }

@@ -70,7 +70,8 @@ class SynchroniserImpl(
     }
 
     fun synchroniseRadiationResults(iteration: Int) {
-        getPlanesConnections().parallelStream().forEach { connection ->
+        val planesConnections = getPlanesConnections()
+        planesConnections.parallelStream().forEach { connection ->
             synchronisePlanes.synchroniseRadiation(iteration, connection)
         }
         if (iteration % 2 == 0) {
@@ -85,8 +86,8 @@ class SynchroniserImpl(
         val sql = """
             SELECT pc.id, pc.$qNet, pc.$childPlaneId, pc.$parentPlaneId, pc.$parentVoxelCount, pc.$childVoxelCount
                 FROM planes_connections pc
-                WHERE pc.q_net > 0.0
-        """.trimIndent()
+                WHERE pc.q_net != 0.0
+        """.trimIndent() // we use only less than 0 to include ambience in the calculations
         return jdbcTemplate.query(sql, planeConnectionDtoRowMapper)
     }
 

@@ -96,9 +96,9 @@ class RadiationExecutionTest(
             Voxel(
                 VoxelKey(k.x, k.y, k.z),
                 evenIterationMaterial = baseMaterial,
-                evenIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
+                evenIterationTemperature = if (isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
                 oddIterationMaterial = baseMaterial,
-                oddIterationTemperature = if(isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
+                oddIterationTemperature = if (isBoundary(k)) 700.toKelvin() else 25.toKelvin(),
                 isBoundaryCondition = false //isBoundary(k)
             )
         }
@@ -144,13 +144,13 @@ class RadiationExecutionTest(
         }
 
         var planes = planeFinder.findPlanes(matrix, pointsToNormals)
-            .also {
-                countersRepository.set(
-                    CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
-                    it.size.toLong()
-                )
-            }
-        planes = planes.let(radiationPlaneRepository::saveAll)
+        planes = planes.also {
+            countersRepository.set(
+                CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
+                it.size.toLong()
+            )
+        }.let(radiationPlaneRepository::saveAll)
+
         radiationPlaneRepository.flush()
 
         should("execute test") {
@@ -166,10 +166,12 @@ class RadiationExecutionTest(
                 log.info("Chunk fetched")
                 calculationService.calculateForChunk(chunk, i)
                 log.info("Chunk calculated")
-                voxelRepository.saveAll(chunk.flatten().filter { it.evenIterationMaterial.voxelMaterial != VoxelMaterial.AIR })
+                voxelRepository.saveAll(
+                    chunk.flatten().filter { it.evenIterationMaterial.voxelMaterial != VoxelMaterial.AIR }
+                )
 //                jdbcTemplate.update("update voxels set odd_iteration_temperature = even_iteration_temperature, even_iteration_temperature = odd_iteration_temperature where true;")
                 log.info("Started radiation")
-                for(wallId in 0..8) {
+                for (wallId in 0..8) {
                     radiationCalculator.calculateFetchingFromDb(wallId, i)
                 }
                 log.info("Finished radiation")

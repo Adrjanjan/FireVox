@@ -23,12 +23,15 @@ class SynchronisePlanes(
         planeConnection: PlaneConnectionDto
     ) {
 //        log.info("Synchronisation from plane ${planeConnection.parentId} to ${planeConnection.childId}")
+        // to secure when calculating for ambience that has 0 voxels
+        val childVoxelsCount = if(planeConnection.childVoxelsCount == 0) 1 else planeConnection.childVoxelsCount
+        val parentVoxelsCount = if(planeConnection.parentVoxelsCount == 0) 1 else planeConnection.parentVoxelsCount
         if (iteration % 2 == 0) { // even finished increment even
-            updateOddTemperature(planeConnection.qNet, planeConnection.childId, planeConnection.childVoxelsCount)
-            updateOddTemperature(-planeConnection.qNet, planeConnection.parentId, planeConnection.parentVoxelsCount)
+            updateOddTemperature(-planeConnection.qNet, planeConnection.childId, childVoxelsCount)
+            updateOddTemperature(planeConnection.qNet, planeConnection.parentId, parentVoxelsCount)
         } else { // odd finished increment odd
-            updateEvenTemperature(planeConnection.qNet, planeConnection.childId, planeConnection.childVoxelsCount)
-            updateEvenTemperature(-planeConnection.qNet, planeConnection.parentId, planeConnection.parentVoxelsCount)
+            updateEvenTemperature(-planeConnection.qNet, planeConnection.childId, childVoxelsCount)
+            updateEvenTemperature(planeConnection.qNet, planeConnection.parentId, parentVoxelsCount)
         }
     }
 

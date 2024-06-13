@@ -381,6 +381,7 @@ class RadiationSimpleExecutionTest(
                 }
             }
         }
+        assert(planes.isNotEmpty())
     }
 
 }) {

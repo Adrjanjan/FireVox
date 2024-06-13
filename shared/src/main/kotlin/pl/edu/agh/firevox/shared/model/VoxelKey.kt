@@ -19,7 +19,7 @@ data class VoxelKey(
         get() = sqrt(x * x + y * y + z * z * 1.0)
 
 
-    override fun toString() = "$x/$y/$z"
+    override fun toString() = "$x, $y, $z"
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (javaClass != other?.javaClass) return false

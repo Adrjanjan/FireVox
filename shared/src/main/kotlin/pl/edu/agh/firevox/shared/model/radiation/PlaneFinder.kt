@@ -10,6 +10,7 @@ import pl.edu.agh.firevox.shared.model.PhysicalMaterialRepository
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import java.lang.Math.pow
 import java.util.stream.Collectors
+import java.util.stream.IntStream
 import kotlin.math.*
 
 @Service
@@ -188,7 +189,7 @@ class PlaneFinder @Autowired constructor(
 
     fun findRelationships(planes: List<RadiationPlane>, voxels: Array<Array<IntArray>>): List<RadiationPlane> {
         for (i in planes.indices) {
-            for (j in (i + 1) until planes.size) {
+            IntStream.range(i + 1, planes.size).parallel().forEach { j ->
                 val first = planes[i]
                 val second = planes[j]
 
@@ -226,17 +227,17 @@ class PlaneFinder @Autowired constructor(
     }
 
     private fun addAmbienceConnection(plane: RadiationPlane) {
+        plane.resetLostRadiationPercentage()
         plane.childPlanes.add(
             PlanesConnection(
                 parent = plane,
                 child = null,
-                viewFactor = plane.calculateLostRadiationPercentage(),
+                viewFactor = plane.lostRadiationPercentage,
                 parentVoxelsCount = plane.voxelsCount,
                 childVoxelsCount = 0,
                 isAmbient = true,
             )
         )
-        plane.resetLostRadiationPercentage()
     }
 
     private fun calculateViewFactors(
@@ -419,15 +420,15 @@ class PlaneFinder @Autowired constructor(
                 x = x.map { abs(it - second.a.x) }.sorted().toMutableList()
                 e = e.map { abs(it - first.a.z) }.sorted().toMutableList()
             }
-            // first is horizontal with sides in XZ, second is vertical with sides in XY
+            // first is vertical with sides in XZ, second is horizontal with sides in XY
             first.normalVector.y != 0 && second.normalVector.z != 0 -> {
                 x.addAll(uniqueCoordinate(first) { it.z })
                 y.addAll(uniqueCoordinate(first) { it.x })
                 e.addAll(uniqueCoordinate(second) { it.y })
                 n.addAll(uniqueCoordinate(second) { it.x })
 
-                x = x.map { it - first.a.y }.sorted().toMutableList()
-                e = e.map { it - second.a.z }.sorted().toMutableList()
+                x = x.map { abs(it - second.a.z) }.sorted().toMutableList()
+                e = e.map { abs(it - first.a.y) }.sorted().toMutableList()
             }
             // first is horizontal with sides in YZ, second is vertical with sides in XZ
             first.normalVector.x != 0 && second.normalVector.y != 0 -> {
@@ -475,16 +476,6 @@ class PlaneFinder @Autowired constructor(
                 e = e.map { abs(it - first.a.y) }.sorted().toMutableList()
             }
         }
-
-        if (x[0] == 0.0 && (e[0] == 0.0 || e[1] == 0.0) || x[1] == 0.0 && (e[0] == 0.0 || e[1] == 0.0)) {
-            return perpendicularSecond(
-                p = x[1] - x[0],
-                q = (y[1] - y[0]) / 2,
-                r = (n[1] - n[0]) / 2,
-                s = e[1] - e[0],
-            )
-        }
-
 
         val A1 = 1 / (2 * PI * unitlessArea(x[0], x[1], y[0], y[1]))
         return A1 * (1..2).sumOf { i ->
