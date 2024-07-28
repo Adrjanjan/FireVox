@@ -19,7 +19,6 @@ import java.sql.ResultSet
 class SynchroniserImpl(
     private val countersRepository: CountersRepository,
     private val synchronisePlanes: SynchronisePlanes,
-    private val radiationPlaneRepository: RadiationPlaneRepository,
     private val jdbcTemplate: JdbcTemplate
 ) {
 

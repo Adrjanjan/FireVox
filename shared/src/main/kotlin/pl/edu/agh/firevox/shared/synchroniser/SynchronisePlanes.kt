@@ -11,6 +11,7 @@ import kotlin.math.pow
 class SynchronisePlanes(
     private val jdbcTemplate: JdbcTemplate,
     @Value("\${firevox.voxel.size}") val voxelLength: Double,
+    @Value("\${firevox.timestep}") val timeStep: Double,
 ) {
     val volume: Double = voxelLength.pow(3)
 
@@ -39,7 +40,7 @@ class SynchronisePlanes(
         val sql = """
             UPDATE voxels v
             SET odd_iteration_temperature = v.odd_iteration_temperature +  
-                                            $qNet / ($volume * m.density * m.specific_heat_capacity * $voxelsCount)
+                                            $timeStep * $qNet / ($volume * m.density * m.specific_heat_capacity * $voxelsCount)
             from materials m
             WHERE (v.x, v.y, v.z) IN
                   (SELECT voxel_key_x, voxel_key_y, voxel_key_z
@@ -55,7 +56,7 @@ class SynchronisePlanes(
         val sql = """
             UPDATE voxels v
             SET even_iteration_temperature = v.even_iteration_temperature +
-                                            $qNet / ($volume * m.density * m.specific_heat_capacity * $voxelsCount)
+                                            $timeStep * $qNet / ($volume * m.density * m.specific_heat_capacity * $voxelsCount)
             from materials m
             WHERE (v.x, v.y, v.z) IN
                   (SELECT voxel_key_x, voxel_key_y, voxel_key_z

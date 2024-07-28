@@ -26,7 +26,7 @@ class IterationSynchroniser(
     @Transactional
     override fun execute(jobExecutionContext: JobExecutionContext) {
         val iteration = countersRepository.findByIdOrNull(CounterId.CURRENT_ITERATION)?.count!!
-        SynchroniserImpl.log.info("Running synchronisation $iteration")
+        log.info("Running synchronisation $iteration")
         synchroniserImpl.verifyIterationFinish(iteration)
         synchroniserImpl.synchroniseRadiationResults(iteration.toInt())
         synchroniserImpl.resetCounters(iteration)

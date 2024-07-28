@@ -22,7 +22,11 @@ class RadiationPlane(
     @Transient
     val d: VoxelKey,
 
-    // no longer transient so it can be used to detection during flame creation
+    @AttributeOverrides(
+        AttributeOverride(name = "x", column = Column(name = "normal_vector_x")),
+        AttributeOverride(name = "y", column = Column(name = "normal_vector_y")),
+        AttributeOverride(name = "z", column = Column(name = "normal_vector_z"))
+    )
     val normalVector: VoxelKey,
 
     @Id
@@ -57,6 +61,12 @@ class RadiationPlane(
     @Transient
     val middle = VoxelKey((a.x + b.x + c.x + d.x) / 4, (a.y + b.y + c.y + d.y) / 4, (a.z + b.z + c.z + d.z) / 4)
 
+    @AttributeOverrides(
+        AttributeOverride(name = "x", column = Column(name = "middle_x")),
+        AttributeOverride(name = "y", column = Column(name = "middle_y")),
+        AttributeOverride(name = "z", column = Column(name = "middle_z"))
+    )    val middlePersisted: VoxelKey? = middle
+
     var lostRadiationPercentage: Double = 0.0
 
     final fun calculateLostRadiationPercentage(): Double = 1 - this.childPlanes.sumOf { it.viewFactor }
@@ -65,7 +75,7 @@ class RadiationPlane(
     }
 
     override fun toString(): String {
-        return "RadiationPlane(id=$id, middle=$middle)"
+        return "RadiationPlane(id=$id, middle=$middlePersisted)"
     }
 
     @OneToOne(fetch = FetchType.EAGER, optional = false)
@@ -105,7 +115,7 @@ class PlanesConnection(
     var qNet: Double = 0.0
 
     override fun toString(): String {
-        return "PlanesConnection(id=$id, parent=$parent, child=$child)"
+        return "PlanesConnection(id=$id, parent=$parent, child=$child, viewFactor=$viewFactor)"
     }
 }
 

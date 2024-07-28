@@ -36,8 +36,8 @@ class RadiationCalculator(
 
         val parentAvgTemp = parent.getTempAverage(iteration)
         parent.childPlanes.forEach { toChild ->
-            if (toChild.isAmbient) {
-                radiationForAmbience(toChild, parent, parentAvgTemp)
+            toChild.qNet = if (toChild.isAmbient) {
+                radiationForAmbience(parent, parentAvgTemp)
             } else {
                 radiationForExistingChild(toChild, iteration, parentAvgTemp, parent)
             }
@@ -55,11 +55,12 @@ class RadiationCalculator(
         planes.forEach { parent ->
             val parentAvgTemp = parent.getTempAverage(iteration)
             parent.childPlanes.forEach { toChild ->
-                if (toChild.isAmbient) {
-                    radiationForAmbience(toChild, parent, parentAvgTemp)
+                val q = if (toChild.isAmbient) {
+                    radiationForAmbience(parent, parentAvgTemp)
                 } else {
                     radiationForExistingChild(toChild, iteration, parentAvgTemp, parent)
                 }
+                toChild.qNet = q
             }
         }
         countersRepository.add(CounterId.PROCESSED_RADIATION_PLANES_COUNT, planes.count())
@@ -67,15 +68,13 @@ class RadiationCalculator(
     }
 
     private fun radiationForAmbience(
-        toChild: PlanesConnection,
         parent: RadiationPlane,
         parentAvgTemp: Double
-    ) {
-        val qNet = parent.lostRadiationPercentage *
+    ): Double {
+        return parent.lostRadiationPercentage *
                 stefanBoltzmann *
                 parent.area *
                 (ambientTemp.pow(4) - parentAvgTemp.pow(4))
-        toChild.qNet = qNet
     }
 
     private fun radiationForExistingChild(
@@ -83,14 +82,13 @@ class RadiationCalculator(
         iteration: Int,
         parentAvgTemp: Double,
         parent: RadiationPlane
-    ) {
+    ): Double {
         val childAvgTemp = toChild.child!!.getTempAverage(iteration)
-        if (parentAvgTemp > childAvgTemp) {
-            val qNet = toChild.viewFactor *
+        return if (parentAvgTemp > childAvgTemp) {
+            toChild.viewFactor *
                     stefanBoltzmann *
                     parent.area *
                     (childAvgTemp.pow(4) - parentAvgTemp.pow(4))
-            toChild.qNet = qNet
-        }
+        } else 0.0
     }
 }

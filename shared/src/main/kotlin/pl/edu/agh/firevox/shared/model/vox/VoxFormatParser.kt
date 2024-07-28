@@ -1,6 +1,5 @@
 package pl.edu.agh.firevox.shared.model.vox
 
-//import pl.edu.agh.firevox.vox.MaterialProperties.*
 import com.google.common.io.LittleEndianDataInputStream
 import com.google.common.io.LittleEndianDataOutputStream
 import pl.edu.agh.firevox.shared.model.VoxelKey
@@ -347,7 +346,7 @@ object VoxFormatParser {
         }
     }
 
-    fun toPaletteLinear(value: Double, min: Double, max: Double, numBuckets: Int = 254) =
+    fun toPaletteLinear(value: Double, min: Double, max: Double, numBuckets: Int = 253) =
         round((value - min) * (numBuckets / (max - min))).toInt() + 1
 
 }

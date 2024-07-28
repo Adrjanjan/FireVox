@@ -7,6 +7,7 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.data.domain.Example
 import org.springframework.jdbc.core.JdbcTemplate
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
@@ -195,12 +196,14 @@ class RadiationExecutionTest(
                     )
                 },
                 Palette.temperaturePalette,
-                sizeX,
-                sizeY,
-                sizeZ,
-                FileOutputStream("radiation_result.vox")
+                sizeX - 1,
+                sizeY - 1,
+                sizeZ - 1,
+                FileOutputStream("radiation_execution_result.vox")
             )
         }
+//        val x = radiationPlaneRepository.findById(1)
+//        x.also { assert(it.get().id!! > -1) }
     }
 
 }) {

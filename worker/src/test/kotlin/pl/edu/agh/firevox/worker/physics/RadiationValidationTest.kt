@@ -141,7 +141,7 @@ class RadiationValidationTest(
                 (0 until L).map { z ->
                     val key = VoxelKey(x, y, z)
                     when {
-                        isCircle(key, L/2, D / 2) -> circle(key, circleMaterial, Te)
+                        isCircle(key, L / 2, D / 2) -> circle(key, circleMaterial, Te)
                         isSquare(key, C) -> square(key, squareMaterial, Tr)
                         else -> air(key, airMaterial, Ta)
                     }
@@ -225,7 +225,8 @@ class RadiationValidationTest(
                 log.info("Finished increment")
             }
 
-            val result = voxelRepository.findAll().filter { it.evenIterationMaterial.voxelMaterial != VoxelMaterial.AIR }
+            val result =
+                voxelRepository.findAll().filter { it.evenIterationMaterial.voxelMaterial != VoxelMaterial.AIR }
             val min = result.minOf { it.evenIterationTemperature }
             val max = result.maxOf { it.evenIterationTemperature }
             log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
@@ -239,23 +240,27 @@ class RadiationValidationTest(
                     )
                 },
                 Palette.temperaturePalette,
-                sizeX,
-                sizeY,
-                sizeZ,
-                FileOutputStream("radiation_paper.vox")
+                sizeX - 1,
+                sizeY - 1,
+                sizeZ - 1,
+                FileOutputStream("radiation_validation_paper.vox")
             )
             VoxFormatParser.write(
                 result.associate {
                     it.key to it.evenIterationMaterial.voxelMaterial.colorId
                 },
                 Palette.basePalette,
-                sizeX,
-                sizeY,
-                sizeZ,
-                FileOutputStream("radiation_material_paper.vox")
+                sizeX - 1,
+                sizeY - 1,
+                sizeZ - 1,
+                FileOutputStream("radiation_validation_material_paper.vox")
             )
-            FileOutputStream("receiver.csv").write(virtualThermometerService.getMeasurements(receiverThermometer).toByteArray())
-            FileOutputStream("emitter.csv").write(virtualThermometerService.getMeasurements(emitterThermometer).toByteArray())
+            FileOutputStream("receiver.csv").write(
+                virtualThermometerService.getMeasurements(receiverThermometer).toByteArray()
+            )
+            FileOutputStream("emitter.csv").write(
+                virtualThermometerService.getMeasurements(emitterThermometer).toByteArray()
+            )
         }
     }
 

@@ -63,7 +63,7 @@ class RadiationSimpleExecutionTest(
 
     context("simple calculate parallel radiation test") {
 
-        val simulationTimeInSeconds = 350 // * 60
+        val simulationTimeInSeconds = 40 * 60
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
         countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
         countersRepository.save(Counter(CounterId.PROCESSED_VOXEL_COUNT, 0))
@@ -189,9 +189,9 @@ class RadiationSimpleExecutionTest(
                     )
                 },
                 Palette.temperaturePalette,
-                sizeX,
-                sizeY,
-                sizeZ,
+                sizeX-1,
+                sizeY-1,
+                sizeZ-1,
                 FileOutputStream("simple_radiation_result_parallel.vox")
             )
 
@@ -214,7 +214,7 @@ class RadiationSimpleExecutionTest(
     }
 
     context("simple calculate perpendicular radiation test") {
-        val simulationTimeInSeconds = 350 // * 60
+        val simulationTimeInSeconds = 40 * 60
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
         countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
         countersRepository.save(Counter(CounterId.PROCESSED_VOXEL_COUNT, 0))
@@ -359,10 +359,10 @@ class RadiationSimpleExecutionTest(
                     )
                 },
                 Palette.temperaturePalette,
-                sizeX,
-                sizeY,
-                sizeZ,
-                FileOutputStream("simple_radiation_result_perpendicular.vox")
+                sizeX - 1,
+                sizeY - 1,
+                sizeZ - 1,
+                FileOutputStream("simple_radiation_result_perpendicular2.vox")
             )
 
             withContext(Dispatchers.IO) {
@@ -389,3 +389,53 @@ class RadiationSimpleExecutionTest(
         val log: Logger = LoggerFactory.getLogger(this::class.java)
     }
 }
+
+
+//&BNDF QUANTITY='INCIDENT HEAT FLUX', CELL_CENTERED=T /
+//&SLCF PBY=0.5, QUANTITY='INTEGRATED INTENSITY', CELL_CENTERED=T /
+//
+//&DUMP DT_DEVC=0.1 /
+//
+//&DEVC XB=0.02,1.00,0.02,1.00,0.02,0.02, QUANTITY='INCIDENT HEAT FLUX', ID='E_OB', SPATIAL_STATISTIC='SURFACE INTEGRAL' /
+//&DEVC XB=2.02,3.00,0.02,1.00,0.02,0.02, QUANTITY='INCIDENT HEAT FLUX', ID='E_GE', SPATIAL_STATISTIC='SURFACE INTEGRAL' /
+//&DEVC XYZ=0.50,0.50,0.02, QUANTITY='INCIDENT HEAT FLUX', ID='HF_OB', IOR=3 /
+//&DEVC XYZ=2.50,0.50,0.02, QUANTITY='INCIDENT HEAT FLUX', ID='HF_GE', IOR=3 /
+
+
+
+
+//&HEAD CHID='geom_perp' /
+//
+//&MESH XB=0,0.1,0,0.1,0,0.1, IJK=10,10,10 /
+//
+//&VENT MB='XMAX', SURF_ID='OPEN' /
+//&VENT MB='ZMAX', SURF_ID='OPEN' /
+//&VENT MB='YMAX', SURF_ID='OPEN' /
+//&VENT MB='YMIN', SURF_ID='OPEN' /
+//
+//&SPEC ID='NITROGEN', BACKGROUND=.TRUE./
+//
+//&RADI NUMBER_RADIATION_ANGLES=400 /
+//
+//&SURF ID='HOT',  TMP_FRONT=700, COLOR='RED',  HEAT_TRANSFER_COEFFICIENT=0, TAU_T=0, EMISSIVITY=1 /
+//&SURF ID='COLD', TMP_FRONT=25,  COLOR='BLUE', HEAT_TRANSFER_COEFFICIENT=0, TAU_T=0, EMISSIVITY=1 /
+//
+//&OBST XB=0.0,0.01,0.0,0.1,0.01,0.1, SURF_ID='HOT' /
+//&OBST XB=0.01,0.1,0.0,0.1,0.0,0.01, SURF_ID='COLD' /
+//
+//&GEOM XB=0.0,0.01,0.0,0.1,0.01,0.1, SURF_ID='HOT' /
+//&GEOM XB=0.01,0.1,0.0,0.1,0.0,0.01, SURF_ID='COLD' /
+//
+//&INIT PART_ID='Block', TEMPERATURE=100.0 /
+//&INIT PART_ID='Block', TEMPERATURE=100.0 /
+//
+//
+//&DEVC ID='Hotter', XYZ=0.01,0.05,0.05, IOR=1, QUANTITY='ADIABATIC SURFACE TEMPERATURE' /
+//&DEVC ID='Colder', XYZ=0.05,0.05,0.01, IOR=3, QUANTITY='ADIABATIC SURFACE TEMPERATURE' /
+//
+//&BNDF QUANTITY='WALL_TEMPERATURE' /
+//&BNDF QUANTITY='ADIABATIC SURFACE TEMPERATURE'/
+//
+//&TIME T_END=60 /
+//&TAIL /
+
