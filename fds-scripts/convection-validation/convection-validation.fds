@@ -1,0 +1,30 @@
+&HEAD CHID='heat_transfer_cavity', TITLE='Heat Transfer in a 2-D Square Open Cavity' /
+
+&MESH IJK=50,50,1, XB=0.0,1.0,0.0,1.0,0.0,0.01 /
+
+&TIME T_END=600.0 /
+
+! Define the material properties for the conductive wall
+&MATL ID='CONDUCTIVE_WALL'
+      CONDUCTIVITY=1.0
+      SPECIFIC_HEAT=1.0
+      DENSITY=2700.0 /
+
+! Define surfaces
+&SURF ID='HEATED_WALL', HEAT_FLUX=200.0 /
+&SURF ID='INSULATED', MATL_ID='CONDUCTIVE_WALL', BOUNDARY='EXTERIOR' /
+&SURF ID='OPEN_BOUNDARY', TMP_FRONT=300.0 /
+
+! Define obstacles for the walls
+&OBST XB=0.0,0.2,0.0,1.0,0.0,0.01, SURF_IDS='INSULATED','INSULATED','INSULATED','INSULATED','INSULATED','INSULATED' /  ! Left conductive and insulated wall
+&OBST XB=0.2,0.8,0.0,0.2,0.0,0.01, SURF_IDS='HEATED_WALL','HEATED_WALL','HEATED_WALL','HEATED_WALL','HEATED_WALL','HEATED_WALL' / ! Bottom wall with constant heat flux
+&OBST XB=0.8,1.0,0.0,1.0,0.0,0.01, SURF_IDS='INSULATED','INSULATED','INSULATED','INSULATED','INSULATED','INSULATED' /  ! Right conductive and insulated wall
+&OBST XB=0.0,1.0,0.8,1.0,0.0,0.01, SURF_IDS='INSULATED','INSULATED','INSULATED','INSULATED','INSULATED','INSULATED' /  ! Top wall, insulated
+
+! Define an open boundary at the right side
+&VENT XB=1.0,1.0,0.0,1.0,0.0,0.01, SURF_ID='OPEN_BOUNDARY' /
+
+! Initialize the temperature of the cavity
+&INIT TEMPERATURE=300.0 /
+
+&TAIL /

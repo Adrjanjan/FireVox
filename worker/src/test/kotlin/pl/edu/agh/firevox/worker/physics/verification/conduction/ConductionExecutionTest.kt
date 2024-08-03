@@ -1,4 +1,4 @@
-package pl.edu.agh.firevox.worker.physics
+package pl.edu.agh.firevox.worker.physics.verification.conduction
 
 import io.kotest.core.spec.style.ShouldSpec
 import org.slf4j.Logger
@@ -130,7 +130,6 @@ class ConductionExecutionTest(
             }
 
             val result = voxelRepository.findAll()
-//            result.forEach { log.info(it.toString()) }
             val min = result.minOf { it.evenIterationTemperature }
             val max = result.maxOf { it.evenIterationTemperature }
             log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")

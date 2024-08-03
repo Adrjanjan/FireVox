@@ -115,25 +115,25 @@ class CalculationService(
     ): Triple<Voxel, Boolean, MutableSet<VoxelKey>> {
         val voxelsToSendForSameIteration = mutableSetOf<VoxelKey>()
         // heat transfer calculators
-        val conductionResult = if (voxelState.material.isSolid()) {
-            conductionCalculator.calculate(voxelState, neighbours, timeStep, voxelsToSendForSameIteration)
-        } else 0.0
-
-        val convectionResult = if (voxelState.material.isFluid()) convectionCalculator.calculate(
+        val conductionResult = conductionCalculator.calculate(
             voxelState, neighbours, timeStep, voxelsToSendForSameIteration
-        ) else 0.0
+        )
 
-        val burningResult = if (voxelState.material.isBurning()) burningCalculator.calculate(
-            voxelState, timeStep, iteration
-        ) else 0.0
+        val convectionResult = convectionCalculator.calculate(
+            voxelState, neighbours, timeStep, voxelsToSendForSameIteration
+        )
+
+        val burningResult = if (voxelState.material.isBurning())
+            burningCalculator.calculate(voxelState, timeStep, iteration)
+        else 0.0
 
         val heatResults = listOf(
             conductionResult, convectionResult, burningResult
         )
 
-        val smokeUpdate = if (voxelState.material.transfersSmoke()) {
+        val smokeUpdate = if (voxelState.material.transfersSmoke())
             smokeTransferCalculator.calculate(voxelState, neighbours, timeStep, iteration, voxelsToSendForSameIteration)
-        } else 0.0
+        else 0.0
 
         // state change calculations
         val newMaterial = nextPhysicalMaterial(voxelState, neighbours, iteration, smokeUpdate)

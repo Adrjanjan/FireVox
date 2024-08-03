@@ -4,42 +4,47 @@ import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.VoxelState
-import kotlin.math.pow
 
 @Service
 class ConvectionCalculator(
     @Value("\${firevox.voxel.size}") val voxelLength: Double,
+    @Value("\${firevox.voxel.ambient}") val ambientTemperature: Double,
 ) {
 
-    private val delta = 10e-5
-    private val lPow5 = voxelLength.pow(5)
     /**
      * Only natural convection is included
      *
-     * newTemp = current.Temp + deltaTempDown + deltaTempUp
-     * currentAsTd = alpha * (current.temperature - upper.temperature) * timeStep // only if upper is fluid
-     * currentAsTu = alpha * (current.temperature - lower.temperature) * timeStep // only if lower is fluid
-     * alpha_prim = current.convectionCoeff / (m * C)
-     * m = material.density * V
-     * C = material.heatCapacity
+     * dT = timestep * dQ / (mass * specific_heat_capacity)
+     * mass = density * voxelLength ^ 3
+     * dQ = area * dT * h_avg
      **/
     fun calculate(
         voxel: VoxelState, voxels: List<VoxelState>, timeStep: Double, voxelsToSend: MutableSet<VoxelKey>
     ): Double {
-        val lower = voxels.firstOrNull { it.isBelow(voxel) && it.material.isFluid() }
-        val upper = voxels.firstOrNull { it.isAbove(voxel) && it.material.isFluid() }
         val currentMaterial = voxel.material
-        val alpha = 1 / (currentMaterial.density * lPow5 * currentMaterial.specificHeatCapacity) //  1/mass(density * length.pow(3)) * area(length.pow(2)) * shc
-        val currentAsTd = upper
-            ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient + it.material.convectionHeatTransferCoefficient)/2 * (it.temperature - voxel.temperature) * timeStep }
-            ?.also { if(it > delta) voxelsToSend.add(upper.key) }
-            ?: 0.0
-        val currentAsTu = lower
-            ?.let { alpha * (voxel.material.convectionHeatTransferCoefficient + it.material.convectionHeatTransferCoefficient)/2 * (it.temperature - voxel.temperature) * timeStep }
-            ?.also { if(it > delta) voxelsToSend.add(lower.key) }
-            ?: 0.0
+        val constants = currentMaterial.density * voxelLength * currentMaterial.specificHeatCapacity
 
-        return currentAsTd + currentAsTu
+        var heatSum = voxels.sumOf { convectiveHeat(it, voxel, voxelsToSend) }
+
+        if(voxels.size < 6) {
+            heatSum += (6 - voxels.size) * heatLossToAmbience(voxel)
+        }
+
+        return timeStep * heatSum / constants
     }
+
+    // <- dT * h_avg == dQ / area
+    private fun convectiveHeat(
+        other: VoxelState?,
+        current: VoxelState,
+        voxelsToSend: MutableSet<VoxelKey>
+    ) = other
+        ?.let { (it.temperature - current.temperature) * (current.material.convectionHeatTransferCoefficient + it.material.convectionHeatTransferCoefficient) / 2 }
+        ?.also { voxelsToSend.add(other.key) }
+        ?: 0.0
+
+    private fun heatLossToAmbience(
+        current: VoxelState
+    ) = (ambientTemperature - current.temperature) * current.material.convectionHeatTransferCoefficient
 
 }

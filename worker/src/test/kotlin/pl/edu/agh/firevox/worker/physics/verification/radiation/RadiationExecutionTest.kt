@@ -1,4 +1,4 @@
-package pl.edu.agh.firevox.worker.physics
+package pl.edu.agh.firevox.worker.physics.verification.radiation
 
 import io.kotest.core.spec.style.ShouldSpec
 import kotlinx.coroutines.Dispatchers
@@ -7,7 +7,6 @@ import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
-import org.springframework.data.domain.Example
 import org.springframework.jdbc.core.JdbcTemplate
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
@@ -22,6 +21,9 @@ import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
 import pl.edu.agh.firevox.worker.WorkerApplication
+import pl.edu.agh.firevox.worker.physics.ItTestConfig
+import pl.edu.agh.firevox.worker.physics.RadiationCalculator
+import pl.edu.agh.firevox.worker.physics.getFile
 import pl.edu.agh.firevox.worker.service.CalculationService
 import pl.edu.agh.firevox.worker.service.VirtualThermometerService
 import java.io.File
@@ -211,5 +213,6 @@ class RadiationExecutionTest(
         val log: Logger = LoggerFactory.getLogger(this::class.java)
     }
 }
+
 
 private fun isBoundary(k: VoxelKey) = k.x in 52..98 && k.z == 0
