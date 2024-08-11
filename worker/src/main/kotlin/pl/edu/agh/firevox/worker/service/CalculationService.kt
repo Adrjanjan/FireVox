@@ -23,13 +23,10 @@ class CalculationService(
     private val smokeTransferCalculator: SmokeCalculator,
     @Value("\${firevox.timestep}") private val timeStep: Double,
     private val virtualThermometerService: VirtualThermometerService,
-    private val simulationRepository: SimulationsRepository,
-    private val materialRepository: PhysicalMaterialRepository,
+    private val physicalMaterialRepository: PhysicalMaterialRepository,
     private val countersRepository: CountersRepository,
     private val voxelProcessingMessageSender: VoxelProcessingMessageSender,
-    private val physicalMaterialRepository: PhysicalMaterialRepository,
     @Value("\${firevox.smokeIntoFireThreshold}") private val smokeIntoFireThreshold: Double = 150 + 273.15,
-    private val jdbcTemplate: JdbcTemplate,
 ) {
 
     private val burningToBurnt = mapOf(
@@ -211,7 +208,7 @@ class CalculationService(
     private fun fillMissingVoxelsInsideModel(
         neighbours: Pair<List<Voxel>, Set<VoxelKey>>
     ): List<Voxel> {
-        val air: PhysicalMaterial = materialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
+        val air: PhysicalMaterial = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
         val result = neighbours.first.toMutableList()
         result.addAll(neighbours.second.map {
             Voxel(

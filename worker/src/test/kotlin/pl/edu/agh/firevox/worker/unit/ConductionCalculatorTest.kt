@@ -17,7 +17,7 @@ class ConductionCalculatorTest : ShouldSpec({
         baseTemperature = 1000.toKelvin(),
         thermalConductivityCoefficient = 1.0,
         convectionHeatTransferCoefficient = 1.0,
-        specificHeatCapacity = 0.001,
+        specificHeatCapacity = 1000.0,
         ignitionTemperature = null,
         burningTime = null,
         timeToIgnition = null,
@@ -32,7 +32,7 @@ class ConductionCalculatorTest : ShouldSpec({
         voxelMaterial = VoxelMaterial.AIR,
         density = 1.204,
         baseTemperature = 0.0.toKelvin(),
-        thermalConductivityCoefficient = 25.87,
+        thermalConductivityCoefficient = 0.024,
         convectionHeatTransferCoefficient = 38.0,
         specificHeatCapacity = 1015.0,
         ignitionTemperature = null,
@@ -83,7 +83,7 @@ class ConductionCalculatorTest : ShouldSpec({
         // WHEN
         val result = conductionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
         //then
-        result.toNDecimal(5) shouldBe (-2_500_000.0).toNDecimal(5)
+        result.toNDecimal(5) shouldBe (-2.5).toNDecimal(5)
     }
 
     should("calculate for single neighbour different temperature different material") {
@@ -96,7 +96,7 @@ class ConductionCalculatorTest : ShouldSpec({
         // WHEN
         val result = conductionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
         //then
-        result.toNDecimal(5) shouldBe (-3.35875e7).toNDecimal(5)
+        result.toNDecimal(5) shouldBe (-1.28).toNDecimal(5)
     }
 
 })

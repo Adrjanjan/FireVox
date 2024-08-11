@@ -28,6 +28,7 @@ data class Voxel(
     var ignitingCounter: Int = 0,
     var burningCounter: Int = 0,
     var isBoundaryCondition: Boolean = false,
+    var ambienceInsulated: Boolean = false,
     var lastProcessedIteration : Int = -1,
 ) {
     override fun equals(other: Any?): Boolean {
@@ -54,6 +55,7 @@ data class Voxel(
             this.evenSmokeConcentration,
             this.ignitingCounter,
             this.burningCounter,
+            this.ambienceInsulated,
         ) else
         VoxelState(
             this.key,
@@ -63,6 +65,7 @@ data class Voxel(
             this.oddSmokeConcentration,
             this.ignitingCounter,
             this.burningCounter,
+            this.ambienceInsulated,
         )
 }
 
@@ -75,9 +78,10 @@ data class VoxelState(
     val smokeConcentration: Double,
     var ignitingCounter: Int = 0,
     var burningCounter: Int = 0,
+    var ambienceInsulated: Boolean = false,
 ) {
     override fun toString(): String {
-        return "VoxelState(key=$key, temperature=${temperature.toCelsius()}, material=${material.voxelMaterial.name}, smoke=$smokeConcentration, burningCounter=${burningCounter}, ignitingCounter=$ignitingCounter)"
+        return "VoxelState(key=$key, temperature=${temperature.toCelsius()}, material=${material.voxelMaterial.name}, smoke=$smokeConcentration, burningCounter=${burningCounter}, ignitingCounter=$ignitingCounter), ambienceInsulated=$ambienceInsulated"
     }
 
     fun isAbove(other: VoxelState) = this.key.isAbove(other.key)

@@ -28,7 +28,7 @@ import java.io.OutputStreamWriter
 @SpringBootTest(
     properties = [
         "firevox.timestep=0.5",
-        "firevox.voxel.size=1",
+        "firevox.voxel.size=0.01",
         "firevox.plane.size=10",
         "firevox.smokeIntoFireThreshold=593.15",
         "firevox.voxel.ambient: 273.15"
@@ -59,13 +59,13 @@ class ConvectionVerificationTest(
 
         val air = physicalMaterialRepository.findByVoxelMaterial(VoxelMaterial.AIR)
 
-        val slabMaterial = PhysicalMaterial(
+        val slabMaterial = PhysicalMaterial( // unit in FDS
             VoxelMaterial.METAL,
-            density = 1000.0,
-            baseTemperature = 1000.toKelvin(),
-            thermalConductivityCoefficient = 1.0,
-            convectionHeatTransferCoefficient = 1.0,
-            specificHeatCapacity = 0.001,
+            density = 1000.0, // kg/m^3
+            baseTemperature = 1000.toKelvin(),  // C
+            thermalConductivityCoefficient = 1000.0, // W/(m*K)
+            convectionHeatTransferCoefficient = 1.0,  // W/(m^2*K)
+            specificHeatCapacity = 1000.0, // kJ/(kg*K)
             ignitionTemperature = null,
             burningTime = null,
             timeToIgnition = null,
@@ -80,20 +80,17 @@ class ConvectionVerificationTest(
         // &MESH IJK=3,3,3, XB=-0.15,0.15,-0.15,0.15,0.0,0.3 /
         // &VENT XB = -0.05,0.05,-0.05,0.05,0.0,0.0, SURF_ID='SLAB' /
 
-        // xy +0.15 | xyz *10
-        // x 0, 30
-        // y 0, 30
-        // z 0, 30
-        // hot slab = 10,20,10,20,0,10
+//        A 1 m thick solid slab that is initially at 1000 °C is
+//        suddenly exposed to air at 0 °C. The back of the slab is insulated. Its density is 1000 kg/m3,
+//        its specific heat is 0.001 kJ/(kg·K), its conductivity is 1 W/(m·K),
+//        and its emissivity is zero, meaning there is no radiative loss from the surface.
+//        The convective heat transfer coefficient is 1 W/(m2·K).
 
         val voxels = (0 until 30).flatMap { x ->
             (0 until 30).flatMap { y ->
-                (0 until 40).map { z ->
-                    val (temp, material) = if (z < 10)
-                        (if (x in 10 until 20 && y in 10 until 20)
-                            1000.toKelvin()
-                        else
-                            0.toKelvin()) to slabMaterial
+                (0 until 130).map { z ->
+                    val (temp, material) = if (z < 100)
+                        1000.toKelvin() to slabMaterial
                     else
                         0.toKelvin() to air
 
@@ -103,14 +100,25 @@ class ConvectionVerificationTest(
                         evenIterationTemperature = temp,
                         oddIterationMaterial = material,
                         oddIterationTemperature = temp,
-                        isBoundaryCondition = false
+                        isBoundaryCondition = false,
+                        ambienceInsulated = z == 0 || z < 100 && (x in listOf(0, 29) && y in listOf(0, 29))
                     )
                 }
             }
         }.toMutableList()
 
         val hotPlateThermometer = VoxelKey(15, 15, 0)
-        val gasThermometer = VoxelKey(15, 15, 20)
+        val surfaceThermometer = VoxelKey(15, 15, 99)
+        val gasThermometer = VoxelKey(15, 15, 120)
+
+//        (10 until 20).flatMap { x ->
+//            (10 until 20).flatMap { y ->
+//                (0 until 100).map { z ->
+//                    virtualThermometerService.create(VoxelKey(x, y, z))
+//                }
+//            }
+//        }
+
         virtualThermometerService.create(hotPlateThermometer)
         virtualThermometerService.create(gasThermometer)
 
@@ -162,6 +170,15 @@ class ConvectionVerificationTest(
                 log.info("Iteration: $i")
                 virtualThermometerService.updateDirectly(hotPlateThermometer, i)
                 virtualThermometerService.updateDirectly(gasThermometer, i)
+                virtualThermometerService.updateDirectly(surfaceThermometer, i)
+//                (10 until 20).flatMap { x ->
+//                    (10 until 20).flatMap { y ->
+//                        (0 until 100).map { z ->
+//                            virtualThermometerService.updateDirectly(VoxelKey(x, y, z), i)
+//                        }
+//                    }
+//                }
+
                 val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
                 calculationService.calculateForChunk(chunk, i)
                 chunkRepository.saveAll(chunk)
@@ -195,6 +212,15 @@ class ConvectionVerificationTest(
                     }
                 }
 
+                FileOutputStream("convection_ver/surfaceThermometer.csv").use {
+                    val v = virtualThermometerService.getMeasurements(surfaceThermometer).also(
+                        RadiationSimpleExecutionTest.log::info
+                    ).replace(".", ",")
+                    OutputStreamWriter(it).use { outputStreamWriter ->
+                        outputStreamWriter.write(v)
+                    }
+                }
+
                 FileOutputStream("convection_ver/gasThermometer.csv").use {
                     val v = virtualThermometerService.getMeasurements(gasThermometer).also(
                         RadiationSimpleExecutionTest.log::info
@@ -204,6 +230,7 @@ class ConvectionVerificationTest(
                     }
                 }
             }
+            assert(1 > 0)
         }
     }
 

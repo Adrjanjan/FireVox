@@ -9,15 +9,15 @@ import java.math.RoundingMode
 
 class ConvectionCalculatorTest : ShouldSpec({
 
-    val convectionCalculator = ConvectionCalculator(1.0, 273.15)
+    val convectionCalculator = ConvectionCalculator(0.01, 273.15)
 
-    val baseMaterial = PhysicalMaterial(
+    val metal = PhysicalMaterial(
         VoxelMaterial.METAL,
         density = 1000.0,
         baseTemperature = 1000.toKelvin(),
         thermalConductivityCoefficient = 1.0,
         convectionHeatTransferCoefficient = 1.0,
-        specificHeatCapacity = 0.001,
+        specificHeatCapacity = 1000.0,
         ignitionTemperature = null,
         burningTime = null,
         timeToIgnition = null,
@@ -32,7 +32,7 @@ class ConvectionCalculatorTest : ShouldSpec({
         voxelMaterial = VoxelMaterial.AIR,
         density = 1.204,
         baseTemperature = 0.0.toKelvin(),
-        thermalConductivityCoefficient = 25.87,
+        thermalConductivityCoefficient = 0.024,
         convectionHeatTransferCoefficient = 38.0,
         specificHeatCapacity = 1015.0,
         ignitionTemperature = null,
@@ -44,27 +44,16 @@ class ConvectionCalculatorTest : ShouldSpec({
         deformationTemperature = null
     )
 
-    should("calculate for no neighbour so 6 times loose to ambience") {
-        // given
-        val current = Triple(VoxelKey(15, 15, 2), baseMaterial, 1000.0.toKelvin()).toVoxelState()
-        val neighbours = listOf<VoxelState>()
-
-        // WHEN
-        val result = convectionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
-        //then
-        result.toNDecimal(5) shouldBe (-3000.0).toNDecimal(5)
-    }
-
     should("calculate for all neighbour same temperature") {
         // given
-        val current = Triple(VoxelKey(15, 15, 2), baseMaterial, 1000.0.toKelvin()).toVoxelState()
+        val current = Triple(VoxelKey(15, 15, 2), metal, 1000.0.toKelvin()).toVoxelState()
         val neighbours = listOf(
-            Triple(VoxelKey(15, 15, 3), baseMaterial, 1000.0.toKelvin()).toVoxelState(),
-            Triple(VoxelKey(15, 15, 1), baseMaterial, 1000.0.toKelvin()).toVoxelState(),
-            Triple(VoxelKey(15, 16, 2), baseMaterial, 1000.0.toKelvin()).toVoxelState(),
-            Triple(VoxelKey(15, 14, 2), baseMaterial, 1000.0.toKelvin()).toVoxelState(),
-            Triple(VoxelKey(16, 15, 2), baseMaterial, 1000.0.toKelvin()).toVoxelState(),
-            Triple(VoxelKey(14, 15, 2), baseMaterial, 1000.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(15, 15, 3), metal, 1000.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(15, 15, 1), metal, 1000.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(15, 16, 2), metal, 1000.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(15, 14, 2), metal, 1000.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(16, 15, 2), metal, 1000.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(14, 15, 2), metal, 1000.0.toKelvin()).toVoxelState(),
         )
 
         // WHEN
@@ -73,30 +62,57 @@ class ConvectionCalculatorTest : ShouldSpec({
         result shouldBe 0
     }
 
-    should("calculate for single neighbour different temperature same material") {
+    should("calculate for non-fluid with non-fluid neighbours") {
         // given
-        val current = Triple(VoxelKey(15, 15, 2), baseMaterial, 1000.0.toKelvin()).toVoxelState()
+        val current = Triple(VoxelKey(15, 15, 2), metal, 1000.0.toKelvin()).toVoxelState()
         val neighbours = listOf(
-            Triple(VoxelKey(15, 15, 3), baseMaterial, 500.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(15, 15, 3), metal, 0.0.toKelvin()).toVoxelState(),
         )
 
         // WHEN
         val result = convectionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
         //then
-        result.toNDecimal(5) shouldBe (-2_750.0).toNDecimal(5)
+        result.toNDecimal(5) shouldBe (0.0).toNDecimal(5)
     }
 
-    should("calculate for single neighbour different temperature different material") {
+    should("calculate for hot plate facing down") {
         // given
-        val current = Triple(VoxelKey(15, 15, 2), baseMaterial, 1000.0.toKelvin()).toVoxelState()
+        val current = Triple(VoxelKey(15, 15, 2), metal, 1000.0.toKelvin()).toVoxelState()
         val neighbours = listOf(
-            Triple(VoxelKey(15, 15, 3), air, 500.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(15, 15, 3), air, 0.0.toKelvin()).toVoxelState(),
         )
 
         // WHEN
         val result = convectionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
         //then
-        result.toNDecimal(5) shouldBe (-7375.0).toNDecimal(5)
+        result.toNDecimal(5) shouldBe (-388.8).toNDecimal(5)
+    }
+
+    should("calculate for hot plate facing up") {
+        // given
+        val current = Triple(VoxelKey(15, 15, 1), metal, 1000.0.toKelvin()).toVoxelState()
+        val neighbours = listOf(
+            Triple(VoxelKey(15, 15, 2), air, 0.0.toKelvin()).toVoxelState(),
+        )
+
+        // WHEN
+        val result = convectionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
+        //then
+        result.toNDecimal(5) shouldBe (-388.8).toNDecimal(5)
+    }
+
+    should("calculate not overflow for big temp difference") {
+        // given
+        val current = Triple(VoxelKey(15, 15, 2), air, 1000.0.toKelvin()).toVoxelState()
+        val neighbours = listOf(
+            Triple(VoxelKey(15, 15, 3), air, 0.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(15, 15, 1), air, 0.0.toKelvin()).toVoxelState(),
+        )
+
+        // WHEN
+        val result = convectionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
+        //then
+        result.toNDecimal(5) shouldBe (-477.22698).toNDecimal(5)
     }
 
 })
