@@ -92,7 +92,9 @@ class CalculationService(
 
     @Transactional
     fun calculateForChunk(vs: VoxelsChunk, iteration: Int) {
-        vs.flatten().parallelStream().forEach {
+        vs.flatten()
+            .parallelStream()
+            .forEach {
             val neighbours = vs.neighbours(it.key, NeighbourhoodType.N_E_W_S_U_L_).first
                 .map { n -> n.toVoxelState(iteration) }
             calculateAllDataFetched(
@@ -136,6 +138,15 @@ class CalculationService(
         val newMaterial = nextPhysicalMaterial(voxelState, neighbours, iteration, smokeUpdate)
 
         setNextProperties(voxel, iteration, heatResults, newMaterial, smokeUpdate, null, null)
+//        log.info(
+//            "[${voxel.key}] ${voxel.oddIterationMaterial.voxelMaterial} Prev temp: ${
+//                if (iteration % 2 == 1) {
+//                    "${voxel.oddIterationTemperature}" + " Next temp: " + "${voxel.evenIterationTemperature}"
+//                } else {
+//                    "${voxel.evenIterationTemperature}" + " Next temp: " + "${voxel.oddIterationTemperature}"
+//                }
+//            }\n"
+//        )
         return Triple(voxel, true, voxelsToSendForSameIteration)
     }
 

@@ -55,3 +55,4 @@ firevox:
   voxel:
     size: ${VOXEL_SIZE:0.01} # in meters
     ambient: ${AMBIENT_TEMP:293.15} # in kelvin
+  ambientConduction: ${ENABLE_AMBIENT_CONDUCTION:true}

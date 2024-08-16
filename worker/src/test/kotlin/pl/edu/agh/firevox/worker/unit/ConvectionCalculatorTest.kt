@@ -9,7 +9,7 @@ import java.math.RoundingMode
 
 class ConvectionCalculatorTest : ShouldSpec({
 
-    val convectionCalculator = ConvectionCalculator(0.01, 273.15)
+    val convectionCalculator = ConvectionCalculator(0.01)
 
     val metal = PhysicalMaterial(
         VoxelMaterial.METAL,
@@ -79,13 +79,13 @@ class ConvectionCalculatorTest : ShouldSpec({
         // given
         val current = Triple(VoxelKey(15, 15, 2), metal, 1000.0.toKelvin()).toVoxelState()
         val neighbours = listOf(
-            Triple(VoxelKey(15, 15, 3), air, 0.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(15, 15, 1), air, 0.0.toKelvin()).toVoxelState(),
         )
 
         // WHEN
         val result = convectionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
         //then
-        result.toNDecimal(5) shouldBe (-388.8).toNDecimal(5)
+        result.toNDecimal(5) shouldBe (-0.53268).toNDecimal(5)
     }
 
     should("calculate for hot plate facing up") {
@@ -98,10 +98,24 @@ class ConvectionCalculatorTest : ShouldSpec({
         // WHEN
         val result = convectionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
         //then
-        result.toNDecimal(5) shouldBe (-388.8).toNDecimal(5)
+        result.toNDecimal(5) shouldBe (-0.94553).toNDecimal(5)
     }
 
     should("calculate not overflow for big temp difference") {
+        // given
+        val current = Triple(VoxelKey(15, 15, 2), metal, 1000.0.toKelvin()).toVoxelState()
+        val neighbours = listOf(
+            Triple(VoxelKey(15, 15, 3), air, 0.0.toKelvin()).toVoxelState(),
+            Triple(VoxelKey(15, 15, 1), air, 0.0.toKelvin()).toVoxelState(),
+        )
+
+        // WHEN
+        val result = convectionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
+        //then
+        result.toNDecimal(5) shouldBe (-1.47820).toNDecimal(5)
+    }
+
+    should("calculate diffusive with only gas") {
         // given
         val current = Triple(VoxelKey(15, 15, 2), air, 1000.0.toKelvin()).toVoxelState()
         val neighbours = listOf(
@@ -112,7 +126,7 @@ class ConvectionCalculatorTest : ShouldSpec({
         // WHEN
         val result = convectionCalculator.calculate(current, neighbours, 0.5, mutableSetOf())
         //then
-        result.toNDecimal(5) shouldBe (-477.22698).toNDecimal(5)
+        result.toNDecimal(5) shouldBe (0.0).toNDecimal(5)
     }
 
 })

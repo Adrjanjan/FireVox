@@ -9,7 +9,7 @@ import java.math.RoundingMode
 
 class ConductionCalculatorTest : ShouldSpec({
 
-    val conductionCalculator = ConductionCalculator(0.01)
+    val conductionCalculator = ConductionCalculator(0.01, 273.15, false)
 
     val baseMaterial = PhysicalMaterial(
         VoxelMaterial.METAL,

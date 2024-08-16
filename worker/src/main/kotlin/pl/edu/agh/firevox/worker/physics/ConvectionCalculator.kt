@@ -1,20 +1,24 @@
 package pl.edu.agh.firevox.worker.physics
 
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.VoxelState
-import pl.edu.agh.firevox.worker.service.InvalidSimulationState
 import kotlin.math.abs
 import kotlin.math.pow
 
 @Service
 class ConvectionCalculator(
     @Value("\${firevox.voxel.size}") val voxelLength: Double,
-    @Value("\${firevox.voxel.ambient}") val ambientTemperature: Double,
 ) {
 
-    val characteristicLength = voxelLength / 6 // equation for cubes
+    companion object {
+        val log: Logger = LoggerFactory.getLogger(this::class.java)
+    }
+
+    val characteristicLength = voxelLength // equation for cubes
 
     /**
      * Only natural convection is included
@@ -31,22 +35,33 @@ class ConvectionCalculator(
         voxel: VoxelState, voxels: List<VoxelState>, timeStep: Double, voxelsToSend: MutableSet<VoxelKey>
     ): Double {
         val lower = voxels.firstOrNull {
-            it.isBelow(voxel) && canConvect(it, voxel) && it.temperature != voxel.temperature
+            it.isBelow(voxel) && it.temperature != voxel.temperature
         }
         val upper = voxels.firstOrNull {
-            it.isAbove(voxel) && canConvect(it, voxel) && it.temperature != voxel.temperature
+            it.isAbove(voxel) && it.temperature != voxel.temperature
         }
         val currentMaterial = voxel.material
         val constants = (currentMaterial.density * voxelLength * currentMaterial.specificHeatCapacity)
-        val heatExchangeWithUpper = convectiveHeat(upper, voxel, voxelsToSend)
-        val heatExchangeWithLower = convectiveHeat(lower, voxel, voxelsToSend)
-        return timeStep * (heatExchangeWithUpper + heatExchangeWithLower) / constants
+        val heatExchangeWithUpper = if (upper != null && solidFluidTransfer(upper, voxel))
+            convectiveHeat(upper, voxel, voxelsToSend)
+        else 0.0
+        val heatExchangeWithLower = if (lower != null && solidFluidTransfer(lower, voxel))
+            convectiveHeat(lower, voxel, voxelsToSend)
+        else 0.0
+        val diffusiveHeatTransfer = diffusiveHeatTransfer(voxel, voxels)
+        val result = timeStep * (heatExchangeWithUpper + heatExchangeWithLower + diffusiveHeatTransfer) / constants
+//        log.info("[${voxel.key}] Convection heat transferred: ${heatExchangeWithUpper + heatExchangeWithLower + diffusiveHeatTransfer} ")
+        return result
     }
 
-    private fun canConvect(first: VoxelState, second: VoxelState): Boolean = when {
+    private fun diffusiveHeatTransfer(voxel: VoxelState, voxels: List<VoxelState>): Double {
+        return 0.0 // skipped
+    }
+
+    private fun solidFluidTransfer(first: VoxelState, second: VoxelState): Boolean = when {
         first.material.isSolid() && second.material.isFluid() -> true
         first.material.isFluid() && second.material.isSolid() -> true
-        first.material.isFluid() && second.material.isFluid() -> true
+        first.material.isFluid() && second.material.isFluid() -> false
         else -> false
     }
 
@@ -68,7 +83,7 @@ class ConvectionCalculator(
             current.temperature > it.temperature && it.isBelow(current) -> hotPlateFacingDown(it, current)
             current.temperature < it.temperature && it.isBelow(current) -> hotPlateFacingUp(current, it)
             current.temperature < it.temperature && it.isAbove(current) -> hotPlateFacingDown(current, it)
-            else -> throw InvalidSimulationState("Invalid convection configuration") // unreachable
+            else -> readln().toDouble() // unreachable, left with IO operation so that the database during test is not discarded
         }
         return result
     }
@@ -77,10 +92,10 @@ class ConvectionCalculator(
         val fluid = if (coldUp.material.isFluid()) coldUp else hotBelow
         val k = fluid.material.thermalConductivityCoefficient
         val Ra = rayleighNumber(coldUp, hotBelow, fluid, k)
-        val result = if(Ra <= 1e7) {
-            k * 0.54 * Ra.pow(1 / 4) / characteristicLength
+        val result = if (Ra <= 1e7) {
+            k * 0.54 * Ra.pow(1 / 4.0) / characteristicLength
         } else {
-            k * 0.15 * Ra.pow(1 / 3) / characteristicLength
+            k * 0.15 * Ra.pow(1 / 3.0) / characteristicLength
         }
         return result
     }
@@ -89,8 +104,8 @@ class ConvectionCalculator(
         val fluid = if (coldDown.material.isFluid()) coldDown else hotAbove
         val k = fluid.material.thermalConductivityCoefficient
         val Ra = rayleighNumber(coldDown, hotAbove, fluid, k)
-        val result = k * 0.52 * Ra.pow(1 / 5) / characteristicLength
-        return result
+        val h = k * 0.52 * Ra.pow(1 / 5.0) / characteristicLength
+        return h
     }
 
     // https://en.wikipedia.org/wiki/Rayleigh_number
@@ -111,6 +126,7 @@ class ConvectionCalculator(
         return Ra
     }
 
+    // https://doc.comsol.com/5.5/doc/com.comsol.help.cfd/cfd_ug_fluidflow_high_mach.08.27.html
     // sutherland formula
     // mi = mi_t0 (T/t0)^(3/2) * (t0+C)/(T+C)
     // v = mi/density

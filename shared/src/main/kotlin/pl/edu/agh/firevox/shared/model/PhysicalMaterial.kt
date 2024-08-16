@@ -19,6 +19,7 @@ class PhysicalMaterial(
     var baseTemperature: Double, // unit K
 
     var thermalConductivityCoefficient: Double, // unit W/(mK)
+    @Deprecated("Dynamic value", level = DeprecationLevel.HIDDEN)
     var convectionHeatTransferCoefficient: Double, // W/(m^2K)
     var specificHeatCapacity: Double, // unit J/(kg*K)
 

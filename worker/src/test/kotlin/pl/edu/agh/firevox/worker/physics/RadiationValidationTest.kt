@@ -7,7 +7,6 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.jdbc.core.JdbcTemplate
-import org.testcontainers.containers.PostgreSQLContainer
 import pl.edu.agh.firevox.shared.model.*
 import pl.edu.agh.firevox.shared.model.radiation.PlaneFinder
 import pl.edu.agh.firevox.shared.model.radiation.RadiationPlaneRepository
@@ -25,7 +24,6 @@ import pl.edu.agh.firevox.worker.service.CalculationService
 import pl.edu.agh.firevox.worker.service.VirtualThermometerService
 import java.io.File
 import java.io.FileOutputStream
-import java.util.*
 import kotlin.math.roundToInt
 
 @SpringBootTest(
