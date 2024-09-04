@@ -16,7 +16,7 @@ class SmokeCalculator {
         iteration: Int,
         voxelsToSend: MutableSet<VoxelKey>,
     ): Double {
-        val smokeTransferred = smokeTransferred(currentVoxel, neighbours)
+        val smokeTransferred = smokeTransferred(currentVoxel, neighbours, timeStep)
         val smokeGenerated = smokeGenerated(currentVoxel, neighbours, timeStep)
         return currentVoxel.smokeConcentration + smokeTransferred + smokeGenerated
     }
@@ -25,12 +25,13 @@ class SmokeCalculator {
         neighbours.firstOrNull { it.isBelow(currentVoxel) && it.material.isBurning() }
             ?.let { generatedSmoke(it, timeStep) } ?: 0.0
 
-    private fun smokeTransferred(currentVoxel: VoxelState, neighbours: List<VoxelState>): Double =
+    private fun smokeTransferred(currentVoxel: VoxelState, neighbours: List<VoxelState>, timeStep: Double): Double =
         neighbours.filter { it.material.transfersSmoke() && it != currentVoxel }
             .fold(0.0) { acc, neighbour ->
                 acc + transferFactor(
                     currentVoxel, neighbour, neighbour.smokeConcentration < 1.0
-                ) * smokeTransfer(currentVoxel.smokeConcentration, neighbour.smokeConcentration)
+                ) * smokeTransfer(currentVoxel.smokeConcentration, neighbour.smokeConcentration) // * timeStep
+
             }
 
     private fun generatedSmoke(n: VoxelState, timeStep: Double): Double {

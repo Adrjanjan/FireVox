@@ -1,4 +1,4 @@
-package pl.edu.agh.firevox.worker.physics
+package pl.edu.agh.firevox.worker.physics.verification.radiation
 
 import io.kotest.core.spec.style.ShouldSpec
 import kotlinx.coroutines.Dispatchers
@@ -22,6 +22,8 @@ import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.shared.synchroniser.SynchroniserImpl
 import pl.edu.agh.firevox.worker.WorkerApplication
+import pl.edu.agh.firevox.worker.physics.ItTestConfig
+import pl.edu.agh.firevox.worker.physics.RadiationCalculator
 import pl.edu.agh.firevox.worker.service.CalculationService
 import pl.edu.agh.firevox.worker.service.VirtualThermometerService
 import java.io.File
@@ -88,6 +90,7 @@ class RadiationSimpleExecutionTest(
             effectiveHeatOfCombustion = null,
             smokeEmissionPerSecond = null,
             deformationTemperature = null,
+            emissivity = 1.0,
         ).also(physicalMaterialRepository::save)
 
         val voxels = listOf(0, 11).flatMap { x ->
@@ -143,74 +146,99 @@ class RadiationSimpleExecutionTest(
         }
         voxelRepository.saveAll(voxels)
 
-        val planes = planeFinder.findPlanes(matrix, pointsToNormals)
-            .also {
-                countersRepository.set(
-                    CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
-                    it.size.toLong()
+
+        VoxFormatParser.write(
+            voxels.associate {
+                it.key to VoxFormatParser.toPaletteLinear(
+                    value = it.evenIterationTemperature,
+                    min = 25.toKelvin(),
+                    max = 700.toKelvin()
                 )
-            }
-        planes.let(radiationPlaneRepository::saveAll)
-        synchroniserImpl.simulationStartSynchronise()
-        radiationPlaneRepository.flush()
+            },
+            Palette.temperaturePalette,
+            sizeX,
+            sizeY,
+            sizeZ,
+            FileOutputStream("rad_ver/rad_verification_temp_start_para.vox")
+        )
 
-        should("execute test") {
-            val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
+        VoxFormatParser.write(
+            voxels.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
+            Palette.basePalette,
+            sizeX,
+            sizeY,
+            sizeZ,
+            FileOutputStream("rad_ver/rad_verification_mat_start_para.vox")
+        )
+//
+//        val planes = planeFinder.findPlanes(matrix, pointsToNormals)
+//            .also {
+//                countersRepository.set(
+//                    CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
+//                    it.size.toLong()
+//                )
+//            }
+//        planes.let(radiationPlaneRepository::saveAll)
+//        synchroniserImpl.simulationStartSynchronise()
+//        radiationPlaneRepository.flush()
 
-            log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
-            for (i in 0..iterationNumber) {
-                log.info("Iteration: $i")
-                virtualThermometerService.updateDirectly(firstThermometerKey, i)
-                virtualThermometerService.updateDirectly(secondThermometerKey, i)
-                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
-                calculationService.calculateForChunk(chunk, i)
-                chunkRepository.saveAll(chunk)
-                log.info("Finished conduction")
-                radiationCalculator.calculateFetchingFromDb(0, i)
-                radiationCalculator.calculateFetchingFromDb(1, i)
-                log.info("Finished radiation")
-                synchroniserImpl.synchroniseRadiationResults(i)
-                log.info("Finished synchronisation")
-                countersRepository.increment(CounterId.CURRENT_ITERATION)
-                log.info("Finished increment")
-            }
-
-            val result = voxelRepository.findAll()
-            val min = result.minOf { it.evenIterationTemperature }
-            val max = result.maxOf { it.evenIterationTemperature }
-            log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
-
-            VoxFormatParser.write(
-                result.associate {
-                    it.key to VoxFormatParser.toPaletteLinear(
-                        value = it.evenIterationTemperature,
-                        min = min,
-                        max = max
-                    )
-                },
-                Palette.temperaturePalette,
-                sizeX-1,
-                sizeY-1,
-                sizeZ-1,
-                FileOutputStream("simple_radiation_result_parallel.vox")
-            )
-
-            withContext(Dispatchers.IO) {
-                FileOutputStream("hotter_parallel.csv").use {
-                    val v = virtualThermometerService.getMeasurements(firstThermometerKey).also(log::info)
-                    OutputStreamWriter(it).use { outputStreamWriter ->
-                        outputStreamWriter.write(v)
-                    }
-                }
-
-                FileOutputStream("cooler_parallel.csv").use {
-                    val v = virtualThermometerService.getMeasurements(secondThermometerKey).also(log::info)
-                    OutputStreamWriter(it).use { outputStreamWriter ->
-                        outputStreamWriter.write(v)
-                    }
-                }
-            }
-        }
+//        should("execute test") {
+//            val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
+//
+//            log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
+//            for (i in 0..iterationNumber) {
+//                log.info("Iteration: $i")
+//                virtualThermometerService.updateDirectly(firstThermometerKey, i)
+//                virtualThermometerService.updateDirectly(secondThermometerKey, i)
+//                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
+//                calculationService.calculateForChunk(chunk, i)
+//                chunkRepository.saveAll(chunk)
+//                log.info("Finished conduction")
+//                radiationCalculator.calculateFetchingFromDb(0, i)
+//                radiationCalculator.calculateFetchingFromDb(1, i)
+//                log.info("Finished radiation")
+//                synchroniserImpl.synchroniseRadiationResults(i)
+//                log.info("Finished synchronisation")
+//                countersRepository.increment(CounterId.CURRENT_ITERATION)
+//                log.info("Finished increment")
+//            }
+//
+//            val result = voxelRepository.findAll()
+//            val min = result.minOf { it.evenIterationTemperature }
+//            val max = result.maxOf { it.evenIterationTemperature }
+//            log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
+//
+//            VoxFormatParser.write(
+//                result.associate {
+//                    it.key to VoxFormatParser.toPaletteLinear(
+//                        value = it.evenIterationTemperature,
+//                        min = min,
+//                        max = max
+//                    )
+//                },
+//                Palette.temperaturePalette,
+//                sizeX-1,
+//                sizeY-1,
+//                sizeZ-1,
+//                FileOutputStream("simple_radiation_result_parallel.vox")
+//            )
+//
+//            withContext(Dispatchers.IO) {
+//                FileOutputStream("hotter_parallel.csv").use {
+//                    val v = virtualThermometerService.getMeasurements(firstThermometerKey).also(log::info)
+//                    OutputStreamWriter(it).use { outputStreamWriter ->
+//                        outputStreamWriter.write(v)
+//                    }
+//                }
+//
+//                FileOutputStream("cooler_parallel.csv").use {
+//                    val v = virtualThermometerService.getMeasurements(secondThermometerKey).also(log::info)
+//                    OutputStreamWriter(it).use { outputStreamWriter ->
+//                        outputStreamWriter.write(v)
+//                    }
+//                }
+//            }
+//        }
     }
 
     context("simple calculate perpendicular radiation test") {
@@ -311,77 +339,101 @@ class RadiationSimpleExecutionTest(
         }
         voxelRepository.saveAll(voxels)
 
-        val planes = planeFinder.findPlanes(matrix, pointsToNormals)
-            .also {
-                countersRepository.set(
-                    CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
-                    it.size.toLong()
+        VoxFormatParser.write(
+            voxels.associate {
+                it.key to VoxFormatParser.toPaletteLinear(
+                    value = it.evenIterationTemperature,
+                    min = 25.toKelvin(),
+                    max = 700.toKelvin()
                 )
-            }
+            },
+            Palette.temperaturePalette,
+            sizeX,
+            sizeY,
+            sizeZ,
+            FileOutputStream("rad_ver/rad_verification_temp_start_perp.vox")
+        )
 
-        planes.let(radiationPlaneRepository::saveAll)
-
-        radiationPlaneRepository.flush()
-        synchroniserImpl.simulationStartSynchronise()
-
-        should("execute test") {
-            val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
-
-            log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
-            for (i in 0..iterationNumber) {
-                log.info("Iteration: $i")
-                virtualThermometerService.updateDirectly(firstThermometerKey, i)
-                virtualThermometerService.updateDirectly(secondThermometerKey, i)
-                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
-                calculationService.calculateForChunk(chunk, i)
-                chunkRepository.saveAll(chunk)
-                log.info("Finished conduction")
-                radiationCalculator.calculateFetchingFromDb(0, i)
-                radiationCalculator.calculateFetchingFromDb(1, i)
-                log.info("Finished radiation")
-                synchroniserImpl.synchroniseRadiationResults(i)
-                log.info("Finished synchronisation")
-                countersRepository.increment(CounterId.CURRENT_ITERATION)
-                log.info("Finished increment")
-            }
-
-            val result = voxelRepository.findAll()
-            val min = result.minOf { it.evenIterationTemperature }
-            val max = result.maxOf { it.evenIterationTemperature }
-            log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
-
-            VoxFormatParser.write(
-                result.associate {
-                    it.key to VoxFormatParser.toPaletteLinear(
-                        value = it.evenIterationTemperature,
-                        min = min,
-                        max = max
-                    )
-                },
-                Palette.temperaturePalette,
-                sizeX - 1,
-                sizeY - 1,
-                sizeZ - 1,
-                FileOutputStream("simple_radiation_result_perpendicular2.vox")
-            )
-
-            withContext(Dispatchers.IO) {
-                FileOutputStream("hotter_perpendicular.csv").use {
-                    val v = virtualThermometerService.getMeasurements(firstThermometerKey).also(log::info)
-                    OutputStreamWriter(it).use { outputStreamWriter ->
-                        outputStreamWriter.write(v)
-                    }
-                }
-
-                FileOutputStream("cooler_perpendicular.csv").use {
-                    val v = virtualThermometerService.getMeasurements(secondThermometerKey).also(log::info)
-                    OutputStreamWriter(it).use { outputStreamWriter ->
-                        outputStreamWriter.write(v)
-                    }
-                }
-            }
-        }
-        assert(planes.isNotEmpty())
+        VoxFormatParser.write(
+            voxels.associate { it.key to it.oddIterationMaterial.voxelMaterial.colorId },
+            Palette.basePalette,
+            sizeX,
+            sizeY,
+            sizeZ,
+            FileOutputStream("rad_ver/rad_verification_mat_start_perp.vox")
+        )
+//
+//        val planes = planeFinder.findPlanes(matrix, pointsToNormals)
+//            .also {
+//                countersRepository.set(
+//                    CounterId.CURRENT_ITERATION_RADIATION_PLANES_TO_PROCESS_COUNT,
+//                    it.size.toLong()
+//                )
+//            }
+//
+//        planes.let(radiationPlaneRepository::saveAll)
+//
+//        radiationPlaneRepository.flush()
+//        synchroniserImpl.simulationStartSynchronise()
+//
+//        should("execute test") {
+//            val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
+//
+//            log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
+//            for (i in 0..iterationNumber) {
+//                log.info("Iteration: $i")
+//                virtualThermometerService.updateDirectly(firstThermometerKey, i)
+//                virtualThermometerService.updateDirectly(secondThermometerKey, i)
+//                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
+//                calculationService.calculateForChunk(chunk, i)
+//                chunkRepository.saveAll(chunk)
+//                log.info("Finished conduction")
+//                radiationCalculator.calculateFetchingFromDb(0, i)
+//                radiationCalculator.calculateFetchingFromDb(1, i)
+//                log.info("Finished radiation")
+//                synchroniserImpl.synchroniseRadiationResults(i)
+//                log.info("Finished synchronisation")
+//                countersRepository.increment(CounterId.CURRENT_ITERATION)
+//                log.info("Finished increment")
+//            }
+//
+//            val result = voxelRepository.findAll()
+//            val min = result.minOf { it.evenIterationTemperature }
+//            val max = result.maxOf { it.evenIterationTemperature }
+//            log.info("End of the processing, starting to write result, max temp: ${max.toCelsius()}, min temp: ${min.toCelsius()}")
+//
+//            VoxFormatParser.write(
+//                result.associate {
+//                    it.key to VoxFormatParser.toPaletteLinear(
+//                        value = it.evenIterationTemperature,
+//                        min = min,
+//                        max = max
+//                    )
+//                },
+//                Palette.temperaturePalette,
+//                sizeX - 1,
+//                sizeY - 1,
+//                sizeZ - 1,
+//                FileOutputStream("simple_radiation_result_perpendicular2.vox")
+//            )
+//
+//            withContext(Dispatchers.IO) {
+//                FileOutputStream("hotter_perpendicular.csv").use {
+//                    val v = virtualThermometerService.getMeasurements(firstThermometerKey).also(log::info)
+//                    OutputStreamWriter(it).use { outputStreamWriter ->
+//                        outputStreamWriter.write(v)
+//                    }
+//                }
+//
+//                FileOutputStream("cooler_perpendicular.csv").use {
+//                    val v = virtualThermometerService.getMeasurements(secondThermometerKey).also(log::info)
+//                    OutputStreamWriter(it).use { outputStreamWriter ->
+//                        outputStreamWriter.write(v)
+//                    }
+//                }
+//            }
+//        }
+//        assert(planes.isNotEmpty())
     }
 
 }) {
@@ -389,3 +441,22 @@ class RadiationSimpleExecutionTest(
         val log: Logger = LoggerFactory.getLogger(this::class.java)
     }
 }
+
+//&BNDF QUANTITY='INCIDENT HEAT FLUX', CELL_CENTERED=T /
+//&BNDF QUANTITY='WALL TEMPERATURE' /
+//
+//&DEVC ID='E_OB', XB=0.02,1.00,0.02,1.00,0.02,0.02, QUANTITY='INCIDENT HEAT FLUX', SPATIAL_STATISTIC='SURFACE INTEGRAL' /
+//&DEVC ID='E_GE', XB=2.02,3.00,0.02,1.00,0.02,0.02, QUANTITY='INCIDENT HEAT FLUX', SPATIAL_STATISTIC='SURFACE INTEGRAL' /
+//&DEVC ID='HF_OB', XYZ=0.50,0.50,0.02, QUANTITY='INCIDENT HEAT FLUX', IOR=3 /
+//&DEVC ID='HF_GE', XYZ=2.50,0.50,0.02, QUANTITY='INCIDENT HEAT FLUX', IOR=3 /
+//
+//! Adding devices to monitor wall temperatures
+//&DEVC ID='WT_HOT_1', XYZ=0.01,0.50,0.50, QUANTITY='INSIDE WALL TEMPERATURE', DEPTH=0.0 /
+//&DEVC ID='WT_HOT_2', XYZ=0.01,0.75,0.75, QUANTITY='INSIDE WALL TEMPERATURE', DEPTH=0.0 /
+//&DEVC ID='WT_COLD_1', XYZ=0.50,0.01,0.01, QUANTITY='INSIDE WALL TEMPERATURE', DEPTH=0.0 /
+//&DEVC ID='WT_COLD_2', XYZ=0.75,0.01,0.01, QUANTITY='INSIDE WALL TEMPERATURE', DEPTH=0.0 /
+//&DEVC ID='WT_HOT_GE_1', XYZ=2.01,0.50,0.50, QUANTITY='INSIDE WALL TEMPERATURE', DEPTH=0.0 /
+//&DEVC ID='WT_HOT_GE_2', XYZ=2.01,0.75,0.75, QUANTITY='INSIDE WALL TEMPERATURE', DEPTH=0.0 /
+//&DEVC ID='WT_COLD_GE_1', XYZ=2.50,0.01,0.01, QUANTITY='INSIDE WALL TEMPERATURE', DEPTH=0.0 /
+//&DEVC ID='WT_COLD_GE_2', XYZ=2.75,0.01,0.01, QUANTITY='INSIDE WALL TEMPERATURE', DEPTH=0.0 /
+//

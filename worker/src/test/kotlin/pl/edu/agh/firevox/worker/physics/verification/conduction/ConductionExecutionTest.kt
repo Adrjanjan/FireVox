@@ -1,6 +1,8 @@
 package pl.edu.agh.firevox.worker.physics.verification.conduction
 
 import io.kotest.core.spec.style.ShouldSpec
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -13,20 +15,24 @@ import pl.edu.agh.firevox.shared.model.simulation.SingleModel
 import pl.edu.agh.firevox.shared.model.simulation.counters.Counter
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
-import pl.edu.agh.firevox.worker.WorkerApplication
-import pl.edu.agh.firevox.worker.service.CalculationService
-import java.io.FileOutputStream
-import kotlin.math.roundToInt
-
 import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
+import pl.edu.agh.firevox.worker.WorkerApplication
+import pl.edu.agh.firevox.worker.physics.verification.radiation.RadiationSimpleExecutionTest
+import pl.edu.agh.firevox.worker.service.CalculationService
+import pl.edu.agh.firevox.worker.service.VirtualThermometerService
+import java.io.FileOutputStream
+import java.io.OutputStreamWriter
 import kotlin.math.pow
+import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
 @SpringBootTest(
     properties = [
         "firevox.timestep=0.1",
         "firevox.voxel.size=0.01",
+        "firevox.plane.size=10",
         "firevox.smokeIntoFireThreshold=150",
+        "firevox.voxel.ambient: 273.15"
     ],
     classes = [WorkerApplication::class]
 )
@@ -37,6 +43,8 @@ class ConductionExecutionTest(
     val simulationsRepository: SimulationsRepository,
     val countersRepository: CountersRepository,
     @Value("\${firevox.timestep}") val timeStep: Double,
+    val virtualThermometerService: VirtualThermometerService,
+    val chunkRepository: ChunkRepository,
 ) : ShouldSpec({
 
     context("save voxels from file") {
@@ -119,16 +127,44 @@ class ConductionExecutionTest(
         voxelRepository.saveAll(voxels)
         voxelRepository.flush()
 
+        val thermometerHotterSide = VoxelKey(9, 10, 2)
+        val thermometerColderSide = VoxelKey(20, 10, 2)
+
+        virtualThermometerService.create(thermometerHotterSide)
+        virtualThermometerService.create(thermometerColderSide)
+
+
         should("execute test") {
             val iterationNumber = (simulationTimeInSeconds / timeStep).roundToInt()
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
                 log.info("Iteration: $i")
-                voxels.parallelStream().forEach { v -> calculationService.calculateGivenVoxel(v, i) }
+                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
+                calculationService.calculateForChunk(chunk, i)
+                chunkRepository.saveAll(chunk)
+                virtualThermometerService.updateDirectly(thermometerHotterSide, i)
+                virtualThermometerService.updateDirectly(thermometerColderSide, i)
                 countersRepository.increment(CounterId.CURRENT_ITERATION)
             }
 
+            withContext(Dispatchers.IO) {
+                FileOutputStream("cond_ver/thermometerHotterSide.csv").use {
+                    val v = virtualThermometerService.getMeasurements(thermometerHotterSide).also(
+                        RadiationSimpleExecutionTest.log::info)
+                    OutputStreamWriter(it).use { outputStreamWriter ->
+                        outputStreamWriter.write(v)
+                    }
+                }
+
+                FileOutputStream("cond_ver/thermometerColderSide.csv").use {
+                    val v = virtualThermometerService.getMeasurements(thermometerColderSide).also(
+                        RadiationSimpleExecutionTest.log::info)
+                    OutputStreamWriter(it).use { outputStreamWriter ->
+                        outputStreamWriter.write(v)
+                    }
+                }
+            }
             val result = voxelRepository.findAll()
             val min = result.minOf { it.evenIterationTemperature }
             val max = result.maxOf { it.evenIterationTemperature }

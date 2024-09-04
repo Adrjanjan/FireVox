@@ -1,9 +1,6 @@
 package pl.edu.agh.firevox.worker.physics.verification.convection
 
-import io.kotest.common.ExperimentalKotest
 import io.kotest.core.spec.style.ShouldSpec
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -17,18 +14,14 @@ import pl.edu.agh.firevox.shared.model.simulation.SingleModel
 import pl.edu.agh.firevox.shared.model.simulation.counters.Counter
 import pl.edu.agh.firevox.shared.model.simulation.counters.CounterId
 import pl.edu.agh.firevox.shared.model.simulation.counters.CountersRepository
+import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
 import pl.edu.agh.firevox.worker.WorkerApplication
 import pl.edu.agh.firevox.worker.service.CalculationService
+import pl.edu.agh.firevox.worker.service.VirtualThermometerService
 import java.io.FileOutputStream
+import java.util.concurrent.CompletableFuture
 import kotlin.math.roundToInt
 
-import pl.edu.agh.firevox.shared.model.vox.VoxFormatParser
-import pl.edu.agh.firevox.worker.physics.RadiationSimpleExecutionTest
-import pl.edu.agh.firevox.worker.service.VirtualThermometerService
-import java.io.OutputStreamWriter
-import kotlin.time.Duration.Companion.days
-
-@OptIn(ExperimentalKotest::class)
 @SpringBootTest(
     properties = [
         "firevox.timestep=0.5",
@@ -51,7 +44,7 @@ class ConvectionVerificationTest(
     val chunkRepository: ChunkRepository,
 ) : ShouldSpec({
 
-    context("save voxels from file").config(timeout = 5.days) {
+    context("save voxels from file") {
         val simulationTimeInSeconds = 1800
         countersRepository.save(Counter(CounterId.CURRENT_ITERATION, 0))
         countersRepository.save(Counter(CounterId.MAX_ITERATIONS, (simulationTimeInSeconds / timeStep).toLong()))
@@ -71,7 +64,7 @@ class ConvectionVerificationTest(
             baseTemperature = 1000.toKelvin(),  // C
             thermalConductivityCoefficient = 1.0, // W/(m*K)
             convectionHeatTransferCoefficient = 1.0,  // W/(m^2*K)
-            specificHeatCapacity = 1000.0, // kJ/(kg*K)
+            specificHeatCapacity = 1.0, // w FDS w kJ/(kg*K)
             ignitionTemperature = null,
             burningTime = null,
             timeToIgnition = null,
@@ -118,12 +111,11 @@ class ConvectionVerificationTest(
 //        val surfaceThermometer = VoxelKey(1, 1, 2)
 //        val gasThermometer = VoxelKey(1, 1, 4)
 
-
         // full
         val voxels = (0 until 30).flatMap { x ->
             (0 until 30).flatMap { y ->
                 (0 until 130).map { z ->
-                    val (temp, material) = if (z < 100)
+                    val (temp, material) = if (z < 100 && x in 10..19 && y in 10..19)
                         1000.toKelvin() to slabMaterial
                     else
                         0.toKelvin() to air
@@ -145,15 +137,8 @@ class ConvectionVerificationTest(
         val surfaceThermometer = VoxelKey(15, 15, 99)
         val gasThermometer = VoxelKey(15, 15, 120)
 
-//        (10 until 20).flatMap { x ->
-//            (10 until 20).flatMap { y ->
-//                (0 until 100).map { z ->
-//                    virtualThermometerService.create(VoxelKey(x, y, z))
-//                }
-//            }
-//        }
-
         virtualThermometerService.create(hotPlateThermometer)
+        virtualThermometerService.create(surfaceThermometer)
         virtualThermometerService.create(gasThermometer)
 
         val sizeX = voxels.maxOf { it.key.x } + 1
@@ -203,28 +188,7 @@ class ConvectionVerificationTest(
 
             log.info("Start of the processing. Iterations $iterationNumber voxels count: ${voxels.size}")
             for (i in 0..iterationNumber) {
-                log.info("Iteration: $i")
-                virtualThermometerService.updateDirectly(hotPlateThermometer, i)
-                virtualThermometerService.updateDirectly(gasThermometer, i)
-                virtualThermometerService.updateDirectly(surfaceThermometer, i)
-//                (10 until 20).flatMap { x ->
-//                    (10 until 20).flatMap { y ->
-//                        (0 until 100).map { z ->
-//                            virtualThermometerService.updateDirectly(VoxelKey(x, y, z), i)
-//                        }
-//                    }
-//                }
-
-                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
-                calculationService.calculateForChunk(chunk, i)
-                chunkRepository.saveAll(chunk)
-
-                log.info("Iteration end: $i")
-                if (i == iterationNumber) {
-                    iterationNumber = readln().toInt()
-                }
-
-                if (i % 100 == 0) {
+                if (i % 300 == 0) {
                     log.info("Dumping files for iteration: $i")
                     val min = voxels.minOf { it.evenIterationTemperature }
                     val max = voxels.maxOf { it.evenIterationTemperature }
@@ -242,26 +206,47 @@ class ConvectionVerificationTest(
                         sizeZ,
                         FileOutputStream("convection_ver/convection_verification_temp_${i}.vox")
                     )
-                    withContext(Dispatchers.IO) {
-                        dumpThermometer(
-                            virtualThermometerService,
-                            hotPlateThermometer,
-                            "convection_ver/hotPlateThermometer_$i.csv",
-                            log
-                        )
-                        dumpThermometer(
-                            virtualThermometerService,
-                            surfaceThermometer,
-                            "convection_ver/surfaceThermometer_$i.csv",
-                            log
-                        )
-                        dumpThermometer(
-                            virtualThermometerService,
-                            gasThermometer,
-                            "convection_ver/gasThermometer_$i.csv",
-                            log
-                        )
-                    }
+                    log.info("Hot Plate dump $i")
+                    dumpThermometer(
+                        postgreSQLContainer,
+                        hotPlateThermometer,
+                        "hotPlateThermometer_$i.csv",
+                        log
+                    )
+
+                    log.info("Surface dump $i")
+                    dumpThermometer(
+                        postgreSQLContainer,
+                        surfaceThermometer,
+                        "surfaceThermometer_$i.csv",
+                        log
+                    )
+
+                    log.info("Gas dump $i")
+                    dumpThermometer(
+                        postgreSQLContainer,
+                        gasThermometer,
+                        "gasThermometer_$i.csv",
+                        log
+                    )
+                }
+
+                log.info("Iteration: $i")
+                virtualThermometerService.updateDirectly(hotPlateThermometer, i)
+                virtualThermometerService.updateDirectly(gasThermometer, i)
+                virtualThermometerService.updateDirectly(surfaceThermometer, i)
+
+                val chunk = chunkRepository.fetch(VoxelKey(0, 0, 0), VoxelKey(sizeX - 1, sizeY - 1, sizeZ - 1))
+                calculationService.calculateForChunk(chunk, i)
+                chunkRepository.saveAll(chunk)
+
+                log.info("Iteration end: $i")
+                if (i == iterationNumber) {
+                    iterationNumber = readln().toInt()
+                }
+
+                if (i == 100) {
+                    dumpDatabase(postgreSQLContainer, "home/convection_ver_dump_$i.sql", log)
                 }
                 if (i % 500 == 0) {
                     dumpDatabase(postgreSQLContainer, "home/convection_ver_dump_$i.sql", log)
@@ -278,57 +263,56 @@ class ConvectionVerificationTest(
 }
 
 private fun dumpThermometer(
-    virtualThermometerService: VirtualThermometerService,
-    gasThermometer: VoxelKey,
+    container: PostgreSQLContainer<*>,
+    key: VoxelKey,
     path: String,
     logger: Logger
 ) {
-    logger.info("Dumping thermometer $path")
-    FileOutputStream(path).use {
-        val v = virtualThermometerService.getMeasurements(gasThermometer)
-//            .also(RadiationSimpleExecutionTest.log::info)
-            .replace(".", ",")
-        OutputStreamWriter(it).use { outputStreamWriter ->
-            outputStreamWriter.write(v)
-        }
+    CompletableFuture.runAsync {
+        logger.info("Dumping thermometer $path")
+        val x = key.x
+        val y = key.y
+        val z = key.z
+
+        val command = arrayOf(
+            """psql -U ${container.username} -h ${container.host} -p 5432 -c "\copy (select v.measurement from virtual_thermometer v where v.x = $x and v.y = $y and v.z = $z) TO '/home/convection_ver/$path' WITH CSV HEADER" """
+        )
+        logger.info(command.joinToString(separator = " "))
+        val execResult = container.execInContainer(*command)
+        logger.info(execResult.toString())
     }
 }
 
 fun dumpDatabase(container: PostgreSQLContainer<*>, outputFilePath: String, logger: Logger) {
-    // Command to execute inside the container
-    val command = arrayOf(
-        "pg_dump",
-        "-U", container.username,
-        "-h", container.host,
-        "-p", "5432",
-        "-d", container.databaseName,
-        "-f", outputFilePath,
-        "-c",
-    ).joinToString(separator = " ")
-
-    // File to save the output
-//    FileOutputStream(outputFilePath).use { outputStream ->
-    logger.info(command)
-        val execResult = container.execInContainer(command)
+    CompletableFuture.runAsync {
+        val command = arrayOf(
+            "pg_dump",
+            "-U", container.username,
+            "-h", container.host,
+            "-p", "5432",
+            "-d", container.databaseName,
+            "-f", outputFilePath,
+            "-c",
+        )
+        logger.info(command.joinToString(separator = " "))
+        val execResult = container.execInContainer(*command)
         logger.info(execResult.toString())
-//        OutputStreamWriter(it).use { outputStreamWriter ->
-//            outputStreamWriter.write(v)
-//        }
-//        outputStream.write(execResult.stdout.toByteArray())
-//    }
+    }
 }
 
 fun loadDatabaseFromDump(container: PostgreSQLContainer<*>, inputFilePath: String, logger: Logger) {
-    // Command to execute inside the container
-    val command = arrayOf(
-        "psql",
-        "-U", container.username,
-        "-h", container.host,
-        "-p", "5432",
-        "-d", container.databaseName,
-        "-f", inputFilePath,
-    ).joinToString(separator = " ")
-    logger.info(command)
-    val execResult = container.execInContainer(command)
-    logger.info(execResult.toString())
+    CompletableFuture.runAsync {
+        val command = arrayOf(
+            "psql",
+            "-U", container.username,
+            "-h", container.host,
+            "-p", "5432",
+            "-d", container.databaseName,
+            "-f", inputFilePath,
+        )
+        logger.info(command.joinToString(separator = " "))
+        val execResult = container.execInContainer(*command)
+        logger.info(execResult.toString())
+    }
+
 }

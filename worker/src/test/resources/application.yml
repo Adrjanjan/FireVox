@@ -18,3 +18,7 @@ spring:
 #    org:
 #      hibernate:
 #        SQL: DEBUG
+#      springframework:
+#        boot:
+#          context:
+#            logging: DEBUG

@@ -78,13 +78,17 @@ class ConvectionCalculator(
     // https://www.engineersedge.com/physics/viscosity_of_air_dynamic_and_kinematic_14483.htm
     // https://en.wikipedia.org/wiki/Heat_transfer_coefficient#cite_ref-5
     private fun calculateHeatTransferCoefficient(it: VoxelState, current: VoxelState): Double {
-        val result = when {
-            current.temperature > it.temperature && it.isAbove(current) -> hotPlateFacingUp(it, current)
-            current.temperature > it.temperature && it.isBelow(current) -> hotPlateFacingDown(it, current)
-            current.temperature < it.temperature && it.isBelow(current) -> hotPlateFacingUp(current, it)
-            current.temperature < it.temperature && it.isAbove(current) -> hotPlateFacingDown(current, it)
-            else -> readln().toDouble() // unreachable, left with IO operation so that the database during test is not discarded
-        }
+        val result = 1.0
+//            when {
+//            current.temperature > it.temperature && it.isAbove(current) -> hotPlateFacingUp(it, current)
+//            current.temperature > it.temperature && it.isBelow(current) -> hotPlateFacingDown(it, current)
+//            current.temperature < it.temperature && it.isBelow(current) -> hotPlateFacingUp(current, it)
+//            current.temperature < it.temperature && it.isAbove(current) -> hotPlateFacingDown(current, it)
+//            else -> {
+//                log.error("Unreachable convection configuration. Current: ${current.temperature}, Other: ${it.temperature}")
+//                1.0
+//            } // unreachable, left with IO operation so that the database during test is not discarded
+//        }
         return result
     }
 

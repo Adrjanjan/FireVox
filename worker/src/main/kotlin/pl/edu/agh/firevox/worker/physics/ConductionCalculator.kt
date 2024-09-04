@@ -28,20 +28,13 @@ class ConductionCalculator(
         voxelsToSend: MutableSet<VoxelKey>
     ): Double {
         // volume and distance(=voxelLength) sie skrocily do area
-        val material = voxel.material
-        val constants = (material.density * voxelLength.pow(2) * material.specificHeatCapacity)
+        val constants = timeStep / (voxel.material.density * voxelLength.pow(2) * voxel.material.specificHeatCapacity)
 
-        val heat = voxels.filter {
-            material.isSolid() && it.material.isSolid()
-                    || material.isFluid() && it.material.isFluid() // should only work for stationary - also include velocity but cant do
+        val result = constants * voxels.filter {
+            voxel.material.isSolid() && it.material.isSolid()
+                    || voxel.material.isFluid() && it.material.isFluid() // should only work for stationary - also include velocity but cant do
         }.sumOf { conductiveHeat(it, voxel) }
-
-        val ambientHeatOut = if (enableAmbient && !voxel.ambienceInsulated && material.voxelMaterial == AIR ) {
-            (6 - voxels.size) * (ambientTemperature - voxel.temperature) * material.thermalConductivityCoefficient
-        } else 0.0
-
-//        log.info("[${voxel.key}] Conduction heat transferred: ${heat + ambientHeatOut}")
-        return timeStep * (heat + ambientHeatOut) / constants
+        return result
     }
 
     // dT * condCoeff_avg
