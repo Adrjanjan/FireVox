@@ -3,6 +3,7 @@ package pl.edu.agh.firevox.worker.physics
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import pl.edu.agh.firevox.shared.model.*
+import kotlin.math.pow
 
 class SmokeCalculatorTest : ShouldSpec({
     val timeStep = 0.1
@@ -51,12 +52,13 @@ class SmokeCalculatorTest : ShouldSpec({
         autoignitionTemperature = 2000.toKelvin(),
         burningTime = 1.4, // TODO
         effectiveHeatOfCombustion = 1500.0,
-        smokeEmissionPerSecond = 0.3,
+        smokeEmissionPerSecond = 0.003, // 30%/(m^2/s)
         deformationTemperature = null,
         emissivity = 0.9
     )
 
-    val calculator = SmokeCalculator()
+    val voxelLength = 0.1
+    val calculator = SmokeCalculator(voxelLength)
 
     context("calculate smoke transfer correctly") {
 
@@ -119,14 +121,14 @@ class SmokeCalculatorTest : ShouldSpec({
                     material = smoke,
                     temperature = 20.toKelvin(),
                     wasProcessedThisIteration = false,
-                    smokeConcentration = 0.90,
+                    smokeConcentration = 0.95,
                     ignitingCounter = 0,
                     burningCounter = 1,
                 )
             )
 
             val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.5 - 0.1 / 6
+            result shouldBe 0.5 - 0.5 / 6
         }
 
         context("for only side neighbours available") {
@@ -269,6 +271,42 @@ class SmokeCalculatorTest : ShouldSpec({
             val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
             result shouldBe 0.7 - (4 * 0.5 * (0.5 / 6) + 1 * 0.7 / 6)
         }
+
+
+        context("for only lower available") {
+            val voxels = mutableListOf(
+                VoxelState(
+                    VoxelKey(0, 0, 0),
+                    material = smoke,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.50,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(0, 0, -1),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.00,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                ),
+                VoxelState(
+                    VoxelKey(0, 0, 1),
+                    material = air,
+                    temperature = 20.toKelvin(),
+                    wasProcessedThisIteration = false,
+                    smokeConcentration = 0.99999,
+                    ignitingCounter = 0,
+                    burningCounter = 1,
+                )
+            )
+
+            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
+            result shouldBe 0.5 - 0.25 * 0.5 / 6
+        }
     }
 
     context("calculate smoke generation") {
@@ -295,7 +333,7 @@ class SmokeCalculatorTest : ShouldSpec({
             )
 
             val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe woodBurning.smokeEmissionPerSecond!! * timeStep
+            result shouldBe woodBurning.smokeEmissionPerSecond!! * timeStep / voxelLength.pow(2)
         }
     }
 })
