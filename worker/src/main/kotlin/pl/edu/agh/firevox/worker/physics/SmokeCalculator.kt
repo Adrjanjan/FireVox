@@ -1,13 +1,15 @@
 package pl.edu.agh.firevox.worker.physics
 
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import pl.edu.agh.firevox.shared.model.VoxelKey
 import pl.edu.agh.firevox.shared.model.VoxelState
 import kotlin.math.min
-import kotlin.math.sign
 
 @Service
-class SmokeCalculator {
+class SmokeCalculator(
+    @Value("\${firevox.voxel.size}") val voxelLength: Double,
+) {
 
     fun calculate(
         currentVoxel: VoxelState,
@@ -16,7 +18,7 @@ class SmokeCalculator {
         iteration: Int,
         voxelsToSend: MutableSet<VoxelKey>,
     ): Double {
-        val smokeTransferred = smokeTransferred(currentVoxel, neighbours, timeStep)
+        val smokeTransferred = smokeTransferred(currentVoxel, neighbours)
         val smokeGenerated = smokeGenerated(currentVoxel, neighbours, timeStep)
         return currentVoxel.smokeConcentration + smokeTransferred + smokeGenerated
     }
@@ -25,41 +27,38 @@ class SmokeCalculator {
         neighbours.firstOrNull { it.isBelow(currentVoxel) && it.material.isBurning() }
             ?.let { generatedSmoke(it, timeStep) } ?: 0.0
 
-    private fun smokeTransferred(currentVoxel: VoxelState, neighbours: List<VoxelState>, timeStep: Double): Double =
-        neighbours.filter { it.material.transfersSmoke() && it != currentVoxel }
-            .fold(0.0) { acc, neighbour ->
-                acc + transferFactor(
-                    currentVoxel, neighbour, neighbour.smokeConcentration < 1.0
-                ) * smokeTransfer(currentVoxel.smokeConcentration, neighbour.smokeConcentration) // * timeStep
-
-            }
-
-    private fun generatedSmoke(n: VoxelState, timeStep: Double): Double {
-        return n.material.smokeEmissionPerSecond!! * timeStep
+    fun smokeTransferred(currentVoxel: VoxelState, neighbours: List<VoxelState>): Double {
+        val transferOut = -smokeTransfer(currentVoxel, neighbours)
+        val transferIn = neighbours.filter { it.material.transfersSmoke() }
+            .sumOf { smokeTransfer(it, listOf(currentVoxel)) }
+        return transferOut + transferIn
     }
 
-    fun smokeTransfer(a: Double, b: Double) = if (a > b) {
-        min(a / 6, (1.0 - b) / 6)
-    } else min(b / 6, (1.0 - a) / 6)
-
-    /**
-     * Coefficient + the direction of transfer
-     */
-    fun transferFactor(from: VoxelState, to: VoxelState, upperCanAccept: Boolean): Double = if (upperCanAccept) {
-        when {
-            to.isAbove(from) -> 1.0
-            to.isBelow(from) -> 0.25
-            else -> 0.5
+    fun smokeTransfer(currentVoxel: VoxelState, neighbours: List<VoxelState>): Double {
+        return neighbours.filter { it != currentVoxel && it.material.transfersSmoke() }.sumOf {
+            individualTransfer(currentVoxel, it)
         }
-    } else {
-        when {
-            to.isAbove(from) -> 0.0
-            to.isBelow(from) -> 1.0
-            else -> 0.5
-        }
-    } * direction(from, to)
+    }
 
-    private fun direction(from: VoxelState, to: VoxelState): Double =
-        if (from.isBelow(to)) -1.0 else sign(to.smokeConcentration - from.smokeConcentration)
+    fun individualTransfer(source: VoxelState, target: VoxelState): Double {
+        val upperCanAccept = target.material.transfersSmoke() && target.smokeConcentration <= 0.99
+        val transferFactor = if (upperCanAccept) {
+            when {
+                target.isAbove(source) -> 1.0
+                target.isBelow(source) -> 0.25
+                else -> 0.5
+            }
+        } else when {
+            target.isAbove(source) -> 0.0
+            target.isBelow(source) -> 0.5
+            else -> 1.0
+        }
+        return transferFactor * min(source.smokeConcentration / 6.0, (1.0 - target.smokeConcentration) / 6.0)
+    }
+
+
+    private fun generatedSmoke(n: VoxelState, timeStep: Double): Double {
+        return n.material.smokeEmissionPerSecond!! * timeStep / (voxelLength * voxelLength)
+    }
 
 }

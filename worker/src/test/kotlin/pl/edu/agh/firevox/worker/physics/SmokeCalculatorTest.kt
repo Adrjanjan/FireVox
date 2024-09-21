@@ -3,10 +3,20 @@ package pl.edu.agh.firevox.worker.physics
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 import pl.edu.agh.firevox.shared.model.*
+import kotlin.math.abs
 import kotlin.math.pow
 
 class SmokeCalculatorTest : ShouldSpec({
     val timeStep = 0.1
+
+    fun compareResults(first: Double, second: Double, expected: Double) {
+        first shouldBe expected
+        if (first == 0.0) {
+            abs(second) shouldBe 0.0
+        } else {
+            first shouldBe -second
+        }
+    }
 
     val air = PhysicalMaterial(
         voxelMaterial = VoxelMaterial.AIR,
@@ -75,8 +85,8 @@ class SmokeCalculatorTest : ShouldSpec({
                 )
             )
 
-            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.50
+            val result = calculator.smokeTransferred(voxels[0], voxels)
+            compareResults(result, 0.0, 0.0)
         }
 
         context("for only upper empty neighbour available") {
@@ -101,8 +111,9 @@ class SmokeCalculatorTest : ShouldSpec({
                 )
             )
 
-            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.5 - 0.5 / 6
+            val result = calculator.smokeTransferred(voxels[0], voxels)
+            val result2 = calculator.smokeTransferred(voxels[1], voxels)
+            compareResults(result, result2, -0.5/6)
         }
 
         context("for only upper not fully empty neighbour available") {
@@ -127,8 +138,12 @@ class SmokeCalculatorTest : ShouldSpec({
                 )
             )
 
-            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.5 - 0.5 / 6
+            val result = calculator.smokeTransferred(voxels[0], voxels)
+            val result2 = calculator.smokeTransferred(voxels[1], voxels)
+            val smokeIn = 0.25 * 0.5 / 6
+            val smokeOut = -1.0 * (1 - 0.95) / 6
+            val expected = smokeIn + smokeOut
+            compareResults(result, result2, expected)
         }
 
         context("for only side neighbours available") {
@@ -180,8 +195,9 @@ class SmokeCalculatorTest : ShouldSpec({
                 )
             )
 
-            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.7 - (4 * 0.5 * (0.5 / 6))
+            val result = calculator.smokeTransferred(voxels[0], voxels)
+            val result2 = calculator.smokeTransferred(voxels[1], voxels)
+            compareResults(result, result2, -4 * 0.5 * 0.2 / 6)
         }
 
         context("for only below neighbour available") {
@@ -206,8 +222,9 @@ class SmokeCalculatorTest : ShouldSpec({
                 )
             )
 
-            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.5 - 0.25 * 0.5 / 6
+            val result = calculator.smokeTransferred(voxels[0], voxels)
+            val result2 = calculator.smokeTransferred(voxels[1], voxels)
+            compareResults(result, result2, -0.25 * 0.5 / 6)
         }
 
         context("for multiple cells smoke mass is conserved") {
@@ -268,8 +285,9 @@ class SmokeCalculatorTest : ShouldSpec({
                 )
             )
 
-            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.7 - (4 * 0.5 * (0.5 / 6) + 1 * 0.7 / 6)
+            val result = calculator.smokeTransferred(voxels[0], voxels)
+            val result2 = calculator.smokeTransferred(voxels[1], voxels)
+            compareResults(result, result2, -4 * 0.5 * (0.5 / 6) + 1 * 0.7 / 6)
         }
 
 
@@ -304,36 +322,9 @@ class SmokeCalculatorTest : ShouldSpec({
                 )
             )
 
-            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe 0.5 - 0.25 * 0.5 / 6
-        }
-    }
-
-    context("calculate smoke generation") {
-        should("return correct value") {
-            val voxels = mutableListOf(
-                VoxelState(
-                    VoxelKey(0, 0, 0),
-                    material = air,
-                    temperature = 20.toKelvin(),
-                    wasProcessedThisIteration = false,
-                    smokeConcentration = 0.0,
-                    ignitingCounter = 0,
-                    burningCounter = 1,
-                ),
-                VoxelState(
-                    VoxelKey(0, 0, -1),
-                    material = woodBurning,
-                    temperature = 20.toKelvin(),
-                    wasProcessedThisIteration = false,
-                    smokeConcentration = 0.0,
-                    ignitingCounter = 0,
-                    burningCounter = 1,
-                )
-            )
-
-            val result = calculator.calculate(voxels[0], voxels, timeStep, 0, mutableSetOf())
-            result shouldBe woodBurning.smokeEmissionPerSecond!! * timeStep / voxelLength.pow(2)
+            val result = calculator.smokeTransferred(voxels[0], voxels)
+            val result2 = calculator.smokeTransferred(voxels[1], voxels)
+            compareResults(result, result2, -1.0 * 0.5 / 6)
         }
     }
 })
