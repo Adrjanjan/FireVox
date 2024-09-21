@@ -35,13 +35,14 @@ class SmokeCalculator(
     }
 
     fun smokeTransfer(currentVoxel: VoxelState, neighbours: List<VoxelState>): Double {
+        val upperCanAccept = neighbours.firstOrNull { it.isAbove(currentVoxel) && it.material.transfersSmoke() }
+            ?.let { it.smokeConcentration <= 0.99 } ?: false
         return neighbours.filter { it != currentVoxel && it.material.transfersSmoke() }.sumOf {
-            individualTransfer(currentVoxel, it)
+            individualTransfer(currentVoxel, it, upperCanAccept)
         }
     }
 
-    fun individualTransfer(source: VoxelState, target: VoxelState): Double {
-        val upperCanAccept = target.material.transfersSmoke() && target.smokeConcentration <= 0.99
+    fun individualTransfer(source: VoxelState, target: VoxelState, upperCanAccept: Boolean): Double {
         val transferFactor = if (upperCanAccept) {
             when {
                 target.isAbove(source) -> 1.0
@@ -51,7 +52,7 @@ class SmokeCalculator(
         } else when {
             target.isAbove(source) -> 0.0
             target.isBelow(source) -> 0.5
-            else -> 1.0
+            else -> 1.0 // side
         }
         return transferFactor * min(source.smokeConcentration / 6.0, (1.0 - target.smokeConcentration) / 6.0)
     }
