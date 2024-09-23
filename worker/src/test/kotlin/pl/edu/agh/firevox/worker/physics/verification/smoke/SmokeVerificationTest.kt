@@ -69,7 +69,7 @@ class SmokeVerificationTest(
             timeToIgnition = 10.0,
             autoignitionTemperature = 2000.0,
             effectiveHeatOfCombustion = null,
-            smokeEmissionPerSecond = 100.0, // %/(m^2/s)
+            smokeEmissionPerSecond = 0.001, // %/(m^2/s)
             deformationTemperature = null,
             emissivity = 0.0,
         ).also(physicalMaterialRepository::save)

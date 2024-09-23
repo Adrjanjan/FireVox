@@ -1,0 +1,15 @@
+&HEAD CHID='fire_generation_test', TITLE='fire_generation_test' /
+
+&SURF ID='XMAX', COLOR='BLACK' RGB=0,0,0 /
+&VENT XB=0, 0.4, 0, 0, 0, 0.4, SURF_ID='XMAX' /
+&SURF ID='XMIN', COLOR='BLACK' RGB=0,0,0 /
+&VENT XB=0, 0.4, 0.4, 0.4, 0, 0.4, SURF_ID='XMIN' /
+
+&MESH XB= 0, 0.4, 0, 0.4, 0, 0.4, IJK= 40, 40, 40 /
+&TIME T_END=10 /
+&SURF ID='BURNER', HRRPUA=200.0, COLOR='RED' /
+&VENT XB=0.1,0.3,0.1,0.3,0.0,0.0, SURF_ID='BURNER' /
+&REAC FUEL='PROPANE' /
+
+&SLCF PBY=0.2, QUANTITY="HRRPUV" /
+&TAIL /

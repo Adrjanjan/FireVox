@@ -47,7 +47,7 @@ class SmokeCalculator(
             when {
                 target.isAbove(source) -> 1.0
                 target.isBelow(source) -> 0.25
-                else -> 0.5
+                else -> 0.5 // side
             }
         } else when {
             target.isAbove(source) -> 0.0

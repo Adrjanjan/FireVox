@@ -30,7 +30,7 @@ class PhysicalMaterial(
     var burningTime: Double?, // unit s
     var effectiveHeatOfCombustion: Double?, // unit J/s
 
-    var smokeEmissionPerSecond: Double?, // no unit
+    var smokeEmissionPerSecond: Double?, // (%/(m^2/s))
     var deformationTemperature: Double?, // unit K
 
     var burnsCompletely: Boolean = false,

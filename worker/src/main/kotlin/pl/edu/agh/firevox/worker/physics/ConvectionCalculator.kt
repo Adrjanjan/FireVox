@@ -61,7 +61,7 @@ class ConvectionCalculator(
     private fun solidFluidTransfer(first: VoxelState, second: VoxelState): Boolean = when {
         first.material.isSolid() && second.material.isFluid() -> true
         first.material.isFluid() && second.material.isSolid() -> true
-        first.material.isFluid() && second.material.isFluid() -> false
+        first.material.isFluid() && second.material.isFluid() -> true
         else -> false
     }
 
@@ -77,19 +77,57 @@ class ConvectionCalculator(
 
     // https://www.engineersedge.com/physics/viscosity_of_air_dynamic_and_kinematic_14483.htm
     // https://en.wikipedia.org/wiki/Heat_transfer_coefficient#cite_ref-5
-    private fun calculateHeatTransferCoefficient(it: VoxelState, current: VoxelState): Double {
-        val result = 1.0
-//            when {
-//            current.temperature > it.temperature && it.isAbove(current) -> hotPlateFacingUp(it, current)
-//            current.temperature > it.temperature && it.isBelow(current) -> hotPlateFacingDown(it, current)
-//            current.temperature < it.temperature && it.isBelow(current) -> hotPlateFacingUp(current, it)
-//            current.temperature < it.temperature && it.isAbove(current) -> hotPlateFacingDown(current, it)
-//            else -> {
-//                log.error("Unreachable convection configuration. Current: ${current.temperature}, Other: ${it.temperature}")
-//                1.0
-//            } // unreachable, left with IO operation so that the database during test is not discarded
-//        }
-        return result
+    private fun calculateHeatTransferCoefficient(other: VoxelState, current: VoxelState): Double {
+        val result =
+            when {
+                other.material.isFluid() && current.material.isFluid() -> gasToGas(
+                    if (other.isAbove(current)) other else current,
+                    if (other.isBelow(current)) current else other,
+                )
+
+                current.temperature > other.temperature && other.isAbove(current) -> hotPlateFacingUp(other, current)
+                current.temperature > other.temperature && other.isBelow(current) -> hotPlateFacingDown(other, current)
+                current.temperature < other.temperature && other.isBelow(current) -> hotPlateFacingUp(current, other)
+                current.temperature < other.temperature && other.isAbove(current) -> hotPlateFacingDown(current, other)
+                else -> {
+                    log.error("Unreachable convection configuration. Current: ${current.temperature}, Other: ${other.temperature}")
+                    1.0
+                } // unreachable, left with IO operation so that the database during test is not discarded
+            }
+        return result.also {
+            if (current.temperature != other.temperature)
+                log.info("Conv for ${current.key} = $it || Curr_t: ${current.temperature} <-> other_t: ${other.temperature}")
+        }
+    }
+
+    private fun gasToGas(up: VoxelState, down: VoxelState): Double {
+        val T1: Double = up.temperature  // Temperature of cube 1 (in Kelvin)
+        val T2: Double = down.temperature  // Temperature of cube 2 (in Kelvin)
+        val L: Double = characteristicLength   // Characteristic length of the cube (in meters)
+        val g = 9.81 // Gravitational acceleration (in m/s²)
+        val k = 0.026 // Thermal conductivity of air (in W/m·K)
+        val nu = 15.89e-6 // Kinematic viscosity of air (in m²/s)
+        val pr = 0.707
+        val deltaT = T1 - T2
+        val T_avg = (T1 + T2) / 2
+        val beta = 1 / T_avg // Coefficient of thermal expansion (1/T_avg in 1/K)
+
+        // Step 1: Calculate Grashof number (Gr)
+        val gr = (g * beta * deltaT * L.pow(3)) / (nu.pow(2))
+
+        // Step 2: Calculate Rayleigh number (Ra)
+        val ra = gr * pr
+
+        // Step 3: Empirical correlation for Nusselt number (Nu)
+        // Constants for the correlation
+        val c = 0.59
+        val n = 0.25
+        val nuNumber = c * ra.pow(n)
+
+        // Step 4: Calculate convective heat transfer coefficient (h)
+        val h = (nuNumber * k) / L
+
+        return h
     }
 
     private fun hotPlateFacingUp(coldUp: VoxelState, hotBelow: VoxelState): Double {

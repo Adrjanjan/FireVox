@@ -56,6 +56,8 @@ class CustomVoxelRepository(
 
             PaletteType.BASE_PALETTE -> voxelRepository.findAllOnlyValues(iteration)
                 .associate { (it.get("key") as VoxelKey) to (it.get("value__") as Int) }
+            PaletteType.SMOKE_PALETTE -> voxelRepository.findAllOnlySmoke(iteration)
+                .associate { (it.get("key") as VoxelKey) to (it.get("value__") as Int) }
         }
     }
 
@@ -92,6 +94,16 @@ interface VoxelRepository : JpaRepository<Voxel, VoxelKey> {
         """
     )
     fun findAllOnlyTemperatures(iteration: Long): List<Tuple>
+
+
+    @Query(
+        """
+            select v.key as key, 
+            case when MOD(:iteration, 2) = 0 then v.evenSmokeConcentration else v.oddSmokeConcentration end as value__
+            from Voxel v
+        """
+    )
+    fun findAllOnlySmoke(iteration: Long): List<Tuple>
 
     @Query(
         """

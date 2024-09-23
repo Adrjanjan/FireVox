@@ -43,7 +43,7 @@ data class Voxel(
 
     fun Double.toCelsius() = this.minus(273.15)
     override fun toString(): String {
-        return "Voxel(key=$key, evenIterationMaterial=$evenIterationMaterial, evenIterationTemperature=${evenIterationTemperature.toCelsius()}, oddIterationMaterial=$oddIterationMaterial, oddIterationTemperature=${oddIterationTemperature.toCelsius()}, isBoundaryCondition=$isBoundaryCondition)"
+        return "Voxel(key=$key, even=$evenSmokeConcentration $evenIterationMaterial, odd=$oddSmokeConcentration $oddIterationMaterial)"
     }
 
     fun toVoxelState(iteration: Int) = if (iteration % 2 == 0)
@@ -81,7 +81,7 @@ data class VoxelState(
     var ambienceInsulated: Boolean = false,
 ) {
     override fun toString(): String {
-        return "VoxelState(key=$key, temperature=${temperature.toCelsius()}, material=${material.voxelMaterial.name}, smoke=$smokeConcentration, burningCounter=${burningCounter}, ignitingCounter=$ignitingCounter), ambienceInsulated=$ambienceInsulated"
+        return "VoxelState(key=$key, temperature=${temperature.toCelsius()}, material=${material.voxelMaterial.name}, smoke=$smokeConcentration, burningCounter=${burningCounter}, ignitingCounter=$ignitingCounter, ambienceInsulated=$ambienceInsulated)\n"
     }
 
     fun isAbove(other: VoxelState) = this.key.isAbove(other.key)

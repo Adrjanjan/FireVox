@@ -26,7 +26,7 @@ class CalculationService(
     private val physicalMaterialRepository: PhysicalMaterialRepository,
     private val countersRepository: CountersRepository,
     private val voxelProcessingMessageSender: VoxelProcessingMessageSender,
-    @Value("\${firevox.smokeIntoFireThreshold}") private val smokeIntoFireThreshold: Double = 150 + 273.15,
+    @Value("\${firevox.smokeIntoFireThreshold}") private val smokeIntoFireThreshold: Double = 1000 + 273.15,
 ) {
 
     private val burningToBurnt = mapOf(
@@ -114,20 +114,20 @@ class CalculationService(
     ): Triple<Voxel, Boolean, MutableSet<VoxelKey>> {
         val voxelsToSendForSameIteration = mutableSetOf<VoxelKey>()
         // heat transfer calculators
-        val conductionResult = conductionCalculator.calculate(
-            voxelState, neighbours, timeStep, voxelsToSendForSameIteration
-        )
-
-        val convectionResult = convectionCalculator.calculate(
-            voxelState, neighbours, timeStep, voxelsToSendForSameIteration
-        )
-
-        val burningResult = if (voxelState.material.isBurning())
-            burningCalculator.calculate(voxelState, timeStep, iteration)
-        else 0.0
-
-        val heatResults = listOf(
-            conductionResult, convectionResult, burningResult
+//        val conductionResult = conductionCalculator.calculate(
+//            voxelState, neighbours, timeStep, voxelsToSendForSameIteration
+//        )
+//
+//        val convectionResult = convectionCalculator.calculate(
+//            voxelState, neighbours, timeStep, voxelsToSendForSameIteration
+//        )
+//
+//        val burningResult = if (voxelState.material.isBurning())
+//            burningCalculator.calculate(voxelState, timeStep, iteration)
+//        else 0.0
+//
+        val heatResults = listOf<Double>(
+//            conductionResult, convectionResult, burningResult
         )
 
         val smokeUpdate = if (voxelState.material.transfersSmoke())
@@ -138,15 +138,6 @@ class CalculationService(
         val newMaterial = nextPhysicalMaterial(voxelState, neighbours, iteration, smokeUpdate)
 
         setNextProperties(voxel, iteration, heatResults, newMaterial, smokeUpdate, null, null)
-//        log.info(
-//            "[${voxel.key}] ${voxel.oddIterationMaterial.voxelMaterial} Prev temp: ${
-//                if (iteration % 2 == 1) {
-//                    "${voxel.oddIterationTemperature}" + " Next temp: " + "${voxel.evenIterationTemperature}"
-//                } else {
-//                    "${voxel.evenIterationTemperature}" + " Next temp: " + "${voxel.oddIterationTemperature}"
-//                }
-//            }\n"
-//        )
         return Triple(voxel, true, voxelsToSendForSameIteration)
     }
 

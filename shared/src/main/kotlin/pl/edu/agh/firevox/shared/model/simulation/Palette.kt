@@ -1,6 +1,7 @@
 package pl.edu.agh.firevox.shared.model.simulation
 
 import pl.edu.agh.firevox.shared.model.VoxelMaterial
+import kotlin.math.roundToInt
 
 data class Palette(
     val paletteType: PaletteType,
@@ -268,7 +269,7 @@ data class Palette(
             )
         )
 
-        val basePalette = Palette (
+        val basePalette = Palette(
             PaletteType.BASE_PALETTE,
             mutableSetOf(
                 Colour(VoxelMaterial.AIR.colorId, 0, 0, 0, 0),
@@ -303,25 +304,38 @@ data class Palette(
                 Colour(VoxelMaterial.WATER.colorId, 255, 255, 255),
             ).also { set ->
                 val indexes = set.map { it.index }
-                (1..253)
+                (1..254)
                     .filter { it !in indexes }
                     .forEach { set.add(Colour(it, 0, 0, 0, 0)) }
 
                 set.sortedBy { it.index }
             }
         )
+        val smokePalette = Palette(
+            PaletteType.SMOKE_PALETTE,
+            interpolateAlphaInBlack()
+        )
 
         val palettes = mapOf(
-            PaletteType.TEMPERATURE_PALETTE to temperaturePalette,
-            PaletteType.BASE_PALETTE to basePalette
+            temperaturePalette.paletteType to temperaturePalette,
+            basePalette.paletteType to basePalette,
+            smokePalette.paletteType to smokePalette,
         )
-    }
 
+        private fun interpolateAlphaInBlack(): Set<Colour> {
+            val colors = mutableSetOf<Colour>()
+            for (i in 1 .. 254) {
+                colors.add(Colour(i, 0, 0, 0, i))
+            }
+            return colors
+        }
+    }
 }
 
 enum class PaletteType {
     TEMPERATURE_PALETTE,
-    BASE_PALETTE
+    BASE_PALETTE,
+    SMOKE_PALETTE
 }
 
 data class Colour(
