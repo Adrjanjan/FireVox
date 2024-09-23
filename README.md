@@ -1,6 +1,9 @@
 # FireVox
 Fire simulation based on voxel models of buildings
 
+The project was developed on Ubuntu 20.04, it should run on other UNIX systems without an issue 
+but for best compatibility try Ubuntu. 
+
 # Verification Tests
 Tests are present under `worker/src/test/kotlin/pl/edu/agh/firevox/worker/physics/verification`
 Each test is separate unit, everything is set up so that whole architecture required for running verification test
